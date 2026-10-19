@@ -889,10 +889,10 @@ function buildChart(mode){
       fixLeftEdge: true, fixRightEdge: true, minBarSpacing: mode === 'candle' ? 2 : 0.3 },
     rightPriceScale: { borderVisible: false, autoScale: true },
     crosshair: { mode: 0 },
-    // On garde le zoom à deux doigts et le glissement horizontal.
+    // Zoom : deux doigts sur téléphone, molette ou pincement du trackpad sur ordinateur. Glissement horizontal.
     // On retire ce qui déformait le graphique : étirer les axes, molette, glisser à la verticale.
     handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
-    handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: false, axisDoubleClickReset: false }
+    handleScale: { mouseWheel: true, pinch: true, axisPressedMouseMove: false, axisDoubleClickReset: false }
   });
   const priceFormat = priceFmt(priceOf(sheetKey));
   if (mode === 'candle'){
