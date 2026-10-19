@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#17171b">
+<title>100 Balles</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#17171b; --surface:#222228; --surface2:#2d2d34; --line:rgba(255,255,255,.06);
+  --txt:#f4f4f6; --mut:#8e8e9a; --acc:#ab9ff2; --acc-ink:#1d1a33;
+  --up:#2ebd85; --down:#f6465d; --r:16px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg);color:var(--txt);font-family:Figtree,-apple-system,system-ui,sans-serif;font-size:15px;line-height:1.35;font-variant-numeric:tabular-nums}
+body{padding-bottom:84px}
+button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+input{font:inherit;width:100%;padding:13px 14px;border-radius:12px;border:0;background:var(--surface2);color:var(--txt);outline:none}
+input::placeholder{color:var(--mut)}
+input:focus{box-shadow:0 0 0 2px var(--acc)}
+.up{color:var(--up)}.down{color:var(--down)}.mut{color:var(--mut)}.sm{font-size:13px}
+
+/* en-tête : le solde */
+header{padding:22px 16px 18px;text-align:center}
+.status{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--mut)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--down)}
+.dot.on{background:var(--up)}
+#total{font-size:42px;font-weight:700;letter-spacing:-.02em;margin:8px 0 6px}
+.pnlrow{display:flex;justify-content:center;align-items:center;gap:8px;font-size:14px;font-weight:500}
+.pill{padding:3px 9px;border-radius:999px;font-size:13px;font-weight:600}
+.pill.up{background:rgba(46,189,133,.14)}.pill.down{background:rgba(246,70,93,.14)}
+#cash{margin-top:6px;font-size:13px;color:var(--mut)}
+
+main{padding:0 16px 8px}
+.hint{font-size:13px;color:var(--mut);margin:0 4px 10px}
+
+/* listes de tokens */
+.row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--surface);border-radius:var(--r);margin-bottom:8px;cursor:pointer}
+.row:active{background:var(--surface2)}
+.row .ic{display:flex;flex:none}
+.row img,.ph{width:40px;height:40px;border-radius:50%;flex:none;background:var(--surface2);object-fit:cover}
+.ph{display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--mut)}
+.grow{flex:1;min-width:0}
+.name{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.name .sm{font-weight:500}
+.right{text-align:right;flex:none}
+.right>div:first-child{font-weight:600}
+
+/* contrôles segmentés */
+.tabs{display:flex;background:var(--surface);border-radius:12px;padding:3px;gap:2px;margin-bottom:12px}
+.tabs button{flex:1;padding:8px 4px;border-radius:9px;color:var(--mut);font-weight:600;font-size:14px;white-space:nowrap}
+.tabs button.on{background:var(--surface2);color:var(--txt)}
+
+form.search{position:relative;margin-bottom:12px}
+form.search svg{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--mut)}
+form.search input{padding-left:42px}
+
+/* cartes et lignes clé/valeur */
+.card{background:var(--surface);border-radius:var(--r);padding:16px;margin-bottom:10px}
+.card h3{font-size:16px;font-weight:600;margin-bottom:10px}
+.kv{display:flex;justify-content:space-between;gap:12px;padding:5px 0}
+.kv>span:first-child{color:var(--mut)}
+.kv>span:last-child{font-weight:500;text-align:right}
+.field{font-size:13px;color:var(--mut);margin:12px 0 6px}
+
+/* boutons */
+.btn{display:block;width:100%;padding:15px;border-radius:14px;font-weight:600;font-size:16px;text-align:center}
+.btn-buy{background:var(--acc);color:var(--acc-ink)}
+.btn-buy:active{filter:brightness(.92)}
+.btn-ghost{background:var(--surface2);color:var(--txt)}
+.btn-danger{background:rgba(246,70,93,.12);color:var(--down)}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:10px 0}
+.chips.three{grid-template-columns:repeat(3,1fr)}
+.chips button{padding:10px 0;border-radius:10px;background:var(--surface2);font-weight:600;font-size:14px}
+.chips.sell button{background:rgba(246,70,93,.12);color:var(--down)}
+.amount{font-size:22px;font-weight:600;padding:14px}
+#quote{font-size:13px;color:var(--mut);line-height:1.6;margin-bottom:12px;min-height:20px}
+
+/* barre de navigation */
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:rgba(23,23,27,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);padding:6px 4px calc(6px + env(safe-area-inset-bottom));z-index:6}
+nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;color:var(--mut);font-size:11px;font-weight:600}
+nav button.on{color:var(--acc)}
+nav svg{width:22px;height:22px}
+
+/* fiche token */
+#sheet{position:fixed;inset:0;background:var(--bg);z-index:10;overflow-y:auto;display:none;padding:12px 16px 40px}
+#sheet.open{display:block}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.iconbtn{width:40px;height:40px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center}
+.chip{padding:8px 12px;border-radius:999px;background:var(--surface);font-size:13px;font-weight:600;color:var(--mut)}
+.tokhead{display:flex;align-items:center;gap:12px}
+.tokhead img,.tokhead .ph{width:44px;height:44px}
+.tokname{font-size:20px;font-weight:700;line-height:1.1}
+#sp{font-size:30px;font-weight:700;letter-spacing:-.01em;margin-top:16px}
+#sc{font-size:14px;font-weight:600;margin-top:2px}
+#fresh{font-size:12px;color:var(--mut);margin:6px 0 14px}
+#chartwrap{position:relative;margin:0 -4px 6px}
+#chart{height:280px}
+.chartbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0 8px}
+.chartbar #fresh{margin:0}
+.chartreset{flex:none;width:34px;height:34px;border-radius:10px;background:var(--surface);color:var(--mut);display:flex;align-items:center;justify-content:center}
+#legend{position:absolute;top:6px;left:8px;z-index:3;font-size:11px;line-height:1.5;color:var(--mut);pointer-events:none}
+#chartnote{font-size:12px;color:var(--mut);margin-bottom:10px}
+
+#toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--surface2);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:20;display:none;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.empty{text-align:center;color:var(--mut);padding:40px 0}
+.hist-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
+.hist-head b{font-weight:600}
+.credit{font-size:12px;color:var(--mut);text-align:center;margin:16px 0 4px}
+
+/* ----- mise en page : téléphone par défaut ----- */
+.brand{display:none}
+.sheetgrid{display:flex;flex-direction:column}
+.maincol,.sidecol{display:contents}
+.memebar .tabs{margin-bottom:12px}
+
+/* ----- tablette ----- */
+@media (min-width:720px){
+  main{max-width:1000px;margin:0 auto;padding:0 24px 16px}
+  #list{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+  #list .row,#list .card{margin:0}
+  #list .empty{grid-column:1/-1}
+  .memebar{display:flex;gap:10px;align-items:center;margin-bottom:12px}
+  .memebar form.search{flex:1;margin:0}
+  .memebar .tabs{flex:0 0 360px;margin:0}
+  .sheetin{max-width:1000px;margin:0 auto}
+  #chart{height:360px}
+  #toast{bottom:104px}
+}
+@media (min-width:900px){
+  .porte{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+  .porte #list{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+  .sheetgrid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}
+  .maincol,.sidecol{display:block;min-width:0}
+  .sidecol{position:sticky;top:12px}
+  #chart{height:400px}
+}
+
+/* ----- ordinateur : barre latérale ----- */
+@media (min-width:1100px){
+  body{padding:0 0 0 232px}
+  nav{top:0;right:auto;width:232px;flex-direction:column;align-items:stretch;gap:4px;padding:20px 12px;border-top:0;border-right:1px solid var(--line);background:var(--bg)}
+  .brand{display:block;font-size:20px;font-weight:700;letter-spacing:-.01em;padding:4px 12px 20px}
+  nav button{flex:none;flex-direction:row;gap:12px;padding:11px 12px;border-radius:12px;font-size:15px}
+  nav button.on{background:var(--surface);color:var(--txt)}
+  nav button.on svg{color:var(--acc)}
+  header{max-width:1240px;margin:0 auto;padding:28px 32px 22px;text-align:left;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"status status" "total total" "pnl cash";column-gap:16px;align-items:center}
+  .status{grid-area:status}
+  #total{grid-area:total;font-size:48px;margin:6px 0 4px}
+  .pnlrow{grid-area:pnl;justify-content:flex-start}
+  #cash{grid-area:cash;margin:0}
+  main{max-width:1240px;padding:0 32px 32px}
+  #sheet{left:232px;padding:20px 32px 40px}
+  .sheetin{max-width:1240px}
+  .sheetgrid{grid-template-columns:minmax(0,1fr) 380px;gap:24px}
+  #chart{height:clamp(380px, calc(100vh - 330px), 620px)}
+  #toast{bottom:28px;left:calc(50% + 116px)}
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="status"><span id="dot" class="dot"></span><span id="stat">Connexion…</span></div>
+  <div id="total">100,00 $</div>
+  <div class="pnlrow" id="pnl"></div>
+  <div id="cash"></div>
+</header>
+<main id="view"></main>
+<nav>
+  <div class="brand">100 Balles</div>
+  <button data-t="marche" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l5-5 4 4 8-8"/><path d="M15 8h5v5"/></svg>Marché</button>
+  <button data-t="meme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.6.7-2.8 1.5-3.7.2 1.4 1 2.2 2 2.2 0-2.5-1-4.5.5-7z"/><path d="M8 20h8"/></svg>Memecoins</button>
+  <button data-t="porte"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="14" rx="3"/><path d="M3 10h18"/><path d="M16 15h2"/><path d="M7 6V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1"/></svg>Portefeuille</button>
+  <button data-t="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</button>
+</nav>
+<div id="sheet"></div>
+<div id="toast"></div>
+<script src="https://unpkg.com/@solana/web3.js@1/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
+<script>
+'use strict';
+const START = 100;
+const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
+const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
+const SOL_BASE_FEE = 0.000005;
+const MAJORS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','DOT','TRX','TON','SHIB','PEPE','BONK','WIF','SUI','LTC','NEAR','APT'];
+const DS = 'https://api.dexscreener.com';
+const CG_IDS = { BTC:'bitcoin', ETH:'ethereum', SOL:'solana', BNB:'binancecoin', XRP:'ripple', DOGE:'dogecoin', ADA:'cardano', AVAX:'avalanche-2', LINK:'chainlink', DOT:'polkadot', TRX:'tron', TON:'the-open-network', SHIB:'shiba-inu', PEPE:'pepe', BONK:'bonk', WIF:'dogwifcoin', SUI:'sui', LTC:'litecoin', NEAR:'near', APT:'aptos' };
+let LOGO = {};
+try { LOGO = JSON.parse(localStorage.getItem('logos_v1')) || {}; } catch(e){}
+async function loadLogos(){
+  if (Object.keys(LOGO).length >= MAJORS.length) return;
+  try {
+    const r = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=' + Object.values(CG_IDS).join(','));
+    const arr = await r.json(), byId = {};
+    for (const c of arr) byId[c.id] = c.image;
+    for (const s in CG_IDS) if (byId[CG_IDS[s]]) LOGO[s] = byId[CG_IDS[s]];
+    try { localStorage.setItem('logos_v1', JSON.stringify(LOGO)); } catch(e){}
+    for (const k in S.pos){ const {kind,id} = parse(k); if (kind === 'bn' && LOGO[id]) S.pos[k].img = LOGO[id]; }
+    if (tab === 'marche' && !sheetKey) renderList();
+  } catch(e){}
+}
+const KEY = 'centballes_v1';
+
+const BN = {}, DEX = {}, CH = {}, SEEN = {};
+let S = load() || fresh();
+delete S.settings.tf;
+const DEFAULT_TF = '1h';
+let curTf = DEFAULT_TF;      // durée du graphique, propre à la fiche ouverte
+delete S.settings.plat;
+if (!(S.settings.prio >= 0.0001)) S.settings.prio = 0.0001;
+let tab = 'marche', memeTab = 'top', sheetKey = null;
+const inflight = new Set();   // tokens avec une transaction en attente
+const feed = { top: [], new: [], search: [] };
+
+/* ---------- utilitaires ---------- */
+const $ = s => document.querySelector(s);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const SUB = '₀₁₂₃₄₅₆₇₈₉';
+function fp(x){
+  if (x == null || !isFinite(x)) return '-';
+  const a = Math.abs(x);
+  if (a === 0) return '0';
+  if (a < 0.0001){
+    const z = -Math.floor(Math.log10(a)) - 1;
+    const d = Math.round(a * Math.pow(10, z + 4)).toString().slice(0, 4).replace(/0+$/, '') || '0';
+    return (x < 0 ? '-' : '') + '0,0' + String(z).split('').map(c => SUB[c]).join('') + d;
+  }
+  if (a >= 1000) return x.toLocaleString('fr-FR',{maximumFractionDigits:2});
+  if (a >= 1) return x.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:4});
+  return x.toLocaleString('fr-FR',{maximumSignificantDigits:4});
+}
+const money = x => (x == null || !isFinite(x)) ? '-' : x.toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' $';
+const nf2 = (x, d) => x.toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d });
+const pct = x => (x == null || !isFinite(x)) ? '-' : (x >= 0 ? '+' : '') + nf2(x, 2) + ' %';
+const cls = x => x >= 0 ? 'up' : 'down';
+function big(x){
+  if (x == null || !isFinite(x)) return '-';
+  if (x >= 1e9) return nf2(x/1e9, 2)+' Md $';
+  if (x >= 1e6) return nf2(x/1e6, 2)+' M $';
+  if (x >= 1e3) return nf2(x/1e3, 1)+' k $';
+  return nf2(x, 0)+' $';
+}
+function age(ts){
+  if (!ts) return '';
+  const m = (Date.now()-ts)/60000;
+  if (m < 60) return Math.floor(m)+' min';
+  if (m < 1440) return Math.floor(m/60)+' h';
+  return Math.floor(m/1440)+' j';
+}
+function toast(msg){
+  const t = $('#toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.style.display = 'none', 2600);
+}
+async function j(url){
+  const r = await fetch(url, { cache: 'no-store' });
+  if (!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+function parse(key){ const i = key.indexOf(':'); return { kind: key.slice(0,i), id: key.slice(i+1) }; }
+
+/* ---------- sauvegarde ---------- */
+function fresh(){ return { cash: START, pos: {}, hist: [], start: Date.now(), settings: { prio: 0.001, slip: 10 } }; }
+function load(){
+  try { const r = localStorage.getItem(KEY); if (!r) return null; const s = JSON.parse(r); for (const k in s.pos) delete s.pos[k].pending; return s; }
+  catch(e){ return null; }
+}
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch(e){} }
+
+/* ---------- Binance (WebSocket temps réel + secours REST) ---------- */
+// Certains réseaux mobiles bloquent le port 9443 : on alterne entre deux
+// adresses WebSocket, et si rien n'arrive, on interroge l'API REST chaque seconde.
+const BN_WS = ['wss://stream.binance.com:9443', 'wss://data-stream.binance.vision'];
+const BN_REST = ['https://api.binance.com', 'https://data-api.binance.vision'];
+let ws, wsDelay = 1000, wsHost = 0, bnWsLast = 0, bnRestBusy = false;
+function setBN(sym, d){
+  BN[sym] = d;
+  pushChart('bn:'+sym, d.last);
+  checkTriggers('bn:'+sym);
+}
+function connectBN(){
+  const streams = MAJORS.map(s => s.toLowerCase()+'usdt@ticker').join('/');
+  ws = new WebSocket(BN_WS[wsHost % BN_WS.length]+'/stream?streams='+streams);
+  ws.onmessage = e => {
+    const d = JSON.parse(e.data).data;
+    if (!d || !d.s) return;
+    if (!bnWsLast){ $('#dot').classList.add('on'); $('#stat').textContent = 'Temps réel'; }
+    bnWsLast = Date.now(); wsDelay = 1000;
+    setBN(d.s.replace(/USDT$/,''), { last: +d.c, bid: +d.b, ask: +d.a, pct: +d.P, vol: +d.q });
+  };
+  ws.onclose = () => {
+    bnWsLast = 0; wsHost++;
+    setTimeout(connectBN, wsDelay); wsDelay = Math.min(wsDelay*2, 30000);
+  };
+  ws.onerror = () => { try { ws.close(); } catch(e){} };
+}
+async function bnGet(path){
+  for (const h of BN_REST){ try { return await j(h+path); } catch(e){} }
+  throw new Error('Binance injoignable');
+}
+async function pollBN(){
+  if (Date.now() - bnWsLast < 3000 || bnRestBusy || document.hidden) return;
+  bnRestBusy = true;
+  try {
+    const q = encodeURIComponent(JSON.stringify(MAJORS.map(s => s+'USDT')));
+    const [t24, book] = await Promise.all([bnGet('/api/v3/ticker/24hr?symbols='+q), bnGet('/api/v3/ticker/bookTicker?symbols='+q)]);
+    const bk = {}; for (const b of book) bk[b.symbol] = b;
+    for (const t of t24){
+      const b = bk[t.symbol] || {};
+      setBN(t.symbol.replace(/USDT$/,''), { last: +t.lastPrice, bid: +(b.bidPrice || t.lastPrice), ask: +(b.askPrice || t.lastPrice), pct: +t.priceChangePercent, vol: +t.quoteVolume });
+    }
+    if (Date.now() - bnWsLast >= 3000){ $('#dot').classList.add('on'); $('#stat').textContent = 'Temps réel'; }
+  } catch(e){
+    if (Date.now() - bnWsLast >= 3000){ $('#dot').classList.remove('on'); $('#stat').textContent = 'Binance injoignable'; }
+  }
+  bnRestBusy = false;
+}
+
+/* ---------- DexScreener (memecoins Solana) ---------- */
+const liq = p => (p && p.liquidity && p.liquidity.usd) || 0;
+async function fetchTokens(addrs){
+  const out = {};
+  for (let i = 0; i < addrs.length; i += 30){
+    const arr = await j(`${DS}/tokens/v1/solana/${addrs.slice(i,i+30).join(',')}?_=${Date.now()}`);
+    for (const p of arr || []){
+      if (p.chainId !== 'solana' || !p.baseToken) continue;
+      const a = p.baseToken.address;
+      if (!out[a] || liq(p) > liq(out[a])) out[a] = p;
+    }
+  }
+  const now = Date.now();
+  for (const a in out){
+    const old = DEX[a], sn = SEEN[a] || (SEEN[a] = { got: now, moved: now });
+    sn.got = now;
+    if (!PF[a] && (!old || old.priceUsd !== out[a].priceUsd)) sn.moved = now;
+    DEX[a] = out[a];
+    if (!pfPrice(a) && (!old || old.priceUsd !== out[a].priceUsd)) addTick(a, +out[a].priceUsd, 0);
+    checkTriggers('sol:'+a);
+  }
+  return out;
+}
+async function loadFeed(kind){
+  const url = kind === 'top' ? DS+'/token-boosts/top/v1' : DS+'/token-profiles/latest/v1';
+  const arr = await j(url);
+  const addrs = [...new Set((arr||[]).filter(x => x.chainId === 'solana').map(x => x.tokenAddress))].slice(0,30);
+  const got = await fetchTokens(addrs);
+  feed[kind] = addrs.filter(a => got[a]);
+}
+async function doSearch(q){
+  q = q.trim(); if (!q) return;
+  memeTab = 'search'; feed.search = []; renderView(); toast('Recherche…');
+  try {
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(q)){
+      const got = await fetchTokens([q]);
+      feed.search = got[q] ? [q] : [];
+    } else {
+      const r = await j(DS+'/latest/dex/search?q='+encodeURIComponent(q));
+      const best = {};
+      for (const p of r.pairs || []){
+        if (p.chainId !== 'solana' || !p.baseToken) continue;
+        const a = p.baseToken.address;
+        if (!best[a] || liq(p) > liq(best[a])) best[a] = p;
+      }
+      const list = Object.values(best).sort((a,b) => liq(b)-liq(a)).slice(0,30);
+      list.forEach(p => DEX[p.baseToken.address] = p);
+      feed.search = list.map(p => p.baseToken.address);
+    }
+    if (!feed.search.length) toast('Aucun résultat sur Solana');
+  } catch(e){ toast('Erreur de recherche'); }
+  renderView();
+}
+let polling = false;
+async function pollDex(){
+  if (polling || document.hidden) return;
+  polling = true;
+  const set = new Set();
+  for (const k in S.pos){ const {kind,id} = parse(k); if (kind === 'sol') set.add(id); }
+  if (sheetKey && sheetKey.startsWith('sol:')) set.add(parse(sheetKey).id);
+  if (tab === 'meme') feed[memeTab].forEach(a => set.add(a));
+  if (set.size) { try { await fetchTokens([...set]); } catch(e){} }
+  polling = false;
+}
+
+/* ---------- pump.fun temps réel (RPC Solana, chaque trade) ---------- */
+// On s'abonne directement au compte de la bonding curve : chaque trade
+// modifie ses réserves et le RPC nous pousse la nouvelle valeur.
+const PUMP_PROG = '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P';
+const RPC_HTTP = 'https://api.mainnet-beta.solana.com', RPC_WS = 'wss://api.mainnet-beta.solana.com';
+const PF = {}, rpcPending = {}, subToMint = {};
+let rws = null, rpcId = 1;
+function curveAddr(mint){
+  const W = window.solanaWeb3; if (!W) return null;
+  try {
+    return W.PublicKey.findProgramAddressSync(
+      [new TextEncoder().encode('bonding-curve'), new W.PublicKey(mint).toBytes()],
+      new W.PublicKey(PUMP_PROG))[0].toBase58();
+  } catch(e){ return null; }
+}
+function decodeCurve(b64){
+  const bin = atob(b64); if (bin.length < 49) return null;
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  const dv = new DataView(u.buffer);
+  return { vTok: Number(dv.getBigUint64(8, true)), vSol: Number(dv.getBigUint64(16, true)), complete: u[48] === 1 };
+}
+function applyCurve(mint, value){
+  const c = PF[mint]; if (!c || !value || !value.data) return;
+  const d = decodeCurve(value.data[0]); if (!d) return;
+  const now = Date.now(), changed = d.vSol !== c.vSol || d.vTok !== c.vTok;
+  const vol = c.vSol && BN.SOL ? Math.abs(d.vSol - c.vSol)/1e9 * BN.SOL.last : 0;
+  Object.assign(c, d, { t: now });
+  const sn = SEEN[mint] || (SEEN[mint] = { got: now, moved: now });
+  sn.got = now; if (changed) sn.moved = now;
+  const pr = pfPrice(mint);
+  if (pr){ if (changed) addTick(mint, pr, vol); checkTriggers('sol:'+mint); }
+}
+function rpcSend(method, params, mint){
+  if (!rws || rws.readyState !== 1) return;
+  const id = rpcId++; if (mint) rpcPending[id] = { method, mint };
+  rws.send(JSON.stringify({ jsonrpc: '2.0', id, method, params }));
+}
+function rpcSubscribe(mint){
+  const c = PF[mint]; if (!c || c.sub != null) return;
+  rpcSend('accountSubscribe', [c.curve, { encoding: 'base64', commitment: 'processed' }], mint);
+}
+function connectRPC(){
+  rws = new WebSocket(RPC_WS);
+  rws.onopen = () => { for (const k in subToMint) delete subToMint[k]; for (const m in PF){ PF[m].sub = null; rpcSubscribe(m); } };
+  rws.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (d.id != null && rpcPending[d.id]){
+      const r = rpcPending[d.id]; delete rpcPending[d.id];
+      if (r.method === 'accountSubscribe' && PF[r.mint] && d.result != null){ PF[r.mint].sub = d.result; subToMint[d.result] = r.mint; }
+      return;
+    }
+    if (d.method === 'accountNotification'){
+      const m = subToMint[d.params.subscription];
+      if (m) applyCurve(m, d.params.result.value);
+    }
+  };
+  rws.onclose = () => setTimeout(connectRPC, 2000);
+  rws.onerror = () => { try { rws.close(); } catch(e){} };
+}
+async function watchCurve(mint){
+  if (PF[mint]) return;
+  const curve = curveAddr(mint); if (!curve) return;
+  PF[mint] = { curve, sub: null };
+  rpcSubscribe(mint);
+  try {
+    const r = await fetch(RPC_HTTP, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getAccountInfo', params: [curve, { encoding: 'base64', commitment: 'processed' }] }) });
+    const jr = await r.json();
+    applyCurve(mint, jr.result && jr.result.value);
+  } catch(e){}
+}
+function unwatchCurve(mint){
+  const c = PF[mint]; if (!c) return;
+  if (c.sub != null){ rpcSend('accountUnsubscribe', [c.sub]); delete subToMint[c.sub]; }
+  delete PF[mint];
+}
+function syncCurves(){
+  const want = new Set();
+  const add = a => { const p = DEX[a]; if (p && p.dexId === 'pumpfun' && want.size < 30) want.add(a); };
+  if (sheetKey && sheetKey.startsWith('sol:')) add(parse(sheetKey).id);
+  for (const k in S.pos){ const {kind,id} = parse(k); if (kind === 'sol') add(id); }
+  if (tab === 'meme') feed[memeTab].forEach(add);
+  for (const m in PF) if (!want.has(m)) unwatchCurve(m);
+  want.forEach(m => watchCurve(m));
+}
+// Prix live depuis la curve (null si pas de données ou token migré)
+function pfPrice(mint){
+  const c = PF[mint], sol = BN.SOL && BN.SOL.last;
+  if (!c || !c.vTok || !c.vSol || c.complete || !sol) return null;
+  return (c.vSol/1e9) / (c.vTok/1e6) * sol;
+}
+const dexPrice = p => pfPrice(p.baseToken.address) ?? +p.priceUsd;
+
+/* ---------- images des memecoins ---------- */
+// DexScreener ne donne une image que si l'équipe du token a rempli sa fiche.
+// Sinon on lit les métadonnées du token directement sur Solana (Metaplex ou
+// Token-2022), qui pointent vers un fichier JSON contenant l'image.
+const META_PROG = 'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s';
+let IMG = {};
+try { IMG = JSON.parse(localStorage.getItem('memeimg_v1')) || {}; } catch(e){}
+const imgBusy = new Set(), imgFail = {};
+const b64bytes = b64 => { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; };
+const ipfs = u => String(u || '').trim().replace(/^ipfs:\/\//, 'https://ipfs.io/ipfs/');
+function readStr(u, o){
+  const n = (u[o] | (u[o+1] << 8) | (u[o+2] << 16) | (u[o+3] << 24)) >>> 0;
+  return [new TextDecoder().decode(u.slice(o+4, o+4+n)).replace(/\0/g, '').trim(), o+4+n];
+}
+async function rpc(method, params){
+  const r = await fetch(RPC_HTTP, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
+  return (await r.json()).result;
+}
+async function metaUri(mint){
+  const W = window.solanaWeb3;
+  if (W){
+    const prog = new W.PublicKey(META_PROG);
+    const pda = W.PublicKey.findProgramAddressSync([new TextEncoder().encode('metadata'), prog.toBytes(), new W.PublicKey(mint).toBytes()], prog)[0].toBase58();
+    const r = await rpc('getAccountInfo', [pda, { encoding: 'base64' }]);
+    if (r && r.value){
+      const u = b64bytes(r.value.data[0]);
+      let o = 65, name, sym, uri;           // 1 octet de type + 2 clés publiques
+      [name, o] = readStr(u, o); [sym, o] = readStr(u, o); [uri] = readStr(u, o);
+      if (uri) return uri;
+    }
+  }
+  const r = await rpc('getAccountInfo', [mint, { encoding: 'jsonParsed' }]);
+  const info = r && r.value && r.value.data && r.value.data.parsed && r.value.data.parsed.info;
+  const tm = info && info.extensions && info.extensions.find(e => e.extension === 'tokenMetadata');
+  return (tm && tm.state && tm.state.uri) || '';
+}
+async function fetchImg(mint){
+  if (mint in IMG || imgBusy.has(mint) || imgBusy.size >= 3 || Date.now() - (imgFail[mint] || 0) < 60000) return;
+  imgBusy.add(mint);
+  try {
+    const uri = await metaUri(mint);
+    let img = '';
+    if (uri){ const jm = await (await fetch(ipfs(uri))).json(); img = ipfs(jm.image || jm.logo || ''); }
+    IMG[mint] = img;
+    try { localStorage.setItem('memeimg_v1', JSON.stringify(IMG)); } catch(e){}
+    if (img && S.pos['sol:'+mint] && !S.pos['sol:'+mint].img){ S.pos['sol:'+mint].img = img; save(); }
+  } catch(e){ imgFail[mint] = Date.now(); }
+  imgBusy.delete(mint);
+}
+function tokenImg(p){
+  const a = p.baseToken.address, img = (p.info && p.info.imageUrl) || IMG[a];
+  if (!img && !(a in IMG)) fetchImg(a);
+  return img || '';
+}
+
+/* ---------- simulation d'exécution ---------- */
+// Frais de pool : approximation (1 % sur la bonding curve pump.fun, 0,25 % ailleurs)
+const poolFee = p => p.dexId === 'pumpfun' ? 0.01 : 0.0025;
+const PRIO_MIN = 0.0001;   // pas de priority fee à 0, comme sur les vraies plateformes
+const CU_LIMIT = 200000;   // unités de calcul réservées par un swap (limite par défaut de Solana)
+// Frais de plateforme fixes sur les memecoins (taux de base d'Axiom), identiques pour tous les joueurs
+const PLAT_FEE = 0.01;
+const platFee = () => PLAT_FEE;
+
+/* ---------- confirmation des transactions Solana ----------
+   Chaque bloc (environ 400 ms), un validateur choisit les transactions qui
+   paient le plus. On lit sur le vrai réseau, pour le pool du token, le
+   prix minimal payé pour entrer dans chacun des ~150 derniers blocs.
+   Ta priority fee dépasse ce minimum dans X % des blocs : c'est ta chance
+   d'entrer à chaque bloc. Au bout de 150 blocs sans succès, le blockhash
+   expire et la transaction est abandonnée (aucun frais payé). */
+const SLOT_MS = 400, MAX_SLOTS = 150, feeCache = {};
+async function recentFees(acct){
+  const k = acct || '*', c = feeCache[k];
+  if (c && Date.now() - c.t < 10000) return c.fees;
+  const r = await rpc('getRecentPrioritizationFees', acct ? [[acct]] : []);
+  const fees = (r || []).map(x => x.prioritizationFee);
+  feeCache[k] = { t: Date.now(), fees };
+  return fees;
+}
+const myMicroLamports = () => Math.max(PRIO_MIN, +S.settings.prio || 0) * 1e9 * 1e6 / CU_LIMIT;
+function landChance(fees){
+  if (!fees || !fees.length) return 0.9;
+  const mine = myMicroLamports();
+  return Math.min(0.95, Math.max(0.01, fees.filter(f => mine >= f).length / fees.length));
+}
+const feeToSol = f => f * CU_LIMIT / 1e6 / 1e9;
+function median(a){ if (!a.length) return 0; const b = a.slice().sort((x,y) => x-y); return b[Math.floor(b.length/2)]; }
+const poolAcct = p => (PF[p.baseToken.address] && PF[p.baseToken.address].curve) || p.pairAddress;
+function etaText(q){ const sec = 0.5 + SLOT_MS/1000/q; return q < 0.05 ? 'risque d\'expiration' : '~' + (sec < 10 ? sec.toFixed(1).replace('.', ',') : Math.round(sec)) + ' s'; }
+// Attend vraiment le temps de confirmation simulé. Renvoie false si la transaction expire.
+async function waitLanding(p){
+  let fees = [];
+  try { fees = await recentFees(poolAcct(p)); } catch(e){}
+  const q = landChance(fees);
+  let slot = 0;
+  while (++slot <= MAX_SLOTS){ if (Math.random() < q) break; }
+  if (slot > MAX_SLOTS){ await sleep(MAX_SLOTS * SLOT_MS); return false; }
+  await sleep(200 + Math.random()*300 + slot * SLOT_MS);
+  return true;
+}
+
+function netFeeUsd(){ const sol = BN.SOL && BN.SOL.last; return sol ? (SOL_BASE_FEE + Math.max(PRIO_MIN, +S.settings.prio || 0)) * sol : null; }
+// Pool modélisé en produit constant (x*y=k).
+// Pool classique : chaque côté = moitié de la liquidité affichée par DexScreener.
+// Bonding curve pump.fun : DexScreener n'affiche pas de liquidité, on reconstruit
+// les réserves virtuelles de la courbe (30 SOL x 1 073 000 000 tokens au départ).
+const PF_K = 30 * 1073000000;
+function reserveUsd(p){
+  const L = liq(p); if (L > 0) return L/2;
+  const sol = BN.SOL && BN.SOL.last, P = +p.priceUsd, c = PF[p.baseToken.address];
+  if (sol && c && c.vSol && !c.complete) return c.vSol/1e9 * sol;
+  if (p.dexId === 'pumpfun' && sol && P) return Math.sqrt(PF_K * P/sol) * sol;
+  return 0;
+}
+function buyQuote(p, usd){
+  const P = dexPrice(p), R = reserveUsd(p), net = netFeeUsd();
+  if (net == null) return { error: 'Prix du SOL pas encore reçu' };
+  if (!P || !R) return { error: 'Liquidité inconnue pour ce token' };
+  const fee = usd*(poolFee(p) + platFee());
+  const dx = usd - fee - net;
+  if (dx <= 0) return { error: 'Montant trop faible pour couvrir les frais' };
+  const tokens = (dx/P) * R/(R+dx);
+  return { tokens, fee: fee+net, impact: dx/(R+dx), avg: usd/tokens };
+}
+function sellQuote(p, qty){
+  const P = dexPrice(p), R = reserveUsd(p), net = netFeeUsd() || 0;
+  if (!P || !R) return { usd: 0, fee: 0, impact: 1 };
+  const V = qty*P;
+  const gross = R*V/(R+V);
+  const fee = gross*(poolFee(p) + platFee());
+  return { usd: Math.max(0, gross-fee-net), fee: fee+net, impact: V ? 1-gross/V : 0 };
+}
+function priceOf(key){
+  const {kind,id} = parse(key);
+  if (kind === 'bn') return BN[id] ? BN[id].last : undefined;
+  return DEX[id] ? dexPrice(DEX[id]) : undefined;
+}
+function sellValue(pos, key){
+  const {kind,id} = parse(key);
+  if (kind === 'bn'){ const t = BN[id]; return t ? pos.qty*t.bid*(1-BN_FEE) : null; }
+  return DEX[id] ? sellQuote(DEX[id], pos.qty).usd : null;
+}
+function meta(key){
+  const {kind,id} = parse(key);
+  if (kind === 'bn') return { sym: id, name: id+' / USDT', img: LOGO[id] || '' };
+  const p = DEX[id];
+  return p ? { sym: p.baseToken.symbol, name: p.baseToken.name, img: tokenImg(p) } : { sym: id.slice(0,4), name: id, img: '' };
+}
+function log(e){ S.hist.unshift(Object.assign({ t: Date.now() }, e)); if (S.hist.length > 500) S.hist.pop(); }
+
+async function buy(key, amount){
+  amount = +amount;
+  if (!(amount > 0)) return toast('Montant invalide');
+  if (amount > S.cash + 1e-9) return toast('Solde insuffisant');
+  const {kind,id} = parse(key), m = meta(key);
+  if (kind === 'bn'){
+    const t = BN[id]; if (!t) return toast('Prix pas encore reçu');
+    if (amount < BN_MIN) return toast('Minimum 5 $ sur Binance');
+    const fee = amount*BN_FEE, qty = (amount-fee)/t.ask;
+    addPos(key, m, qty, amount);
+    S.cash -= amount;
+    log({ side:'Achat', key, sym:m.sym, qty, price:t.ask, usd:amount, fee });
+    toast('Acheté '+fp(qty)+' '+m.sym);
+  } else {
+    if (inflight.has(key)) return toast('Transaction déjà en cours sur ce token');
+    const p0 = DEX[id]; if (!p0) return toast('Prix pas encore reçu');
+    const q0 = buyQuote(p0, amount);
+    if (q0.error) return toast(q0.error);
+    inflight.add(key); toast('Transaction envoyée, en attente de confirmation…');
+    const landed = await waitLanding(p0);
+    if (!landed){
+      inflight.delete(key);
+      log({ side:'Achat expiré', key, sym:m.sym, qty:0, price:dexPrice(p0), usd:0, fee:0 });
+      save(); refresh();
+      return toast('Transaction expirée : priority fee trop basse. Aucun frais payé.');
+    }
+    let p = p0; try { const g = await fetchTokens([id]); if (g[id]) p = g[id]; } catch(e){}
+    inflight.delete(key);
+    const q = buyQuote(p, amount);
+    if (amount > S.cash + 1e-9) return toast('Solde insuffisant');
+    if (q.error || q.tokens < q0.tokens*(1 - S.settings.slip/100)){
+      const nf = netFeeUsd() || 0; S.cash -= nf;
+      log({ side:'Échec achat', key, sym:m.sym, qty:0, price:dexPrice(p), usd:0, fee:nf });
+      save(); refresh();
+      return toast('Échec : slippage dépassé (frais réseau payés)');
+    }
+    addPos(key, meta(key), q.tokens, amount);
+    S.cash -= amount;
+    log({ side:'Achat', key, sym:m.sym, qty:q.tokens, price:q.avg, usd:amount, fee:q.fee, impact:q.impact });
+    toast('Acheté '+fp(q.tokens)+' '+m.sym);
+  }
+  save(); refresh();
+}
+async function sell(key, frac, reason){
+  const pos = S.pos[key]; if (!pos) return;
+  const {kind,id} = parse(key), m = meta(key);
+  const qty = pos.qty*frac;
+  if (kind === 'bn'){
+    const t = BN[id]; if (!t) return toast('Prix pas encore reçu');
+    const gross = qty*t.bid;
+    if (gross < BN_MIN && frac < 0.999) return toast('Minimum 5 $ sur Binance, vends tout');
+    const fee = gross*BN_FEE;
+    close(key, frac, gross-fee, { side: reason || 'Vente', key, sym:m.sym, qty, price:t.bid, fee });
+  } else {
+    if (inflight.has(key)) return toast('Transaction déjà en cours sur ce token');
+    const p0 = DEX[id]; if (!p0) return toast('Prix pas encore reçu');
+    if (netFeeUsd() == null) return toast('Prix du SOL pas encore reçu');
+    const q0 = sellQuote(p0, qty);
+    inflight.add(key); toast('Transaction envoyée, en attente de confirmation…');
+    const landed = await waitLanding(p0);
+    if (!landed){
+      inflight.delete(key);
+      log({ side:'Vente expirée', key, sym:m.sym, qty:0, price:dexPrice(p0), usd:0, fee:0 });
+      save(); refresh();
+      return toast('Transaction expirée : priority fee trop basse. Aucun frais payé.');
+    }
+    let p = p0; try { const g = await fetchTokens([id]); if (g[id]) p = g[id]; } catch(e){}
+    inflight.delete(key);
+    if (!S.pos[key]) return;
+    const q = sellQuote(p, qty);
+    if (q.usd < q0.usd*(1 - S.settings.slip/100)){
+      const nf = netFeeUsd() || 0; S.cash -= nf;
+      log({ side:'Échec vente', key, sym:m.sym, qty:0, price:dexPrice(p), usd:0, fee:nf });
+      save(); refresh();
+      return toast('Échec : slippage dépassé (frais réseau payés)');
+    }
+    close(key, frac, q.usd, { side: reason || 'Vente', key, sym:m.sym, qty, price: qty ? q.usd/qty : 0, fee:q.fee, impact:q.impact });
+  }
+  save(); refresh();
+}
+function addPos(key, m, qty, cost){
+  const p = S.pos[key] || (S.pos[key] = { sym:m.sym, name:m.name, img:m.img, qty:0, cost:0, sl:null, tp:null });
+  p.qty += qty; p.cost += cost;
+}
+function close(key, frac, usd, e){
+  const pos = S.pos[key];
+  const costPart = pos.cost*frac;
+  S.cash += usd;
+  e.usd = usd; e.pnl = usd - costPart;
+  log(e);
+  if (frac >= 0.999) delete S.pos[key];
+  else { pos.qty -= e.qty; pos.cost -= costPart; }
+  toast(e.side+' : '+money(usd)+' ('+(e.pnl >= 0 ? '+' : '')+money(e.pnl)+')');
+}
+function checkTriggers(key){
+  const pos = S.pos[key]; if (!pos || pos.pending || Date.now() < (pos.retryAt || 0)) return;
+  const pr = priceOf(key); if (!pr) return;
+  let reason = null;
+  if (pos.sl && pr <= pos.sl) reason = 'Stop loss';
+  else if (pos.tp && pr >= pos.tp) reason = 'Take profit';
+  if (!reason) return;
+  pos.pending = true;
+  sell(key, 1, reason).finally(() => { if (S.pos[key]){ S.pos[key].pending = false; S.pos[key].retryAt = Date.now() + 3000; } });
+}
+
+/* ---------- historique GeckoTerminal ----------
+   L'API gratuite limite le nombre de requêtes par minute : on garde les
+   réponses 20 s en cache et on réessaie après une pause si la limite est atteinte.
+   Si le pool donné par DexScreener est inconnu de GeckoTerminal, on cherche
+   les pools du token chez GeckoTerminal. En dernier recours, on reconstruit
+   les bougies à partir des 300 derniers trades. */
+const GT = 'https://api.geckoterminal.com/api/v2/networks/solana', gtCache = {}, gtPools = {};
+async function gt(path){
+  const c = gtCache[path]; if (c && Date.now() - c.t < 20000) return c.d;
+  for (let i = 0; i < 3; i++){
+    const r = await fetch(GT + path, { cache: 'no-store' });
+    if (r.status === 429){ await sleep(2500 * (i + 1)); continue; }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json(); gtCache[path] = { t: Date.now(), d }; return d;
+  }
+  throw new Error('Limite GeckoTerminal atteinte');
+}
+function tradesOf(r, id){
+  return (r.data || []).map(x => {
+    const t = x.attributes;
+    return { ts: Date.parse(t.block_timestamp)/1000, price: +(t.to_token_address === id ? t.price_to_in_usd : t.price_from_in_usd), vol: +t.volume_in_usd || 0 };
+  }).filter(t => t.ts && t.price).sort((a,b) => a.ts - b.ts);
+}
+async function histFromPool(pool, plan, id, tf){
+  const h = { bars: [], vols: [] };
+  if (plan.src === 'trades'){
+    const r = await gt(`/pools/${pool}/trades`);
+    if (!(r.data || []).length) return null;
+    const lim = Date.now()/1000 - (tf === '1m' ? 60 : 600), c = { iv: plan.iv, bars: h.bars, vols: h.vols };
+    tradesOf(r, id).filter(t => t.ts >= lim).forEach(t => bucket(c, t.ts, t.price, t.vol));
+    return h;
+  }
+  const r = await gt(`/pools/${pool}/ohlcv/${plan.tfr}?aggregate=${plan.agg}&limit=${plan.lim}&token=${id}`);
+  const l = (r.data && r.data.attributes && r.data.attributes.ohlcv_list) || [];
+  if (!l.length) return null;
+  l.slice().reverse().forEach(x => {
+    const t = x[0] + TZ(), up = +x[4] >= +x[1];
+    h.bars.push({ time: t, open: +x[1], high: +x[2], low: +x[3], close: +x[4] });
+    h.vols.push({ time: t, value: +x[5] || 0, color: up ? 'rgba(46,189,133,.45)' : 'rgba(246,70,93,.45)' });
+  });
+  return h;
+}
+async function loadHist(hist, plan, id, p, tf){
+  const use = h => { hist.bars.push(...h.bars); hist.vols.push(...h.vols); return true; };
+  try { const h = await histFromPool(p.pairAddress, plan, id, tf); if (h) return use(h); } catch(e){}
+  if (!gtPools[id]){
+    try { const r = await gt(`/tokens/${id}/pools?page=1`); gtPools[id] = (r.data || []).map(x => x.attributes.address).filter(a => a && a !== p.pairAddress).slice(0, 2); }
+    catch(e){ gtPools[id] = []; }
+  }
+  for (const pool of gtPools[id]){
+    try { const h = await histFromPool(pool, plan, id, tf); if (h) return use(h); } catch(e){}
+  }
+  if (plan.src === 'ohlcv'){          // dernier recours : les derniers trades
+    for (const pool of [p.pairAddress, ...gtPools[id]]){
+      try {
+        const r = await gt(`/pools/${pool}/trades`), tr = tradesOf(r, id);
+        if (!tr.length) continue;
+        const span = tr[tr.length-1].ts - tr[0].ts, iv = Math.max(1, Math.ceil(span / 60));
+        hist.iv = iv;
+        tr.forEach(t => bucket(hist, t.ts, t.price, t.vol));
+        return true;
+      } catch(e){}
+    }
+  }
+  return false;
+}
+
+/* ---------- graphiques ---------- */
+// Cryptos classiques : courbe. Memecoins : bougies + volume, comme sur Axiom.
+// Les boutons choisissent la durée affichée, la taille des bougies suit.
+const TZ = () => -new Date().getTimezoneOffset()*60;   // heure locale sur l'axe
+const UPC = '#2ebd85', DNC = '#f6465d';
+// Binance : [intervalle des points, nombre de points, pas en secondes]
+// Un point par minute, 1000 minutes d'historique (~16 h). Pas de choix de durée : on zoome.
+const BN_TF = { '1h': ['1m', 1000, 60] };
+const CD = {};          // bougies des memecoins : { tf, iv, bars, vols }
+let chartObj = null, series = null, volSeries = null, chartMode = null;
+
+function pushChart(key, price){   // courbe des cryptos classiques
+  const c = CH[key]; if (!c || !isFinite(price) || !price) return;
+  const t = Math.floor((Date.now()/1000 + TZ())/c.iv)*c.iv, pts = c.pts, last = pts[pts.length-1];
+  let pt;
+  if (last && last.time === t){ last.value = price; pt = last; }
+  else if (!last || t > last.time){ pt = { time: t, value: price }; pts.push(pt); if (pts.length > 2000) pts.shift(); }
+  if (pt && key === sheetKey && chartMode === 'line' && c.tf === curTf){ try { series.update(pt); } catch(e){} }
+}
+// Ajoute un trade dans la bougie de sa tranche de temps
+function bucket(c, ts, price, vol){
+  const t = Math.floor((ts + TZ())/c.iv)*c.iv, b = c.bars, last = b[b.length-1];
+  let bar, v;
+  if (last && last.time === t){
+    last.high = Math.max(last.high, price); last.low = Math.min(last.low, price); last.close = price;
+    bar = last; v = c.vols[c.vols.length-1]; v.value += vol;
+  } else if (!last || t > last.time){
+    const o = last ? last.close : price;
+    bar = { time: t, open: o, high: Math.max(o, price), low: Math.min(o, price), close: price };
+    v = { time: t, value: vol };
+    b.push(bar); c.vols.push(v);
+    if (b.length > 3000){ b.shift(); c.vols.shift(); }
+  } else return null;
+  v.color = bar.close >= bar.open ? 'rgba(46,189,133,.45)' : 'rgba(246,70,93,.45)';
+  return [bar, v];
+}
+const lastTick = {};
+function addTick(mint, price, vol){
+  if (!price || !isFinite(price)) return;
+  const lt = lastTick[mint], now = Date.now()/1000;
+  if (lt && lt.price === price && now - lt.ts < 1 && !vol) return;
+  lastTick[mint] = { price, ts: now };
+  const c = CD[mint]; if (!c) return;
+  const r = bucket(c, now, price, vol || 0);
+  if (r && sheetKey === 'sol:'+mint && chartMode === 'candle' && c.tf === curTf){
+    try { series.update(r[0]); volSeries.update(r[1]); } catch(e){}
+    showLegend(r[0], r[1]);
+  }
+}
+// Bougies de 1 minute, jusqu'à 1000 (~16 h). Pas de choix de durée : on zoome.
+function dexPlan(){ return { src: 'ohlcv', tfr: 'minute', agg: 1, lim: 1000, iv: 60 }; }
+function showLegend(bar, vol){
+  const el = $('#legend'); if (!el) return;
+  if (!bar){ el.innerHTML = ''; return; }
+  const col = bar.close >= bar.open ? 'up' : 'down', ch = bar.open ? (bar.close/bar.open - 1)*100 : 0;
+  el.innerHTML = `O <span class="${col}">${fp(bar.open)}</span> H <span class="${col}">${fp(bar.high)}</span> L <span class="${col}">${fp(bar.low)}</span> C <span class="${col}">${fp(bar.close)}</span> <span class="${col}">${pct(ch)}</span>`
+    + (vol ? `<br>Volume <span class="${col}">${big(vol.value)}</span>` : '');
+}
+// Pas de prix minimal adapté au token, et les valeurs parasites proches de 0 s'affichent "0"
+function priceFmt(ref){
+  ref = ref > 0 ? ref : 1;
+  const minMove = Math.pow(10, Math.floor(Math.log10(ref)) - 4);
+  return { type: 'custom', minMove, formatter: v => Math.abs(v) < ref*1e-3 ? '0' : fp(v) };
+}
+function fitScale(data, key){
+  if (!series || !data.length) return;
+  const last = data[data.length-1], ref = last.close ?? last.value;
+  series.applyOptions({ priceFormat: priceFmt(ref) });
+}
+const minSpan = orig => {
+  const r = orig(); if (!r || !r.priceRange) return r;
+  const lo = r.priceRange.minValue, hi = r.priceRange.maxValue, mid = (lo + hi)/2, span = Math.max(hi - lo, Math.abs(mid)*0.02);
+  return { priceRange: { minValue: mid - span/2, maxValue: mid + span/2 }, margins: r.margins };
+};
+function buildChart(mode){
+  if (chartObj){ chartObj.remove(); chartObj = null; series = null; volSeries = null; }
+  chartMode = mode; showLegend(null);
+  const el = $('#chart'); if (!el || !window.LightweightCharts) return;
+  chartObj = LightweightCharts.createChart(el, {
+    autoSize: true,
+    layout: { background: { type: 'solid', color: '#17171b' }, textColor: '#8e8e9a', fontSize: 11, fontFamily: 'Figtree, sans-serif', attributionLogo: false },
+    grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,.04)' } },
+    timeScale: { timeVisible: true, secondsVisible: true, borderVisible: false, rightOffset: 2,
+      fixLeftEdge: true, fixRightEdge: true, minBarSpacing: mode === 'candle' ? 2 : 0.3 },
+    rightPriceScale: { borderVisible: false, autoScale: true },
+    crosshair: { mode: 0 },
+    // On garde le zoom à deux doigts et le glissement horizontal.
+    // On retire ce qui déformait le graphique : étirer les axes, molette, glisser à la verticale.
+    handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+    handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: false, axisDoubleClickReset: false }
+  });
+  const priceFormat = priceFmt(priceOf(sheetKey));
+  if (mode === 'candle'){
+    series = chartObj.addCandlestickSeries({ upColor: UPC, downColor: DNC, borderVisible: false, wickUpColor: UPC, wickDownColor: DNC, priceFormat, autoscaleInfoProvider: minSpan });
+    series.priceScale().applyOptions({ scaleMargins: { top: 0.18, bottom: 0.25 } });
+    volSeries = chartObj.addHistogramSeries({ priceFormat: { type: 'volume' }, priceScaleId: 'vol', lastValueVisible: false, priceLineVisible: false });
+    volSeries.priceScale().applyOptions({ scaleMargins: { top: 0.8, bottom: 0 } });
+    chartObj.subscribeCrosshairMove(prm => {
+      const c = CD[parse(sheetKey || 'x:x').id];
+      if (prm.time && prm.seriesData) showLegend(prm.seriesData.get(series), prm.seriesData.get(volSeries));
+      else if (c && c.bars.length) showLegend(c.bars[c.bars.length-1], c.vols[c.vols.length-1]);
+    });
+  } else {
+    series = chartObj.addAreaSeries({ lineColor: UPC, topColor: 'rgba(46,189,133,.25)', bottomColor: 'rgba(46,189,133,0)', lineWidth: 2, priceFormat, autoscaleInfoProvider: minSpan });
+  }
+}
+async function loadChart(key){
+  const {kind,id} = parse(key), tf = curTf, note = t => { const n = $('#chartnote'); if (n) n.textContent = t; };
+  note('');
+  if (kind === 'bn'){
+    buildChart('line');
+    const [i, lim, iv] = BN_TF[tf];
+    CH[key] = { tf, iv, pts: [] };
+    let pts = [];
+    try {
+      const k = await bnGet(`/api/v3/klines?symbol=${id}USDT&interval=${i}&limit=${lim}`);
+      pts = k.map(r => ({ time: r[0]/1000 + TZ(), value: +r[4] }));
+    } catch(e){ note('Historique indisponible, la courbe se construit en direct.'); }
+    if (key !== sheetKey || tf !== curTf) return;
+    CH[key] = { tf, iv, pts };
+    const pr = priceOf(key); if (pr) pushChart(key, pr);
+    if (series){
+      const up = pts.length < 2 || pts[pts.length-1].value >= pts[0].value, col = up ? '46,189,133' : '246,70,93';
+      series.applyOptions({ lineColor: `rgb(${col})`, topColor: `rgba(${col},.25)`, bottomColor: `rgba(${col},0)` });
+      series.setData(CH[key].pts); fitScale(CH[key].pts); defaultView(CH[key].pts.length);
+    }
+    return;
+  }
+  // memecoin
+  buildChart('candle');
+  const p = DEX[id], plan = dexPlan(tf, p);
+  CD[id] = { tf, iv: plan.iv, bars: [], vols: [] };   // les trades live s'y ajoutent pendant le chargement
+  const hist = { tf, iv: plan.iv, bars: [], vols: [] };
+  if (p && !(await loadHist(hist, plan, id, p, tf))) note('Historique indisponible pour ce token, les bougies se construisent en direct.');
+  if (key !== sheetKey || tf !== curTf) return;
+  const live = CD[id], lastT = hist.bars.length ? hist.bars[hist.bars.length-1].time : -Infinity;
+  live.bars.forEach((b, i) => { if (b.time > lastT){ hist.bars.push(b); hist.vols.push(live.vols[i]); } });
+  CD[id] = hist;
+  const pr = priceOf(key); if (pr && !hist.bars.length) bucket(hist, Date.now()/1000, pr, 0);
+  if (series){
+    series.setData(hist.bars); volSeries.setData(hist.vols); fitScale(hist.bars);
+    // Avec peu de bougies, on garde une largeur normale au lieu d'étirer une bougie sur tout l'écran
+    defaultView(hist.bars.length);
+    if (hist.bars.length) showLegend(hist.bars[hist.bars.length-1], hist.vols[hist.vols.length-1]);
+  }
+  if (hist.bars.length < 2 && !$('#chartnote').textContent) note('Peu de trades pour l\'instant. Les nouvelles bougies apparaîtront en direct.');
+}
+// Vue de départ : les ~80 dernières minutes, comme sur Axiom. Pinch pour voir plus loin.
+const VIEW_BARS = 80;
+function defaultView(n){
+  if (!chartObj) return;
+  const ts = chartObj.timeScale();
+  if (n < 20){ ts.applyOptions({ barSpacing: 8, fixLeftEdge: false, fixRightEdge: false }); ts.scrollToRealTime(); return; }
+  ts.applyOptions({ fixLeftEdge: true, fixRightEdge: true });
+  ts.setVisibleLogicalRange({ from: Math.max(0, n - VIEW_BARS), to: n });
+}
+function resetChart(){
+  if (!chartObj || !sheetKey) return;
+  chartObj.priceScale('right').applyOptions({ autoScale: true });
+  const {kind,id} = parse(sheetKey), c = kind === 'sol' ? CD[id] : CH[sheetKey];
+  defaultView(c ? (c.bars || c.pts).length : 0);
+}
+
+/* ---------- affichage ---------- */
+function totalValue(){
+  let t = S.cash;
+  for (const k in S.pos){ const v = sellValue(S.pos[k], k); t += v == null ? S.pos[k].cost : v; }
+  return t;
+}
+function renderHeader(){
+  const t = totalValue(), d = t - START;
+  $('#total').textContent = money(t);
+  $('#pnl').innerHTML = `<span class="${cls(d)}">${d >= 0 ? '+' : ''}${money(d)}</span><span class="pill ${cls(d)}">${pct(d/START*100)}</span>`;
+  $('#cash').textContent = money(S.cash) + ' disponibles';
+}
+const icon = (img, sym) => img
+  ? `<img src="${esc(img)}" alt="" loading="lazy" data-s="${esc(String(sym).slice(0,3))}" onerror="iconFail(this)">`
+  : `<div class="ph">${esc(String(sym).slice(0,3))}</div>`;
+function iconFail(el){ const d = document.createElement('div'); d.className = 'ph'; d.textContent = el.dataset.s; el.replaceWith(d); }
+// Met à jour une liste sans tout reconstruire chaque seconde (les images ne sont pas rechargées)
+function patchList(l, rows, empty){
+  const sig = rows.length ? rows.map(r => r.k + '#' + r.ic).join('|') : 'empty:' + empty;
+  if (l._sig !== sig){
+    l.innerHTML = rows.length ? rows.map(r => `<div class="row" data-k="${esc(r.k)}"><span class="ic">${r.ic}</span><div class="grow">${r.mid}</div><div class="right">${r.right}</div></div>`).join('') : `<div class="empty">${empty}</div>`;
+    l._sig = sig;
+    l.querySelectorAll('[data-k]').forEach(el => el.onclick = () => openSheet(el.dataset.k));
+    return;
+  }
+  const els = l.children;
+  rows.forEach((r, i) => {
+    const g = els[i].children[1], rt = els[i].children[2];
+    if (g._h !== r.mid){ g.innerHTML = r.mid; g._h = r.mid; }
+    if (rt._h !== r.right){ rt.innerHTML = r.right; rt._h = r.right; }
+  });
+}
+
+async function showNetInfo(){
+  const el = $('#netinfo'); if (!el) return;
+  try {
+    const fees = await recentFees(null), q = landChance(fees);
+    el.innerHTML = `Réseau en ce moment : médiane ${fp(feeToSol(median(fees)))} SOL · avec ta fee, confirmation ${etaText(q)}`;
+  } catch(e){ el.textContent = 'État du réseau indisponible'; }
+}
+function renderView(){
+  const v = $('#view');
+  if (tab === 'marche'){
+    v.innerHTML = `<div class="hint">Prix Binance en direct · frais 0,1 % · ordre min. 5 $</div><div id="list"></div>`;
+  } else if (tab === 'meme'){
+    v.innerHTML = `<div class="memebar">
+      <form class="search" id="sf"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" enterkeyhint="search" placeholder="Nom, ticker ou adresse" autocomplete="off"></form>
+      <div class="tabs">
+        <button data-m="top" class="${memeTab==='top'?'on':''}">Tendances</button>
+        <button data-m="new" class="${memeTab==='new'?'on':''}">Nouveaux</button>
+        <button data-m="search" class="${memeTab==='search'?'on':''}">Recherche</button>
+      </div></div><div id="list"></div>`;
+    $('#sf').onsubmit = e => { e.preventDefault(); doSearch($('#q').value); };
+    v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
+      memeTab = b.dataset.m; renderView();
+      if (memeTab !== 'search' && !feed[memeTab].length) loadFeed(memeTab).then(renderList).catch(() => toast('Erreur DexScreener'));
+    });
+  } else if (tab === 'porte'){
+    v.innerHTML = `<div class="porte"><div class="pcol"><div class="card" id="summary"></div><div id="list"></div></div>
+      <div class="pcol"><div class="card"><h3>Réglages Solana</h3>
+        <div class="field" style="margin-top:0">Priority fee par transaction (SOL)</div>
+        <input id="prio" type="number" step="0.0001" min="0.0001" inputmode="decimal" value="${S.settings.prio}">
+        <div id="netinfo" class="field" style="margin-top:8px"></div>
+        <div class="field">Tolérance de slippage (%)</div>
+        <input id="slip" type="number" step="1" min="1" max="100" inputmode="decimal" value="${S.settings.slip}">
+        <div class="field">Frais de plateforme : 1 % par trade sur les memecoins</div>
+      </div>
+      <button id="reset" class="btn btn-danger">Recommencer avec 100 $</button>
+      <div class="credit">Graphiques : TradingView Lightweight Charts</div></div></div>`;
+    $('#prio').onchange = e => { S.settings.prio = Math.max(PRIO_MIN, +e.target.value || 0); e.target.value = S.settings.prio; save(); showNetInfo(); };
+    showNetInfo();
+    $('#slip').onchange = e => { S.settings.slip = Math.min(100, Math.max(1, +e.target.value || 10)); save(); };
+    $('#reset').onclick = () => { if (confirm('Tout effacer et repartir de 100 $ ?')){ const st = S.settings; S = fresh(); S.settings = st; save(); refresh(); } };
+  } else {
+    v.innerHTML = `<div id="list"></div>`;
+  }
+  renderList();
+}
+function renderList(){
+  const l = $('#list'); if (!l) return;
+  if (tab === 'marche'){
+    patchList(l, MAJORS.map(sy => {
+      const t = BN[sy];
+      return { k: 'bn:'+sy, ic: icon(LOGO[sy], sy),
+        mid: `<div class="name">${sy}</div><div class="mut sm">Vol. 24h ${t ? big(t.vol) : '-'}</div>`,
+        right: `<div>${t ? fp(t.last) : '-'}</div><div class="sm ${t ? cls(t.pct) : 'mut'}">${t ? pct(t.pct) : ''}</div>` };
+    }));
+  } else if (tab === 'meme'){
+    const rows = feed[memeTab].filter(a => DEX[a]).map(a => {
+      const p = DEX[a], ch = p.priceChange && p.priceChange.h1;
+      return { k: 'sol:'+a, ic: icon(tokenImg(p), p.baseToken.symbol),
+        mid: `<div class="name">${esc(p.baseToken.symbol)} <span class="mut sm">${age(p.pairCreatedAt)}</span></div>
+          <div class="mut sm">Liq. ${liq(p) > 0 ? big(liq(p)) : (p.dexId === 'pumpfun' ? 'curve' : '?')} · MC ${big(p.marketCap || p.fdv)}</div>`,
+        right: `<div>${fp(dexPrice(p))}</div><div class="sm ${ch != null ? cls(ch) : 'mut'}">${ch != null ? pct(ch)+' 1h' : ''}</div>` };
+    });
+    patchList(l, rows, memeTab === 'search' ? 'Cherche un token par nom, ticker ou adresse.' : 'Chargement…');
+  } else if (tab === 'porte'){
+    const sm = $('#summary');
+    if (sm) sm.innerHTML = `<div class="kv"><span>Cash</span><span>${money(S.cash)}</span></div>
+      <div class="kv"><span>En positions</span><span>${money(totalValue()-S.cash)}</span></div>
+      <div class="kv"><span>Partie lancée le</span><span>${new Date(S.start).toLocaleDateString('fr-FR')}</span></div>`;
+    patchList(l, Object.keys(S.pos).map(k => {
+      const p = S.pos[k], v = sellValue(p, k), d = v == null ? null : v - p.cost, {kind,id} = parse(k);
+      const img = p.img || (kind === 'sol' ? IMG[id] : LOGO[id]) || '';
+      return { k, ic: icon(img, p.sym),
+        mid: `<div class="name">${esc(p.sym)}</div><div class="mut sm">${fp(p.qty)} · coût ${money(p.cost)}</div>`,
+        right: `<div>${money(v)}</div><div class="sm ${d == null ? 'mut' : cls(d)}">${d == null ? '' : pct(d/p.cost*100)}</div>` };
+    }), 'Aucune position. Achète un token depuis Marché ou Memecoins.');
+  } else {
+    const sig = S.hist.length + ':' + (S.hist[0] ? S.hist[0].t : 0);
+    if (l._sig === sig) return;          // l'historique ne change qu'après une transaction
+    l._sig = sig;
+    l.innerHTML = S.hist.length ? S.hist.map(e => `<div class="card">
+      <div class="hist-head"><b>${esc(e.side)} ${esc(e.sym)}</b><span class="mut sm">${new Date(e.t).toLocaleString('fr-FR')}</span></div>
+      <div class="kv sm"><span>Quantité</span><span>${fp(e.qty)}</span></div>
+      <div class="kv sm"><span>Prix moyen</span><span>${fp(e.price)}</span></div>
+      <div class="kv sm"><span>Montant</span><span>${money(e.usd)}</span></div>
+      <div class="kv sm"><span>Frais</span><span>${money(e.fee)}</span></div>
+      ${e.impact != null ? `<div class="kv sm"><span>Impact prix</span><span>${nf2(e.impact*100, 2)} %</span></div>` : ''}
+      ${e.pnl != null ? `<div class="kv sm"><span>Résultat</span><span class="${cls(e.pnl)}">${e.pnl >= 0 ? '+' : ''}${money(e.pnl)}</span></div>` : ''}
+    </div>`).join('') : `<div class="empty">Aucune transaction pour l'instant.</div>`;
+  }
+}
+
+/* ---------- fiche token ---------- */
+function openSheet(key){
+  sheetKey = key; curTf = DEFAULT_TF;
+  const {kind,id} = parse(key), m = meta(key), sh = $('#sheet');
+  const links = kind === 'sol' ? `<button id="copyca" class="chip">${esc(id.slice(0,4))}…${esc(id.slice(-4))}  Copier</button>` : '';
+  sh.innerHTML = `<div class="sheetin">
+    <div class="topbar"><button id="back" class="iconbtn" aria-label="Retour"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>${links}</div>
+    <div class="sheetgrid"><div class="maincol">
+    <div class="tokhead">${icon(m.img, m.sym)}<div class="grow"><div class="tokname">${esc(m.sym)}</div><div class="mut sm">${esc(m.name)}</div></div></div>
+    <div id="sp">-</div><div id="sc"></div>
+    <div class="chartbar"><div id="fresh"></div><button id="chartreset" class="chartreset" aria-label="Recentrer le graphique"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg></button></div>
+    <div id="chartwrap"><div id="chart"></div><div id="legend"></div></div><div id="chartnote"></div>
+    </div><div class="sidecol">
+    <div class="card"><h3>Acheter</h3>
+      <input id="amt" class="amount" type="number" inputmode="decimal" placeholder="0,00 $">
+      <div class="chips"><button data-p=".1">10 %</button><button data-p=".25">25 %</button><button data-p=".5">50 %</button><button data-p="1">Max</button></div>
+      <div id="quote"></div>
+      <button class="btn btn-buy" id="bbuy">Acheter</button>
+    </div>
+    <div id="posbox"></div>
+    <div class="card" id="stats"></div>
+    </div></div></div>`;
+  sh.classList.add('open'); window.scrollTo(0,0); sh.scrollTop = 0;
+  $('#back').onclick = closeSheet;
+  if ($('#copyca')) $('#copyca').onclick = () => {
+    const done = () => toast('Adresse copiée');
+    if (navigator.clipboard) navigator.clipboard.writeText(id).then(done, () => prompt('Adresse du token', id));
+    else prompt('Adresse du token', id);
+  };
+  sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { $('#amt').value = (Math.floor(S.cash*b.dataset.p*100)/100).toFixed(2); updQuote(); });
+  $('#amt').oninput = updQuote;
+  $('#bbuy').onclick = () => buy(key, $('#amt').value);
+  buildPos();
+  refreshSheet();
+  $('#chartreset').onclick = resetChart;
+  chartMode = null;
+  loadChart(key);
+}
+function closeSheet(){ if (chartObj){ chartObj.remove(); chartObj = null; series = null; volSeries = null; chartMode = null; } sheetKey = null; $('#sheet').classList.remove('open'); renderView(); }
+function buildPos(){
+  const box = $('#posbox'); if (!box || !sheetKey) return;
+  const p = S.pos[sheetKey];
+  if (!p){ box.innerHTML = ''; box.dataset.has = ''; return; }
+  if (box.dataset.has === '1') return;
+  box.dataset.has = '1';
+  box.innerHTML = `<div class="card"><h3>Ma position</h3><div id="pinfo"></div>
+    <div class="field">Vendre</div>
+    <div class="chips three sell" style="margin-top:0"><button data-s=".25">25 %</button><button data-s=".5">50 %</button><button data-s="1">Tout</button></div>
+    <div class="field">Stop loss (prix)</div><input id="sl" type="number" inputmode="decimal" value="${p.sl ?? ''}">
+    <div class="field">Take profit (prix)</div><input id="tp" type="number" inputmode="decimal" value="${p.tp ?? ''}">
+    <button id="savetrig" class="btn btn-ghost" style="margin-top:12px">Enregistrer SL / TP</button></div>`;
+  box.querySelectorAll('[data-s]').forEach(b => b.onclick = () => sell(sheetKey, +b.dataset.s));
+  $('#savetrig').onclick = () => {
+    const q = S.pos[sheetKey]; if (!q) return;
+    q.sl = +$('#sl').value || null; q.tp = +$('#tp').value || null;
+    save(); toast('SL / TP enregistrés');
+  };
+}
+function updQuote(){
+  if (!sheetKey) return;
+  const amt = +$('#amt').value, el = $('#quote'), {kind,id} = parse(sheetKey);
+  if (!(amt > 0)){ el.textContent = 'Cash disponible : '+money(S.cash); return; }
+  if (kind === 'bn'){
+    const t = BN[id]; if (!t){ el.textContent = ''; return; }
+    el.innerHTML = `Prix d'achat (ask) : ${fp(t.ask)}<br>Frais : ${money(amt*BN_FEE)}<br>Tu reçois : ${fp(amt*(1-BN_FEE)/t.ask)} ${id}`;
+  } else {
+    const p = DEX[id]; if (!p){ el.textContent = ''; return; }
+    const q = buyQuote(p, amt);
+    if (q.error){ el.textContent = q.error; return; }
+    const fc = feeCache[poolAcct(p)];
+    if (!fc || Date.now() - fc.t > 10000) recentFees(poolAcct(p)).catch(() => {});
+    el.innerHTML = `Prix moyen estimé : ${fp(q.avg)}<br>Frais (pool + plateforme + réseau) : ${money(q.fee)}<br>Confirmation estimée : ${fc ? etaText(landChance(fc.fees)) : '…'}<br>Impact sur le prix : <span class="${q.impact > .05 ? 'down' : ''}">${nf2(q.impact*100, 2)} %</span><br>Tu reçois environ : ${fp(q.tokens)} ${esc(p.baseToken.symbol)}`;
+  }
+}
+function refreshSheet(){
+  if (!sheetKey) return;
+  const {kind,id} = parse(sheetKey);
+  const pr = priceOf(sheetKey);
+  $('#sp').textContent = fp(pr);
+  if (kind === 'bn'){
+    const t = BN[id];
+    if (t){
+      $('#sc').innerHTML = `<span class="${cls(t.pct)}">${pct(t.pct)} 24h</span>`;
+      $('#stats').innerHTML = `<div class="kv"><span>Achat (ask)</span><span>${fp(t.ask)}</span></div><div class="kv"><span>Vente (bid)</span><span>${fp(t.bid)}</span></div><div class="kv"><span>Volume 24h</span><span>${big(t.vol)}</span></div>`;
+    }
+  } else {
+    const p = DEX[id];
+    if (p){
+      const pc = p.priceChange || {};
+      $('#sc').innerHTML = `<span class="${cls(pc.h1 || 0)}">${pct(pc.h1)} 1h</span>`;
+      const sn = SEEN[id];
+      if (sn){
+        const g = Math.round((Date.now()-sn.got)/1000), mv = Math.round((Date.now()-sn.moved)/1000);
+        $('#fresh').innerHTML = (pfPrice(id) ? '<span class="up">Live à chaque trade</span> · ' : `Mis à jour il y a ${g} s · `)
+          + `dernier trade il y a <span class="${mv > 30 ? 'down' : ''}">${mv} s</span>`;
+      }
+      $('#stats').innerHTML = `
+        <div class="kv"><span>5 min / 24h</span><span><span class="${cls(pc.m5 || 0)}">${pct(pc.m5)}</span> · <span class="${cls(pc.h24 || 0)}">${pct(pc.h24)}</span></span></div>
+        <div class="kv"><span>Liquidité</span><span>${liq(p) > 0 ? big(liq(p)) : (p.dexId === 'pumpfun' ? 'Bonding curve' : 'Inconnue')}</span></div>
+        <div class="kv"><span>Market cap</span><span>${pfPrice(id) ? big(pfPrice(id)*1e9) : big(p.marketCap || p.fdv)}</span></div>
+        <div class="kv"><span>Volume 24h</span><span>${big(p.volume && p.volume.h24)}</span></div>
+        <div class="kv"><span>DEX</span><span>${esc(p.dexId)} · ${age(p.pairCreatedAt)}</span></div>`;
+    }
+  }
+  buildPos();
+  const pos = S.pos[sheetKey], pi = $('#pinfo');
+  if (pos && pi){
+    const v = sellValue(pos, sheetKey), d = v == null ? null : v - pos.cost;
+    pi.innerHTML = `<div class="kv"><span>Quantité</span><span>${fp(pos.qty)}</span></div>
+      <div class="kv"><span>Coût total</span><span>${money(pos.cost)}</span></div>
+      <div class="kv"><span>Valeur si je vends</span><span>${money(v)}</span></div>
+      <div class="kv"><span>Résultat</span><span class="${d == null ? 'mut' : cls(d)}">${d == null ? '-' : (d >= 0 ? '+' : '')+money(d)+' ('+pct(d/pos.cost*100)+')'}</span></div>`;
+  }
+  if (document.activeElement !== $('#amt')) updQuote();
+}
+function refresh(){ renderHeader(); if (sheetKey) refreshSheet(); else renderList(); }
+
+/* ---------- démarrage ---------- */
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
+  tab = b.dataset.t;
+  document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
+  if (sheetKey) closeSheet(); else renderView();
+  if (tab === 'meme' && memeTab !== 'search' && !feed[memeTab].length) loadFeed(memeTab).then(renderList).catch(() => toast('Erreur DexScreener'));
+});
+renderHeader(); renderView(); connectBN(); connectRPC(); loadLogos();
+setInterval(() => {
+  try { renderHeader(); } catch(e){ console.error(e); }
+  try {
+    if (sheetKey) refreshSheet();
+    else if (!(tab === 'porte' && document.activeElement && document.activeElement.tagName === 'INPUT')) renderList();
+  } catch(e){ console.error(e); }
+}, 1000);
+setInterval(pollBN, 1000);
+setInterval(pollDex, 1000);
+setInterval(syncCurves, 1000);
+setInterval(() => { if (tab === 'meme' && memeTab !== 'search') loadFeed(memeTab).catch(() => {}); }, 30000);
+</script>
+</body>
+</html>
