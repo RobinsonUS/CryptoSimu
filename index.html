@@ -15,7 +15,7 @@
   --up:#2ebd85; --down:#f6465d; --r:16px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--txt);font-family:Figtree,-apple-system,system-ui,sans-serif;font-size:15px;line-height:1.35;font-variant-numeric:tabular-nums}
+html,body{touch-action:manipulation;background:var(--bg);color:var(--txt);font-family:Figtree,-apple-system,system-ui,sans-serif;font-size:15px;line-height:1.35;font-variant-numeric:tabular-nums}
 body{padding-bottom:84px}
 button{font:inherit;cursor:pointer;border:0;background:none;color:inherit}
 button:focus-visible,input:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
@@ -99,7 +99,7 @@ nav svg{width:22px;height:22px}
 #sc{font-size:14px;font-weight:600;margin-top:2px}
 #fresh{font-size:12px;color:var(--mut);margin:6px 0 14px}
 #chartwrap{position:relative;margin:0 -4px 6px}
-#chart{height:280px}
+#chart{height:280px;touch-action:pan-y;overscroll-behavior:contain}
 .chartbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:6px 0 8px}
 .chartbar #fresh{margin:0}
 .chartreset{flex:none;width:34px;height:34px;border-radius:10px;background:var(--surface);color:var(--mut);display:flex;align-items:center;justify-content:center}
@@ -183,6 +183,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
+const APP_VERSION = '2026.10.19-2';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -881,12 +882,13 @@ function buildChart(mode){
   if (chartObj){ chartObj.remove(); chartObj = null; series = null; volSeries = null; }
   chartMode = mode; showLegend(null);
   const el = $('#chart'); if (!el || !window.LightweightCharts) return;
+  guardChart(el);
   chartObj = LightweightCharts.createChart(el, {
     autoSize: true,
     layout: { background: { type: 'solid', color: '#17171b' }, textColor: '#8e8e9a', fontSize: 11, fontFamily: 'Figtree, sans-serif', attributionLogo: false },
     grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,.04)' } },
     timeScale: { timeVisible: true, secondsVisible: true, borderVisible: false, rightOffset: 2,
-      fixLeftEdge: true, fixRightEdge: true, minBarSpacing: mode === 'candle' ? 2 : 0.3 },
+      fixLeftEdge: true, fixRightEdge: true, minBarSpacing: mode === 'candle' ? 2 : 0.3, maxBarSpacing: 40 },
     rightPriceScale: { borderVisible: false, autoScale: true },
     crosshair: { mode: 0 },
     // Zoom : deux doigts sur téléphone, molette ou pincement du trackpad sur ordinateur. Glissement horizontal.
@@ -958,6 +960,13 @@ function defaultView(n){
   if (n < 20){ ts.applyOptions({ barSpacing: 8, fixLeftEdge: false, fixRightEdge: false }); ts.scrollToRealTime(); return; }
   ts.applyOptions({ fixLeftEdge: true, fixRightEdge: true });
   ts.setVisibleLogicalRange({ from: Math.max(0, n - VIEW_BARS), to: n });
+}
+function guardChart(el){
+  if (!el || el._guard) return; el._guard = true;
+  el.addEventListener('wheel', e => { if (e.ctrlKey || Math.abs(e.deltaY) >= Math.abs(e.deltaX)) e.preventDefault(); }, { passive: false });
+  ['gesturestart','gesturechange','gestureend'].forEach(t => el.addEventListener(t, e => e.preventDefault(), { passive: false }));   // Safari
+  el.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+  el.addEventListener('dblclick', () => resetChart());
 }
 function resetChart(){
   if (!chartObj || !sheetKey) return;
@@ -1034,7 +1043,7 @@ function renderView(){
         <div class="field">Frais de plateforme : 1 % par trade sur les memecoins</div>
       </div>
       <button id="reset" class="btn btn-danger">Recommencer avec 100 $</button>
-      <div class="credit">Graphiques : TradingView Lightweight Charts</div></div></div>`;
+      <div class="credit">Graphiques : TradingView Lightweight Charts<br>Version ${APP_VERSION}</div></div></div>`;
     $('#prio').onchange = e => { S.settings.prio = Math.max(PRIO_MIN, +e.target.value || 0); e.target.value = S.settings.prio; save(); showNetInfo(); };
     showNetInfo();
     $('#slip').onchange = e => { S.settings.slip = Math.min(100, Math.max(1, +e.target.value || 10)); save(); };
