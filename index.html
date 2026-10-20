@@ -106,6 +106,15 @@ nav svg{width:22px;height:22px}
 #legend{position:absolute;top:6px;left:8px;z-index:3;font-size:11px;line-height:1.5;color:var(--mut);pointer-events:none}
 #chartnote{font-size:12px;color:var(--mut);margin-bottom:10px}
 
+.sec{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 2px}
+.secit{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface);color:var(--txt)}
+.secit svg{width:15px;height:15px;flex:none}
+.secit.ok svg{color:var(--up)}
+.secit.ko{background:rgba(246,70,93,.13);color:var(--down)}
+.secit.un{color:var(--mut)}
+.secwarn{display:flex;align-items:flex-start;gap:6px;margin:8px 0 2px;padding:10px 12px;border-radius:12px;background:rgba(246,70,93,.1);color:var(--down);font-size:13px;font-weight:600;line-height:1.4}
+.secwarn svg{width:16px;height:16px;flex:none;margin-top:1px}
+#chartwrap,.mchartwrap{margin-top:10px}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--surface2);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:20;display:none;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty{text-align:center;color:var(--mut);padding:40px 0}
 .hist-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
@@ -336,7 +345,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-8';
+const APP_VERSION = '2026.10.20-9';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -733,6 +742,70 @@ function tokenImg(p){
   const a = p.baseToken.address, img = (p.info && p.info.imageUrl) || IMG[a];
   if (!img && !(a in IMG)) fetchImg(a);
   return img || '';
+}
+
+/* ---------- sécurité des memecoins ----------
+   Tout est lu directement sur Solana, sans service tiers :
+   - mint et gel : autorités du compte du token (vide = révoquée).
+   - liquidité brûlée : le pool garde en mémoire le nombre de jetons LP émis
+     (lp_amount sur Raydium AMM v4, lp_supply sur Raydium CPMM et PumpSwap).
+     Les LP détruits ne sont plus dans l'offre réelle du jeton LP : l'écart
+     donne la part brûlée. Sur la bonding curve pump.fun il n'y a pas de LP,
+     la liquidité est bloquée par le programme. Ailleurs : non vérifiable.
+   - top 10 : plus gros portefeuilles, hors comptes du pool. Seulement quand
+     on sait reconnaître les comptes du pool, sinon rien n'est affiché. */
+const AMM_V4 = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8', AMM_CPMM = 'CPMMoo8L3F4NbTegBCKVNunggL7H1ZpdTHKxQB5qKP1C', AMM_PSWAP = 'pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA';
+const SEC = {}, secBusy = new Set();
+const pk58 = (u, o) => window.solanaWeb3 ? new window.solanaWeb3.PublicKey(u.slice(o, o + 32)).toBase58() : null;
+const rdU64 = (u, o) => new DataView(u.buffer, u.byteOffset).getBigUint64(o, true);
+async function loadSec(p){
+  const mint = p.baseToken.address, old = SEC[mint];
+  if (secBusy.has(mint) || (old && Date.now() - old.t < (old.err ? 30000 : 300000))) return;
+  secBusy.add(mint);
+  const s = { t: Date.now(), mint: null, freeze: null, lp: null, top10: null };
+  try {
+    const r = await rpc('getAccountInfo', [mint, { encoding: 'jsonParsed' }]);
+    const info = r && r.value && r.value.data && r.value.data.parsed && r.value.data.parsed.info;
+    if (!info) throw new Error('mint');
+    s.mint = !info.mintAuthority; s.freeze = !info.freezeAuthority;
+    const supply = +info.supply;
+    let vaults = null, owners = null;
+    if (p.dexId === 'pumpfun'){
+      s.lp = 'curve'; const c = curveAddr(mint); if (c) owners = [c];
+    } else {
+      const pr = await rpc('getAccountInfo', [p.pairAddress, { encoding: 'base64' }]);
+      const v = pr && pr.value, prog = v && v.owner;
+      const L = prog === AMM_V4 ? { lp: 464, n: 720, va: [336, 368] } : prog === AMM_CPMM ? { lp: 136, n: 333, va: [72, 104] } : prog === AMM_PSWAP ? { lp: 107, n: 203, va: [139, 171] } : null;
+      if (L){
+        const u = b64bytes(v.data[0]);
+        vaults = L.va.map(o => pk58(u, o));
+        const issued = rdU64(u, L.n), ls = await rpc('getTokenSupply', [pk58(u, L.lp)]);
+        if (issued > 0n && ls && ls.value) s.lp = Math.min(1, Math.max(0, 1 - Number(BigInt(ls.value.amount))/Number(issued)));
+      } else s.lp = 'na';
+    }
+    if ((vaults || owners) && supply > 0){
+      const la = await rpc('getTokenLargestAccounts', [mint]);
+      let list = (la && la.value) || [];
+      if (vaults) list = list.filter(a => !vaults.includes(a.address));
+      if (owners && list.length){
+        const ma = await rpc('getMultipleAccounts', [list.map(a => a.address), { encoding: 'jsonParsed' }]);
+        const vals = (ma && ma.value) || [];
+        list = list.filter((a, i) => { const o = vals[i] && vals[i].data && vals[i].data.parsed && vals[i].data.parsed.info.owner; return !owners.includes(o); });
+      }
+      if (la && la.value) s.top10 = list.slice(0, 10).reduce((x, a) => x + Number(a.amount), 0)/supply*100;
+    }
+  } catch(e){ s.err = true; }
+  SEC[mint] = s; secBusy.delete(mint);
+}
+// Bloc « Sécurité » commun à la fiche token et aux cas pratiques
+function secHtml(s){
+  if (!s) return `<div class="sec"><span class="secit un">Vérification de la sécurité…</span></div>`;
+  if (s.err && s.mint == null) return `<div class="sec"><span class="secit un">Sécurité indisponible pour l'instant</span></div>`;
+  const it = (ok, txt) => `<span class="secit ${ok === true ? 'ok' : ok === false ? 'ko' : 'un'}">${ok === true ? ICON_OK : ok === false ? ICON_KO : ''}${txt}</span>`;
+  const lp = s.lp === 'curve' ? it(true, 'Liquidité bloquée (curve)') : typeof s.lp === 'number' ? it(s.lp >= 0.95, `LP brûlée ${Math.floor(s.lp*100)} %`) : it(null, 'LP non vérifiable');
+  const bad = s.mint === false || s.freeze === false || (typeof s.lp === 'number' && s.lp < 0.95);
+  return `<div class="sec">${it(s.mint, s.mint ? 'Mint révoqué' : 'Mint actif')}${it(s.freeze, s.freeze ? 'Gel révoqué' : 'Gel actif')}${lp}${s.top10 != null ? `<span class="secit ${s.top10 >= 45 ? 'ko' : 'un'}">Top 10 : ${nf2(s.top10, 0)} %</span>` : ''}</div>`
+    + (bad ? `<div class="secwarn">${ICON_KO}Le créateur garde un pouvoir sur ce token : il peut ${s.mint === false ? 'créer des tokens et les revendre' : s.freeze === false ? 'bloquer ton portefeuille' : 'retirer la liquidité'}.</div>` : '');
 }
 
 /* ---------- contrôle de cohérence des prix ----------
@@ -1734,6 +1807,7 @@ function mkToken(type, flagged, used){
     hue: Math.floor(rnd(0, 360)), created: Date.now() - rnd(T.age[0], T.age[1]),
     addr: Array.from({ length: 44 }, () => B58[Math.floor(Math.random()*58)]).join(''),
     vol1h: R*rnd(0.15, 0.9),
+    lpPct: checks.lp ? 100 : Math.floor(rnd(0, 30)),
     top10: type === 'major' ? Math.round(rnd(8, 18)) : Math.round(rnd(type === 'fresh' ? 22 : 14, type === 'fresh' ? 55 : 35)),
     mc: type === 'major' ? R*rnd(25, 60) : price*1e9 };
 }
@@ -1792,7 +1866,7 @@ function renderCases(v){
       <div class="briefk"><span>Énoncé</span><span class="prof prof-${P.id}">Profil ${P.name.toLowerCase()}</span></div>
       <p class="brieftxt">${P.story} ${M.cong.txt}</p>
       ${briefRows()}
-      <div class="briefnote">Trois tokens sont listés. Tu règles tout comme dans l'appli : token, montant, slippage, priority fee, stop loss, take profit. Les prix restent figés pendant ta préparation. Une seule position. Ton plan est noté au moment où tu lances le marché.</div>
+      <div class="briefnote">Trois tokens sont listés. Vérifie le bloc Sécurité de chaque fiche. Tu règles tout comme dans l'appli : token, montant, slippage, priority fee, stop loss, take profit. Les prix restent figés pendant ta préparation. Une seule position. Ton plan est noté au moment où tu lances le marché.</div>
       <div class="briefbtns"><button class="btn btn-ghost" id="cpnew">Autre énoncé</button><button class="btn btn-buy" id="cpgo">Commencer</button></div>
     </section></div>`;
   $('#cpnew').onclick = () => { newMission(); renderTrain(v); };
@@ -1869,7 +1943,7 @@ function mTokView(v){
     <div class="topbar"><button id="mback" class="iconbtn" aria-label="Retour">${BACK}</button><span class="chip">${t.addr.slice(0, 4)}…${t.addr.slice(-4)}</span></div>
     <div class="sheetgrid"><div class="maincol">
       <div class="tokhead">${mIcon(t)}<div class="grow"><div class="tokname">${esc(t.name)}</div><div class="mut sm">${esc(t.full)}</div></div></div>
-      <div class="msp" id="msp"></div><div class="msc" id="msc"></div>
+      <div class="msp" id="msp"></div><div class="msc" id="msc"></div><div id="msec">${secHtml({ mint: t.checks.mint, freeze: t.checks.freeze, lp: t.lpPct/100, top10: t.top10 })}</div>
       <div class="chartbar"><div class="mfresh" id="mfresh"></div></div>
       <div class="mchartwrap"><div id="mchart"></div></div>
     </div><div class="sidecol">
@@ -2090,18 +2164,14 @@ function mTick(){
     const ch = mChange(t, 60);
     $('#msc').innerHTML = `<span class="${cls(ch)}">${pct(ch)} 1h</span>`;
     $('#mfresh').textContent = M.phase === 'prep' ? 'Prix figés pendant ta préparation' : M.phase === 'run' ? `Minute ${M.i + 1} / 60` : 'Mission terminée';
-    const m5 = mChange(t, 5), CK = ok => `<span class="ck ${ok ? 'ok' : 'ko'}">${ok ? ICON_OK : ICON_KO}</span>`;
+    const m5 = mChange(t, 5);
     $('#mstats').innerHTML = `
       <div class="kv"><span>5 min / 1h</span><span><span class="${cls(m5)}">${pct(m5)}</span> · <span class="${cls(ch)}">${pct(ch)}</span></span></div>
       <div class="kv"><span>Liquidité</span><span>${big(2*t.R)}</span></div>
       <div class="kv"><span>Market cap</span><span>${big(mMc(t))}</span></div>
       <div class="kv"><span>Volume 1h</span><span>${big(t.vol1h)}</span></div>
       <div class="kv"><span>DEX</span><span>${t.dex} · ${age(t.created)}</span></div>
-      <div class="ksep"></div>
-      <div class="kv"><span>Mint révoqué</span><span>${CK(t.checks.mint)}</span></div>
-      <div class="kv"><span>Gel révoqué</span><span>${CK(t.checks.freeze)}</span></div>
-      <div class="kv"><span>Liquidité brûlée</span><span>${CK(t.checks.lp)}</span></div>
-      <div class="kv"><span>Top 10 détenteurs</span><span class="${t.top10 >= 45 ? 'down' : ''}">${t.top10} %</span></div>`;
+`;
     if (document.activeElement !== $('#mamt')) mQuoteUpd();
     mPosBox();
     const pi = $('#mpinfo');
@@ -2127,7 +2197,7 @@ function gradeMission(){
   const bestTok = safe.slice().sort((a, b) => FIT[P.id][b.type] - FIT[P.id][a.type])[0];
   // 1. choix du token
   let pts, msg;
-  if (flagged){ pts = 0; msg = `${t.name} avait ${!t.checks.mint ? 'son autorité de mint active' : !t.checks.freeze ? 'son autorité de gel active' : 'sa liquidité non brûlée'}. Une seule croix rouge dans la fiche suffit à passer son tour.`; }
+  if (flagged){ pts = 0; msg = `${t.name} avait ${!t.checks.mint ? 'son autorité de mint active' : !t.checks.freeze ? 'son autorité de gel active' : 'sa liquidité non brûlée'}. Le bloc Sécurité, sous le prix dans la fiche, l'affichait en rouge. Une seule croix rouge suffit à passer son tour.`; }
   else { pts = FIT[P.id][t.type]; msg = pts >= 25 ? `Bon choix pour un profil ${P.name.toLowerCase()}.` : `Un ${t.label.toLowerCase()} colle moins à un profil ${P.name.toLowerCase()}. ${bestTok.name} (${bestTok.label.toLowerCase()}) était plus adapté.`; }
   items.push(['Choix du token', pts, 25, msg]);
   // 2. risque
@@ -2202,7 +2272,7 @@ function openSheet(key){
     <div class="topbar"><button id="back" class="iconbtn" aria-label="Retour"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>${links}</div>
     <div class="sheetgrid"><div class="maincol">
     <div class="tokhead">${icon(m.img, m.sym)}<div class="grow"><div class="tokname">${esc(m.sym)}</div><div class="mut sm">${esc(m.name)}</div></div></div>
-    <div id="sp">-</div><div id="sc"></div>
+    <div id="sp">-</div><div id="sc"></div>${kind === 'sol' ? '<div id="secbox"></div>' : ''}
     <div class="chartbar"><div id="fresh"></div><button id="chartreset" class="chartreset" aria-label="Recentrer le graphique"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg></button></div>
     <div id="chartwrap"><div id="chart"></div><div id="legend"></div></div><div id="chartnote"></div>
     </div><div class="sidecol">
@@ -2283,6 +2353,9 @@ function refreshSheet(){
     const p = DEX[id];
     if (p){
       const pc = p.priceChange || {};
+      loadSec(p);
+      const sb = $('#secbox'), sh = secHtml(SEC[id]);
+      if (sb && sb._h !== sh){ sb.innerHTML = sh; sb._h = sh; }
       $('#sc').innerHTML = `<span class="${cls(pc.h1 || 0)}">${pct(pc.h1)} 1h</span>`;
       const sn = SEEN[id];
       if (sn){
