@@ -204,6 +204,11 @@ nav svg{width:22px;height:22px}
 .ci svg{width:14px;height:14px}
 .ci.ok{background:var(--up);color:var(--bg)}.ci.mid{background:var(--acc);color:var(--bg)}.ci.ko{background:var(--down);color:var(--bg)}
 .critmsg{font-size:13px;color:var(--mut);line-height:1.5;margin:6px 0 0 30px}
+.tips{border-radius:14px;padding:14px;background:var(--bg);display:grid;gap:8px;font-size:14px;line-height:1.5}
+.tips>b{color:var(--txt)}
+.tip1{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding-top:8px;border-top:1px solid var(--line)}
+.tip1 em{flex:none;font-style:normal;font-weight:700;white-space:nowrap}
+.tip1 i{font-style:normal;color:var(--up);margin-left:4px}
 .ideal{border:1px solid rgba(171,159,242,.35);border-radius:14px;padding:14px;display:grid;gap:4px;font-size:14px;line-height:1.55}
 .ideal b{color:var(--acc)}
 @media (min-width:720px){
@@ -347,7 +352,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-14';
+const APP_VERSION = '2026.10.20-15';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -2347,38 +2352,40 @@ function bestPlan(t, paths, prio){
   }
   return best;
 }
-function gradeMission(){
-  const pl = M.plan, t = M.tokens[pl.sel], P = M.profile, items = [];
+// Contexte de notation : marchés simulés et meilleur plan, calculés une seule fois
+function gradeCtx(){
   const med = median(M.fees), prioI = +(med*2).toPrecision(2);
-  // les marchés simulés de chaque token (graine fixe : la note ne change pas si on recalcule)
   const sims = M.tokens.map((x, i) => simPaths(x, (M.seed || 1) + i*7919));
   const bests = M.tokens.map((x, i) => isFlagged(x) ? null : bestPlan(x, sims[i], prioI));
   let bi = -1; bests.forEach((b, i) => { if (b && (bi < 0 || (b.ok && !bests[bi].ok) || (b.ok === bests[bi].ok && b.goal > bests[bi].goal))) bi = i; });
-  const best = bests[bi], bt = M.tokens[bi];
-  // ton plan, sur les mêmes marchés
-  const myExits = sims[pl.sel].map(Pp => exitOf(Pp, pl.slRel || 0, pl.tpRel || 0));
+  return { med, prioI, sims, bests, bi, best: bests[bi], bt: M.tokens[bi] };
+}
+const pcTxt = x => nf2(x*100, 0) + ' %';
+// Note d'un plan (pl : sel, A, slip, prio, slRel, tpRel), avec les explications
+function scorePlan(C, pl){
+  const t = M.tokens[pl.sel], P = M.profile, items = [], { best, bt, med } = C;
+  const myExits = C.sims[pl.sel].map(Pp => exitOf(Pp, pl.slRel || 0, pl.tpRel || 0));
   const me = scoreExits(t, myExits, pl.A, pl.prio) || { goal: 0, over: 1, mean: -pl.A };
   const tpRate = myExits.filter(e => e.w === 'tp').length/NSIM, slRate = myExits.filter(e => e.w === 'sl').length/NSIM;
-  const pc = x => nf2(x*100, 0) + ' %';
   // 1. choix du token (20)
   if (isFlagged(t)) items.push(['Choix du token', 0, 20, `${t.name} avait une croix rouge dans l'encadré Sécurité. Une seule suffit à passer son tour.`]);
   else {
-    const mine = bests[pl.sel], r = best.goal > 0 ? Math.min(1, mine.goal/best.goal) : 1, pts = Math.round(20*r);
-    items.push(['Choix du token', pts, 20, pts >= 20 ? `Le meilleur token pour cet énoncé.` : `Même bien joué, ${t.name} atteint l'objectif dans ${pc(mine.goal)} des cas au mieux. ${bt.name} permettait ${pc(best.goal)}.`]);
+    const mine = C.bests[pl.sel], r = best.goal > 0 ? Math.min(1, mine.goal/best.goal) : 1, pts = Math.round(20*r);
+    items.push(['Choix du token', pts, 20, pts >= 20 ? `Le meilleur token pour cet énoncé.` : `Même bien joué, ${t.name} atteint l'objectif dans ${pcTxt(mine.goal)} des cas au mieux. ${bt.name} permettait ${pcTxt(best.goal)}.`]);
   }
   // 2. perte max (25)
   const ov = me.over, rPts = ov <= 0.05 ? 25 : ov <= 0.1 ? 18 : ov <= 0.2 ? 10 : ov <= 0.35 ? 4 : 0;
   const why = !pl.slRel ? ' Sans stop loss, rien ne limite la chute.' : ov > 0.05 ? (isFlagged(t) ? ' Le rug emporte tout, stop ou pas.' : ' Il fallait acheter moins ou rapprocher le stop.') : '';
-  items.push(['Respect de la perte maximale', rPts, 25, `Sur ${NSIM} marchés simulés, tu perds plus de ${money(P.maxLoss)} dans ${pc(ov)} des cas (5 % toléré).${why}`]);
+  items.push(['Respect de la perte maximale', rPts, 25, `Sur ${NSIM} marchés simulés, tu perds plus de ${money(P.maxLoss)} dans ${pcTxt(ov)} des cas (5 % toléré).${why}`]);
   // 3. chances d'atteindre l'objectif (35)
   const ratio = best.goal > 0 ? me.goal/best.goal : 0, gPts = Math.round(35*Math.min(1, Math.max(0, (ratio - 0.25)/0.65)));
   const f3 = mFees(t, pl.prio), gainTp = pl.tpRel ? (() => { const dx = pl.A*(1 - f3.pct) - f3.net, q = dx*(1 - dx/(t.R + dx)), V = q*pl.tpRel; return t.R*V/(t.R + V)*(1 - f3.pct) - f3.net - pl.A; })() : null;
   let hint = '';
   if (!pl.tpRel) hint = ' Sans take profit, tout dépend du prix final.';
   else if (gainTp < P.goal) hint = ` Même au take profit tu ne gagnes que ${money(gainTp)} : il fallait acheter plus ou viser plus loin.`;
-  else if (tpRate < 0.15) hint = ` Ton take profit n'est touché que dans ${pc(tpRate)} des cas : trop loin pour 60 minutes.`;
-  else if (slRate > 0.5) hint = ` Ton stop saute dans ${pc(slRate)} des cas : trop serré pour la volatilité du token.`;
-  items.push(['Chances d\'atteindre l\'objectif', gPts, 35, `Ton plan atteint +${money(P.goal)} dans ${pc(me.goal)} des marchés simulés. Le meilleur plan possible : ${pc(best.goal)}.${gPts >= 35 ? '' : hint}`]);
+  else if (tpRate < 0.15) hint = ` Ton take profit n'est touché que dans ${pcTxt(tpRate)} des cas : trop loin pour 60 minutes.`;
+  else if (slRate > 0.5) hint = ` Ton stop saute dans ${pcTxt(slRate)} des cas : trop serré pour la volatilité du token.`;
+  items.push(['Chances d\'atteindre l\'objectif', gPts, 35, `Ton plan atteint +${money(P.goal)} dans ${pcTxt(me.goal)} des marchés simulés. Le meilleur plan possible : ${pcTxt(best.goal)}.${gPts >= 35 ? '' : hint}`]);
   // 4. slippage (10)
   const [s0, s1] = t.slip, fails = M.fails ? ` Tu as eu ${M.fails} échec${M.fails > 1 ? 's' : ''} de slippage avant de passer (${money(M.failFees)} de frais perdus).` : '';
   items.push(['Tolérance de slippage', pl.slip >= s0 && pl.slip <= s1 ? 10 : pl.slip < s0 ? 4 : pl.slip <= s1*2 ? 5 : 0, 10,
@@ -2388,11 +2395,45 @@ function gradeMission(){
   const exp = M.expired ? ` ${M.expired} transaction${M.expired > 1 ? 's' : ''} expirée${M.expired > 1 ? 's' : ''} avant.` : '';
   items.push(['Priority fee', pr >= 1 && pr <= 5 ? 10 : pr < 1 ? 3 : 5, 10,
     (pr < 1 ? `Sous la médiane du réseau (${fp(med)} SOL) : confirmation lente ou expirée.` : pr > 5 ? `Plus de 5 fois la médiane (${fp(med)} SOL) : tu paies pour rien.` : `Bien placée face à un réseau ${M.cong.name}.`) + exp]);
-  const score = items.reduce((a, x) => a + x[1], 0);
-  // le meilleur plan, exprimé comme dans l'appli (pourcentages par rapport au prix d'achat)
+  return { items, score: items.reduce((a, x) => a + x[1], 0), me };
+}
+// pourcentages « par rapport au prix d'achat », comme dans l'appli
+function entryRelOf(t, A, prio){ const f = mFees(t, prio), dx = A*(1 - f.pct) - f.net; return dx > 0 ? A/(dx*(1 - dx/(t.R + dx))) : 1; }
+// Pistes d'amélioration : on change UNE chose à la fois dans ton plan et on garde celles qui font gagner le plus de points
+function improvements(C, pl, baseR){
+  const t = M.tokens[pl.sel], out = [], er = entryRelOf(t, pl.A, pl.prio), base = baseR.score;
+  // une piste ne doit pas « gagner des points » en sacrifiant l'objectif (ex. acheter 5 $ pour ne plus rien risquer)
+  const sp = ch => { const r = scorePlan(C, { ...pl, ...ch }); return r.me.goal + 0.02 < baseR.me.goal*0.8 ? -1 : r.score; };
+  const slTxt = r => r ? nf2(Math.floor((1 - r/er)*1000)/10, 1) + ' %' : 'aucun';
+  const tpTxt = r => r ? nf2(Math.ceil((r/er - 1)*1000)/10, 1) + ' %' : 'aucun';
+  const tryPlan = (ch, txt) => { const s = sp(ch); if (s > base) out.push({ s, d: s - base, txt }); };
+  if (isFlagged(t)){
+    return [{ d: null, txt: `Change de token : ${t.name} a une croix rouge. Aucun réglage ne compense un rug.` }];
+  }
+  // montant seul
+  let bA = null; for (const A of AG){ if (A === pl.A) continue; const s = sp({ A }); if (!bA || s > bA.s) bA = { s, A }; }
+  if (bA && bA.s > base) out.push({ s: bA.s, d: bA.s - base, txt: `Acheter ${money(bA.A)} au lieu de ${money(pl.A)}, sans rien changer d'autre.` });
+  // stop seul, take profit seul, puis les deux
+  let bS = null; for (const sl of SLG){ const s = sp({ slRel: sl }); if (!bS || s > bS.s) bS = { s, sl }; }
+  if (bS && bS.s > base) out.push({ s: bS.s, d: bS.s - base, txt: `${pl.slRel ? 'Stop loss' : 'Ajouter un stop loss'} à ${slTxt(bS.sl)} sous ton prix d'achat${pl.slRel ? ` au lieu de ${slTxt(pl.slRel)}` : ''}.` });
+  let bT = null; for (const tp of TPG){ const s = sp({ tpRel: tp }); if (!bT || s > bT.s) bT = { s, tp }; }
+  if (bT && bT.s > base) out.push({ s: bT.s, d: bT.s - base, txt: `${pl.tpRel ? 'Take profit' : 'Ajouter un take profit'} à ${tpTxt(bT.tp)} au-dessus de ton prix d'achat${pl.tpRel ? ` au lieu de ${tpTxt(pl.tpRel)}` : ''}.` });
+  let bB = null; for (const sl of SLG) for (const tp of TPG){ const s = sp({ slRel: sl, tpRel: tp }); if (!bB || s > bB.s) bB = { s, sl, tp }; }
+  if (bB && bB.s > Math.max(base, bS ? bS.s : 0, bT ? bT.s : 0)) out.push({ s: bB.s, d: bB.s - base, txt: `Avec le même montant : stop loss à ${slTxt(bB.sl)} et take profit à ${tpTxt(bB.tp)}.` });
+  // exécution
+  const [s0, s1] = t.slip, sm = Math.round((s0 + s1)/2);
+  if (!(pl.slip >= s0 && pl.slip <= s1)) tryPlan({ slip: sm }, `Slippage à ${sm} % au lieu de ${nf2(pl.slip, 1)} %.`);
+  const pr = pl.prio/C.med; if (pr < 1 || pr > 5) tryPlan({ prio: C.prioI }, `Priority fee à ${fp(C.prioI)} SOL au lieu de ${fp(pl.prio)} SOL (médiane du réseau : ${fp(C.med)} SOL).`);
+  // token
+  if (C.bi !== pl.sel && C.bests[pl.sel] && C.best.goal > C.bests[pl.sel].goal*1.15) out.push({ s: null, d: null, txt: `Changer de token : ${C.bt.name} se prêtait mieux à cet énoncé (voir le plan ci-dessous).`, last: true });
+  return out.sort((a, b) => (a.last ? 1 : 0) - (b.last ? 1 : 0) || b.d - a.d).slice(0, 4);
+}
+function gradeMission(){
+  const C = gradeCtx(), pl = M.plan, r = scorePlan(C, pl), { best, bt, prioI } = C;
   const bS = TTYPES[bt.type].slip, slE = Math.floor((1 - best.sl/best.entryRel)*1000)/10, tpE = Math.ceil((best.tp/best.entryRel - 1)*1000)/10;   // arrondis prudents : stop un peu plus près, objectif un peu plus loin
-  const ideal = `${bt.name}, achat de ${money(best.A)}, slippage ${Math.round((bS[0] + bS[1])/2)} % (${bt.label.toLowerCase()} : ${bS[0]} à ${bS[1]} %), priority fee autour de ${fp(prioI)} SOL, stop loss ${nf2(slE, 1)} % sous le prix d'achat, take profit ${nf2(tpE, 1)} % au-dessus. Objectif atteint dans ${pc(best.goal)} des marchés simulés, perte max dépassée dans ${pc(best.over)}.`;
-  return { items, score, ideal };
+  const ideal = `${bt.name}, achat de ${money(best.A)}, slippage ${Math.round((bS[0] + bS[1])/2)} % (${bt.label.toLowerCase()} : ${bS[0]} à ${bS[1]} %), priority fee autour de ${fp(prioI)} SOL, stop loss ${nf2(slE, 1)} % sous le prix d'achat, take profit ${nf2(tpE, 1)} % au-dessus. Objectif atteint dans ${pcTxt(best.goal)} des marchés simulés, perte max dépassée dans ${pcTxt(best.over)}.`;
+  const tips = r.score >= 100 ? [] : improvements(C, pl, r);
+  return { items: r.items, score: r.score, ideal, tips };
 }
 function mResult(v){
   const g = M.grade, P = M.profile, pnl = M.cash - CAPITAL, t = M.tokens[M.plan.sel];
@@ -2420,7 +2461,8 @@ function mResult(v){
     </div>
     <div class="reschart"><div class="mut sm">${esc(t.name)} pendant la mission, y compris après ta sortie</div><div id="mrchart"></div></div>
     <div class="crit">${g.items.map(([n, pts, max, msg]) => `<div class="critrow"><div class="crithead"><span class="ci ${pts >= max ? 'ok' : pts > 0 ? 'mid' : 'ko'}">${pts >= max ? ICON_OK : pts > 0 ? ICON_MID : ICON_KO}</span><b>${n}</b><em>${pts} / ${max}</em></div><div class="critmsg">${msg}</div></div>`).join('')}</div>
-    <div class="ideal"><b>Ce qu'il fallait faire</b><span>${g.ideal}</span></div>
+    ${g.tips && g.tips.length ? `<div class="tips"><b>Pistes d'amélioration</b><span class="mut sm">Une seule modification de ton plan à la fois, notée sur les mêmes marchés simulés.</span>${g.tips.map(x => `<div class="tip1"><span>${x.txt}</span>${x.d ? `<em>${x.s} / 100 <i>+${x.d}</i></em>` : ''}</div>`).join('')}</div>` : ''}
+    <div class="ideal"><b>Le meilleur plan possible</b><span>${g.ideal}</span></div>
     <div class="briefbtns"><button class="btn btn-ghost" id="mhome">Retour</button><button class="btn btn-buy" id="magain">Nouvelle mission</button></div></div>`;
   $('#mhome').onclick = () => closeMission(true);
   $('#magain').onclick = () => closeMission(false);
