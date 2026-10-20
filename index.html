@@ -183,7 +183,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.19-2';
+const APP_VERSION = '2026.10.20-1';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -324,16 +324,52 @@ async function pollBN(){
 
 /* ---------- DexScreener (memecoins Solana) ---------- */
 const liq = p => (p && p.liquidity && p.liquidity.usd) || 0;
+/* Choix du pool de référence d'un token.
+   Un token peut avoir plusieurs pools, dont de minuscules pools mal pricés
+   (ex. 160 $ de liquidité à un prix 50x trop bas). DexScreener ne renvoie pas
+   toujours tous les pools d'un token dans une réponse groupée : sans précaution,
+   l'app pouvait basculer sur un mauvais pool et afficher un faux prix.
+   Règles : on prend le pool le plus liquide (puis le plus actif), et une fois
+   choisi on y reste, sauf si un autre pool devient nettement plus liquide. */
+let PAIR = {};                   // token -> adresse du pool retenu (gardé entre deux sessions)
+try { PAIR = JSON.parse(localStorage.getItem('pairs_v1')) || {}; } catch(e){}
+const savePairs = () => { try { localStorage.setItem('pairs_v1', JSON.stringify(PAIR)); } catch(e){} };
+const txns1h = p => p && p.txns && p.txns.h1 ? (p.txns.h1.buys || 0) + (p.txns.h1.sells || 0) : 0;
+const better = (x, y) => liq(x) !== liq(y) ? liq(x) > liq(y) : txns1h(x) > txns1h(y);
+function pickPair(a, cands){
+  const best = cands.reduce((m, p) => better(p, m) ? p : m);
+  const curAddr = PAIR[a], cur = curAddr && cands.find(p => p.pairAddress === curAddr);
+  if (cur) return liq(best) > 3 * liq(cur) + 1000 ? best : cur;
+  // le pool retenu manque dans cette réponse : on garde l'ancien plutôt qu'un pool bien moins liquide
+  if (curAddr && DEX[a] && liq(best) < liq(DEX[a]) / 2) return null;
+  return best;
+}
 async function fetchTokens(addrs){
-  const out = {};
-  for (let i = 0; i < addrs.length; i += 30){
-    const arr = await j(`${DS}/tokens/v1/solana/${addrs.slice(i,i+30).join(',')}?_=${Date.now()}`);
+  const out = {}, groups = {};
+  for (let i = 0; i < addrs.length; i += 15){
+    const arr = await j(`${DS}/tokens/v1/solana/${addrs.slice(i,i+15).join(',')}?_=${Date.now()}`);
     for (const p of arr || []){
-      if (p.chainId !== 'solana' || !p.baseToken) continue;
-      const a = p.baseToken.address;
-      if (!out[a] || liq(p) > liq(out[a])) out[a] = p;
+      if (p.chainId !== 'solana' || !p.baseToken || !p.pairAddress) continue;
+      (groups[p.baseToken.address] || (groups[p.baseToken.address] = [])).push(p);
     }
   }
+  // Token jamais vu : on demande la liste complète de ses pools avant de choisir
+  for (const a in groups){
+    if (PAIR[a]) continue;
+    try {
+      const all = await j(`${DS}/token-pairs/v1/solana/${a}`);
+      const ok = (all || []).filter(p => p.chainId === 'solana' && p.pairAddress && p.baseToken && p.baseToken.address === a);
+      if (ok.length) groups[a] = ok;
+    } catch(e){}
+  }
+  let changed = false;
+  for (const a in groups){
+    const p = pickPair(a, groups[a]);
+    if (p && PAIR[a] !== p.pairAddress) changed = true;
+    if (p){ PAIR[a] = p.pairAddress; out[a] = p; }
+    else if (DEX[a]) out[a] = DEX[a];
+  }
+  if (changed) savePairs();
   const now = Date.now();
   for (const a in out){
     const old = DEX[a], sn = SEEN[a] || (SEEN[a] = { got: now, moved: now });
@@ -368,7 +404,7 @@ async function doSearch(q){
         if (!best[a] || liq(p) > liq(best[a])) best[a] = p;
       }
       const list = Object.values(best).sort((a,b) => liq(b)-liq(a)).slice(0,30);
-      list.forEach(p => DEX[p.baseToken.address] = p);
+      list.forEach(p => { const a = p.baseToken.address; if (!PAIR[a] || liq(p) > liq(DEX[a])){ DEX[a] = p; PAIR[a] = p.pairAddress; } });
       feed.search = list.map(p => p.baseToken.address);
     }
     if (!feed.search.length) toast('Aucun résultat sur Solana');
