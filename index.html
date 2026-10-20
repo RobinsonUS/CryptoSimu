@@ -107,7 +107,7 @@ nav svg{width:22px;height:22px}
 #chartnote{font-size:12px;color:var(--mut);margin-bottom:10px}
 
 .sec{display:flex;flex-wrap:wrap;gap:6px}
-.actcard .qm{color:var(--mut)}
+.qm{color:var(--mut)}
 .seccard .sechelp{font-size:12px;color:var(--mut);margin-top:10px}
 .secdiag{margin-top:8px;font-size:12px;color:var(--mut)}
 .secdiag summary{cursor:pointer;width:max-content}
@@ -360,7 +360,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-19';
+const APP_VERSION = '2026.10.20-20';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -879,14 +879,12 @@ async function loadSec(p){
     if (num(jt.holderCount) != null){ s.holders = num(jt.holderCount); got.push('détenteurs'); }
     if (num(jt.organicScore) != null){ s.organic = num(jt.organicScore); s.organicLbl = jt.organicScoreLabel || null; got.push('volume organique'); }
     if (j && num(j.devBalancePercentage) != null){ s.dev = num(j.devBalancePercentage); got.push('part du créateur'); }
-    if (j && num(j.topHoldersPercentage) != null) got.push('top 10');
     if (j && typeof j.mintAuthorityDisabled === 'boolean') got.push('mint et gel');
     D.Jupiter = got.length ? 'OK : ' + got.join(', ') : 'OK, aucune donnée utile';
   }
   if (j){
     if (s.mint == null && typeof j.mintAuthorityDisabled === 'boolean') s.mint = j.mintAuthorityDisabled;
     if (s.freeze == null && typeof j.freezeAuthorityDisabled === 'boolean') s.freeze = j.freezeAuthorityDisabled;
-    if (s.top10 == null && num(j.topHoldersPercentage) != null){ s.top10 = num(j.topHoldersPercentage); s.topSrc = 'Jupiter'; }
   }
   const rc = rug && await rug;
   if (s.lp == null && rc && num(rc.lpLockedPct) != null){ s.lp = Math.min(1, Math.max(0, num(rc.lpLockedPct)/100)); s.lpSrc = 'RugCheck'; }
@@ -896,10 +894,8 @@ async function loadSec(p){
     if (s.mint == null) s.mint = rev(a.mint_authority);
     if (s.freeze == null) s.freeze = rev(a.freeze_authority);
     const d = a.holders && a.holders.distribution_percentage;
-    if (s.top10 == null && d && num(d.top_10) != null){ s.top10 = num(d.top_10); s.topSrc = 'GeckoTerminal'; }
     const got = [];
     if (a.mint_authority != null) got.push('mint et gel');
-    if (d) got.push('top 10');
     if (a.holders && num(a.holders.count) != null){ got.push('détenteurs'); if (s.holders == null) s.holders = num(a.holders.count); }
     if (num(a.developer_holding_percentage) != null){ got.push('part du créateur'); if (s.dev == null) s.dev = num(a.developer_holding_percentage); }
     D.GeckoTerminal = got.length ? 'OK : ' + got.join(', ') : 'OK, aucune donnée utile';
@@ -908,7 +904,7 @@ async function loadSec(p){
   if (s.lp == null && pa && num(pa.locked_liquidity_percentage) != null){ s.lp = Math.min(1, Math.max(0, num(pa.locked_liquidity_percentage)/100)); s.lpSrc = 'GeckoTerminal'; }
   if (rc && rc.lpLockedPct == null && D.RugCheck === 'OK') D.RugCheck = 'OK, sans LP';
   if (pa && pa.locked_liquidity_percentage == null && D['GeckoTerminal pool'] === 'OK') D['GeckoTerminal pool'] = 'OK, sans LP';
-  s.partial = s.mint == null || s.freeze == null || s.lp == null || s.top10 == null || (s.dev == null && s.holders == null && s.organic == null);
+  s.partial = s.mint == null || s.freeze == null || s.lp == null || (s.top10 == null && D.Solana === 'OK') || (s.dev == null && s.holders == null && s.organic == null);
   if (old && old.diag && !need) s.diag = old.diag;
   SEC[mint] = s; secBusy.delete(mint);
 }
@@ -919,7 +915,8 @@ function actHtml(p, s){
   s = s || {};
   const q = '<b class="qm">?</b>', row = (l, v) => `<div class="kv"><span>${l}</span><span>${v ?? q}</span></div>`;
   const tx = p.txns || {}, bs = x => x && x.buys != null ? `${x.buys} / ${x.sells}` : null;
-  const a = p.baseToken.address, mc = pfPrice(a) ? pfPrice(a)*1e9 : (p.marketCap || p.fdv), L = reserveUsd(p)*2;
+  const a = p.baseToken.address, mc = pfPrice(a) ? pfPrice(a)*1e9 : (p.marketCap || p.fdv), sol = BN.SOL && BN.SOL.last;
+  const L = p.dexId === 'pumpfun' ? (sol ? 2*Math.max(0, reserveUsd(p) - 30*sol) : 0) : reserveUsd(p)*2;
   return `<div class="card actcard"><h3>Activité</h3>
     ${row('Part du créateur', s.dev != null ? nf2(s.dev, s.dev < 1 ? 2 : 1) + ' %' : null)}
     ${row('Détenteurs', s.holders != null ? Math.round(s.holders).toLocaleString('fr-FR') : null)}
@@ -1915,7 +1912,7 @@ const dumpP = (T, top10) => (T.dump || 0)*(top10 >= 45 ? 2.5 : 1);
 const TTYPES = {
   major: { label: 'Gros token', liq: [2e7, 6e7], vol: 0.0035, slip: [1, 3], price: [0.4, 12], pool: 0.001, plat: 0, dump: 0, dex: 'orca', age: [400*DAY, 1400*DAY] },
   estab: { label: 'Memecoin établi', liq: [1.5e5, 5e5], vol: 0.014, slip: [3, 8], price: [0.002, 0.2], pool: 0.0025, plat: PLAT_FEE, dump: 0.08, dumpF: [0.6, 0.8], dex: 'raydium', age: [40*DAY, 300*DAY] },
-  fresh: { label: 'Memecoin récent', liq: [6e3, 2.5e4], vol: 0.035, slip: [8, 20], price: [0.000004, 0.0004], pool: 0.0125, plat: PLAT_FEE, dump: 0.22, dumpF: [0.25, 0.6], dex: 'pumpfun', age: [12*60e3, 100*60e3] }
+  fresh: { label: 'Memecoin récent', liq: [6e3, 2.5e4], vol: 0.035, slip: [8, 20], price: [0.000004, 0.0004], pool: 0.0125, plat: PLAT_FEE, dump: 0.15, dumpF: [0.25, 0.6], dex: 'pumpfun', age: [12*60e3, 100*60e3] }
 };
 const TNAMES = {
   major: [['ORBIT', 'Orbit Network'], ['NOVA', 'Nova Protocol'], ['ATLAS', 'Atlas Finance'], ['VEGA', 'Vega Chain']],
@@ -1936,13 +1933,39 @@ function gbm(n, p0, vol, drift){
   return out;
 }
 const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+// Indicateurs « Activité » d'un token fictif, et leur effet sur la suite du marché :
+// - part du créateur élevée, peu de détenteurs, top 10 concentré : chute brutale plus probable ;
+// - volume peu organique (bots) : le prix tend à baisser quand les bots partent ;
+// - plus d'achats que de ventes sur les 5 dernières minutes : un peu d'élan à la hausse (et l'inverse).
+function mkActivity(type, hist, T){
+  const last = hist[hist.length - 1].c, r5 = last/hist[hist.length - 6].o - 1, r60 = last/hist[0].o - 1;
+  const dev = type === 'major' ? +rnd(0, 1.5).toFixed(1) : type === 'estab' ? +rnd(0, 6).toFixed(1) : Math.random() < 0.5 ? +rnd(0, 3).toFixed(1) : +rnd(3, 25).toFixed(1);
+  const holders = Math.round(type === 'major' ? rnd(8e4, 6e5) : type === 'estab' ? rnd(2e3, 4e4) : rnd(30, 1500));
+  const organic = Math.round(type === 'major' ? rnd(75, 98) : type === 'estab' ? rnd(35, 90) : rnd(5, 85));
+  const n5 = Math.round(type === 'major' ? rnd(300, 900) : type === 'estab' ? rnd(40, 200) : rnd(20, 250));
+  const share = x => Math.min(0.85, Math.max(0.15, 0.5 + x*3));
+  const sh5 = share(r5/(T.vol*Math.sqrt(5))*0.08), sh60 = share(r60/(T.vol*Math.sqrt(60))*0.08), n60 = Math.round(n5*rnd(8, 14));
+  const dumpMul = (dev >= 10 ? 2 : dev >= 4 ? 1.4 : 1)*(type === 'fresh' && holders < 150 ? 1.3 : 1);
+  const driftAdj = (organic < 30 ? -0.08 : organic < 50 ? -0.03 : 0)*T.vol + (sh5 - 0.5)*2*0.08*T.vol;
+  return { dev, holders, organic, b5: Math.round(n5*sh5), s5: n5 - Math.round(n5*sh5), b60: Math.round(n60*sh60), s60: n60 - Math.round(n60*sh60), dumpMul, driftAdj };
+}
 function mkToken(type, flagged, used){
-  const T = TTYPES[type], price = Math.exp(rnd(Math.log(T.price[0]), Math.log(T.price[1])));
+  const T = TTYPES[type];
   const [name, full] = pickOne(TNAMES[type].filter(n => !used.has(n[0]))); used.add(name);
-  const vol = T.vol*rnd(0.8, 1.3), drift = (Math.random() - 0.5)*T.vol*0.3;
+  const R = rnd(T.liq[0], T.liq[1]), onCurve = T.dex === 'pumpfun' && !flagged, sol = solPx();
+  // market cap cohérente avec la liquidité : sur la courbe pump.fun elle découle des réserves virtuelles,
+  // ailleurs la liquidité vaut quelques pour cent de la market cap
+  let mc, price;
+  if (type === 'major'){ mc = R*rnd(25, 60); price = Math.exp(rnd(Math.log(T.price[0]), Math.log(T.price[1]))); }
+  else {
+    mc = onCurve ? (R/sol)**2/32.19*sol : 2*R/(type === 'estab' ? rnd(0.03, 0.15) : rnd(0.08, 0.3));
+    price = mc/1e9;
+  }
+  const vol = T.vol*rnd(0.8, 1.3);
   const h0 = gbm(CANDLES, 1, vol, (Math.random() - 0.5)*T.vol*0.3), k = price/h0[h0.length - 1].c;
   const hist = h0.map(c => ({ o: c.o*k, h: c.h*k, l: c.l*k, c: c.c*k }));
-  const fut = gbm(CANDLES, price, vol, drift);
+  const act = mkActivity(type, hist, T);
+  const fut = gbm(CANDLES, price, vol, (Math.random() - 0.5)*T.vol*0.3 + act.driftAdj);
   const checks = { mint: true, freeze: true, lp: true };
   let rug = -1, rugKind = null;
   if (flagged){
@@ -1952,21 +1975,17 @@ function mkToken(type, flagged, used){
       if (rugKind !== 'freeze') for (let i = rug; i < CANDLES; i++){ const c = fut[i], m = 0.07; fut[i] = { o: c.o*m, h: c.h*m, l: c.l*m, c: c.c*m }; }
     }
   }
-  // un memecoin peut aussi s'effondrer sans croix rouge : gros vendeur, snipers qui sortent
+  // un memecoin peut aussi s'effondrer sans croix rouge : gros vendeur, créateur ou snipers qui sortent
   const top10 = type === 'major' ? Math.round(rnd(8, 18)) : Math.round(rnd(type === 'fresh' ? 22 : 14, type === 'fresh' ? 55 : 35));
-  if (T.dump && Math.random() < dumpP(T, top10)){
+  if (T.dump && Math.random() < Math.min(0.85, dumpP(T, top10)*act.dumpMul)){
     const d = Math.floor(rnd(3, 57)), m = rnd(T.dumpF[0], T.dumpF[1]);
     for (let i = d; i < CANDLES; i++){ const c = fut[i]; fut[i] = { o: c.o*m, h: c.h*m, l: c.l*m, c: c.c*m }; }   // trou : le stop part au prix d'après la chute
   }
-  const R = rnd(T.liq[0], T.liq[1]);
-  const onCurve = T.dex === 'pumpfun' && !flagged;
   return { name, full, type, dex: onCurve ? 'pumpfun' : T.dex === 'pumpfun' ? 'raydium' : T.dex, pool: onCurve ? 0.0125 : T.dex === 'pumpfun' ? 0.0025 : T.pool, label: T.label, price, R, vol, slip: T.slip, hist, fut, checks, rug, rugKind,
     hue: Math.floor(rnd(0, 360)), created: Date.now() - rnd(T.age[0], T.age[1]),
     addr: Array.from({ length: 44 }, () => B58[Math.floor(Math.random()*58)]).join(''),
-    vol1h: R*rnd(0.15, 0.9),
-    lpPct: checks.lp ? 100 : Math.floor(rnd(0, 30)),
-    top10,
-    mc: type === 'major' ? R*rnd(25, 60) : price*1e9 };
+    vol1h: R*rnd(0.15, 0.9), lpPct: checks.lp ? 100 : Math.floor(rnd(0, 30)), top10, act, mc,
+    liqShown: onCurve ? 2*Math.max(0, R - 30*sol) : 2*R };
 }
 function newMission(){
   const used = new Set(), profile = pickOne(PROFILES), cong = pickOne(CONG);
@@ -1997,6 +2016,18 @@ function mSellOut(t, qty, price, prio){
 function mCandles(t){ return t.hist.concat(t.fut.slice(0, M.i + 1)); }
 function mChange(t, n){ const a = mCandles(t), r = a[Math.max(0, a.length - n)]; return (mPrice(t)/r.o - 1)*100; }
 const mMc = t => t.mc*mPrice(t)/t.price;
+function mActHtml(t){
+  const a = t.act, row = (l, v) => `<div class="kv"><span>${l}</span><span>${v}</span></div>`;
+  const lbl = a.organic >= 70 ? 'élevé' : a.organic >= 40 ? 'moyen' : 'faible';
+  return `<div class="card actcard"><h3>Activité</h3>
+    ${row('Part du créateur', nf2(a.dev, a.dev < 1 ? 2 : 1) + ' %')}
+    ${row('Détenteurs', a.holders.toLocaleString('fr-FR'))}
+    ${row('Volume organique', `${a.organic} / 100 (${lbl})`)}
+    ${row('Achats / ventes 5 min', `${a.b5} / ${a.s5}`)}
+    ${row('Achats / ventes 1 h', `${a.b60} / ${a.s60}`)}
+    ${row('Liquidité / market cap', nf2(t.liqShown/t.mc*100, 1) + ' %')}
+  </div>`;
+}
 const mSec = t => ({ mint: t.checks.mint, freeze: t.checks.freeze, lp: t.dex === 'pumpfun' ? 'curve' : t.lpPct/100, top10: t.top10 });
 const mIcon = t => `<div class="ph" style="background:hsl(${t.hue} 32% 24%);color:hsl(${t.hue} 70% 80%)">${esc(t.name.slice(0, 3))}</div>`;
 
@@ -2108,6 +2139,7 @@ function mTokView(v){
       </div>
       <div id="mposbox"></div>
       <div class="card" id="mstats"></div>
+      ${mActHtml(t)}
       ${secHtml(mSec(t))}
     </div></div></div>`;
   $('#mback').onclick = () => { M.view = 'list'; mRender(); };
@@ -2311,7 +2343,7 @@ function mTick(){
   $('#mdot').className = 'dot' + (M.phase === 'run' ? ' on' : ' idle');
   $('#mstat').textContent = M.phase === 'prep' ? 'Prix figés' : M.phase === 'run' ? `Marché en cours · minute ${M.i + 1} / 60` : 'Mission terminée';
   if (M.view === 'list'){
-    $('#mlist').innerHTML = M.tokens.map((t, i) => { const ch = mChange(t, 60); return `<div class="row" data-i="${i}"><span class="ic">${mIcon(t)}</span><div class="grow"><div class="name">${esc(t.name)} <span class="mut sm">${age(t.created)}</span></div><div class="mut sm">Liq. ${big(2*t.R)} · MC ${big(mMc(t))}</div></div><div class="right"><div>${fp(mPrice(t))}</div><div class="sm ${cls(ch)}">${pct(ch)} 1h</div></div></div>`; }).join('');
+    $('#mlist').innerHTML = M.tokens.map((t, i) => { const ch = mChange(t, 60); return `<div class="row" data-i="${i}"><span class="ic">${mIcon(t)}</span><div class="grow"><div class="name">${esc(t.name)} <span class="mut sm">${age(t.created)}</span></div><div class="mut sm">Liq. ${t.dex === 'pumpfun' ? 'curve' : big(t.liqShown)} · MC ${big(mMc(t))}</div></div><div class="right"><div>${fp(mPrice(t))}</div><div class="sm ${cls(ch)}">${pct(ch)} 1h</div></div></div>`; }).join('');
   } else if (M.view === 'porte'){
     $('#msum').innerHTML = `<div class="kv"><span>Cash</span><span>${money(M.cash)}</span></div><div class="kv"><span>En positions</span><span>${money(held)}</span></div>`;
     const t = P && !P.closed ? M.tokens[P.idx] : null;
@@ -2327,7 +2359,7 @@ function mTick(){
     $('#mstats').innerHTML = `
       <div class="kv"><span>5 min / 1h</span><span><span class="${cls(m5)}">${pct(m5)}</span> · <span class="${cls(ch)}">${pct(ch)}</span></span></div>
       <div class="kv"><span>Amplitude 1h (haut / bas)</span><span>${nf2(ampOf(t), 1)} %</span></div>
-      <div class="kv"><span>Liquidité</span><span>${big(2*t.R)}</span></div>
+      <div class="kv"><span>Liquidité</span><span>${t.dex === 'pumpfun' ? 'Bonding curve' : big(t.liqShown)}</span></div>
       <div class="kv"><span>Market cap</span><span>${big(mMc(t))}</span></div>
       <div class="kv"><span>Volume 1h</span><span>${big(t.vol1h)}</span></div>
       <div class="kv"><span>DEX</span><span>${t.dex} · ${age(t.created)}</span></div>
@@ -2368,8 +2400,8 @@ function simPaths(t, seed){
   const R = seeded(seed), g = () => { let u = 0, w = 0; while (!u) u = R(); while (!w) w = R(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*w); };
   const kind = !t.checks.mint ? 'mint' : !t.checks.freeze ? 'freeze' : !t.checks.lp ? 'lp' : null, out = [];
   for (let n = 0; n < NSIM; n++){
-    const T = TTYPES[t.type], drift = (R() - 0.5)*T.vol*0.3, rug = kind && R() < 0.75 ? Math.floor(8 + R()*42) : -1;
-    const dmp = T.dump && R() < dumpP(T, t.top10) ? Math.floor(3 + R()*54) : -1, dm = dmp >= 0 ? T.dumpF[0] + R()*(T.dumpF[1] - T.dumpF[0]) : 1;
+    const T = TTYPES[t.type], drift = (R() - 0.5)*T.vol*0.3 + (t.act ? t.act.driftAdj : 0), rug = kind && R() < 0.75 ? Math.floor(8 + R()*42) : -1;
+    const dmp = T.dump && R() < Math.min(0.85, dumpP(T, t.top10)*(t.act ? t.act.dumpMul : 1)) ? Math.floor(3 + R()*54) : -1, dm = dmp >= 0 ? T.dumpF[0] + R()*(T.dumpF[1] - T.dumpF[0]) : 1;
     const o = new Float64Array(CANDLES), h = new Float64Array(CANDLES), l = new Float64Array(CANDLES), c = new Float64Array(CANDLES);
     let p = 1;
     for (let i = 0; i < CANDLES; i++){
@@ -2474,6 +2506,17 @@ const pcTxt = x => nf2(x*100, 0) + ' %';
 // amplitude de la dernière heure (plus haut / plus bas du graphique), affichée dans la fiche
 const ampOf = t => { let hi = 0, lo = Infinity; for (const c of t.hist){ hi = Math.max(hi, c.h); lo = Math.min(lo, c.l); } return (hi/lo - 1)*100; };
 const UNREACH = 0.03;
+// indices de l'encadré Activité qui rendaient le token plus risqué
+function warnSigns(t){
+  const a = t.act, out = []; if (!a) return out;
+  if (a.dev >= 10) out.push(`le créateur détenait ${nf2(a.dev, 1)} %`);
+  else if (a.dev >= 4) out.push(`le créateur détenait encore ${nf2(a.dev, 1)} %`);
+  if (a.organic < 30) out.push(`volume organique de ${a.organic} / 100 (surtout des bots)`);
+  if (t.type === 'fresh' && a.holders < 150) out.push(`seulement ${a.holders} détenteurs`);
+  if (t.top10 >= 45) out.push(`top 10 à ${t.top10} %`);
+  if (a.s5 > a.b5*1.5) out.push(`${a.s5} ventes pour ${a.b5} achats sur 5 min`);
+  return out;
+}
 // hausse nécessaire pour l'objectif avec tout le capital, frais aller-retour compris ; ampleur des chutes possibles
 const needMove = t => (M.profile.goal + 2*CAPITAL*(TTYPES[t.type].plat + t.pool))/CAPITAL*100;
 const crashTxt = t => { const f = TTYPES[t.type].dumpF; return f ? `${Math.round((1 - f[1])*100)} à ${Math.round((1 - f[0])*100)} %` : ''; };   // en dessous, le token ne permet pas l'objectif : l'exécution n'est pas notée
@@ -2495,6 +2538,8 @@ function scorePlan(C, pl){
     else if (t.type !== 'major' && ampOf(t) > ampOf(bt)) msg = `${t.name} bouge beaucoup (${amp} % sur l'heure), mais un memecoin peut perdre ${crashTxt(t)} d'un coup : le stop part alors bien plus bas que prévu. Avec ta perte max, ça oblige à acheter tout petit. Au mieux ${pcTxt(tb.goal)} de réussite, contre ${pcTxt(best.goal)} avec ${bt.name}.`;
     else if (ampOf(t) < ampOf(bt)) msg = `${t.name} bouge moins (${amp} % sur l'heure) que ${bt.name} (${ampB} %) : objectif plus dur à atteindre. Au mieux ${pcTxt(tb.goal)} de réussite, contre ${pcTxt(best.goal)} avec ${bt.name}.`;
     else msg = `${t.name} (${amp} % sur l'heure) risque davantage de chute brutale que ${bt.name} (${ampB} %). Au mieux ${pcTxt(tb.goal)} de réussite, contre ${pcTxt(best.goal)} avec ${bt.name}.`;
+    const ws = warnSigns(t);
+    if (pts < 30 && ws.length && t.type !== 'major') msg += ` Indices visibles dans sa fiche : ${ws.join(', ')}.`;
     items.push(['Choix du token', pts, 30, msg]);
   }
   // 2. perte max (25)
@@ -2695,6 +2740,17 @@ function updQuote(){
     el.innerHTML = `Prix moyen estimé : ${fp(q.avg)}<br>Frais : ${money(q.fee)} (pool ${money(fPool)} · plateforme ${money(fPlat)} · réseau ${money(fNet)})<br>Confirmation estimée : ${fc ? etaText(landChance(fc.fees)) : '…'}<br>Impact sur le prix : <span class="${q.impact > .05 ? 'down' : ''}">${nf2(q.impact*100, 2)} %</span><br>Tu reçois environ : ${fp(q.tokens)} ${esc(p.baseToken.symbol)}`;
   }
 }
+// Amplitude de la dernière heure (plus haut / plus bas), lue sur les données du graphique. Comme dans les cas pratiques.
+function ampReal(key){
+  const {kind,id} = parse(key), c = kind === 'sol' ? CD[id] : CH[key];
+  const arr = c ? (c.bars || c.pts) : null; if (!arr || arr.length < 2) return null;
+  const end = arr[arr.length - 1].time, from = end - 3600;
+  if (arr[0].time > from + 600) return null;          // moins de 50 minutes de données : on ne sait pas
+  let hi = 0, lo = Infinity;
+  for (const b of arr){ if (b.time < from) continue; hi = Math.max(hi, b.high ?? b.value); lo = Math.min(lo, b.low ?? b.value); }
+  return lo > 0 && hi > 0 ? (hi/lo - 1)*100 : null;
+}
+const ampRow = key => { const a = ampReal(key); return `<div class="kv"><span>Amplitude 1h (haut / bas)</span><span>${a == null ? '<b class="qm">?</b>' : nf2(a, 1) + ' %'}</span></div>`; };
 function refreshSheet(){
   if (!sheetKey) return;
   const {kind,id} = parse(sheetKey);
@@ -2704,7 +2760,7 @@ function refreshSheet(){
     const t = BN[id];
     if (t){
       $('#sc').innerHTML = `<span class="${cls(t.pct)}">${pct(t.pct)} 24h</span>`;
-      $('#stats').innerHTML = `<div class="kv"><span>Achat (ask)</span><span>${fp(t.ask)}</span></div><div class="kv"><span>Vente (bid)</span><span>${fp(t.bid)}</span></div><div class="kv"><span>Volume 24h</span><span>${big(t.vol)}</span></div>`;
+      $('#stats').innerHTML = `${ampRow(sheetKey)}<div class="kv"><span>Achat (ask)</span><span>${fp(t.ask)}</span></div><div class="kv"><span>Vente (bid)</span><span>${fp(t.bid)}</span></div><div class="kv"><span>Volume 24h</span><span>${big(t.vol)}</span></div>`;
     }
   } else {
     const p = DEX[id];
@@ -2724,6 +2780,7 @@ function refreshSheet(){
       }
       $('#stats').innerHTML = `
         <div class="kv"><span>5 min / 24h</span><span><span class="${cls(pc.m5 || 0)}">${pct(pc.m5)}</span> · <span class="${cls(pc.h24 || 0)}">${pct(pc.h24)}</span></span></div>
+        ${ampRow(sheetKey)}
         <div class="kv"><span>Liquidité</span><span>${liq(p) > 0 ? big(liq(p)) : (p.dexId === 'pumpfun' ? 'Bonding curve' : 'Inconnue')}</span></div>
         <div class="kv"><span>Market cap</span><span>${pfPrice(id) ? big(pfPrice(id)*1e9) : big(p.marketCap || p.fdv)}</span></div>
         <div class="kv"><span>Volume 24h</span><span>${big(p.volume && p.volume.h24)}</span></div>
