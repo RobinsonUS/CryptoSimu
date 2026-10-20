@@ -130,6 +130,24 @@ nav svg{width:22px;height:22px}
 .prow label span{position:absolute;left:10px;top:4px;font-size:10px;color:var(--mut)}
 .prow label input{padding:16px 22px 4px 10px}
 .prow label em{position:absolute;right:10px;bottom:7px;font-style:normal;font-size:12px;color:var(--mut)}
+.lvbar{margin-top:12px;display:grid;gap:6px;max-width:420px;margin-left:auto;margin-right:auto}
+.lvtrack{height:5px;border-radius:99px;background:var(--surface2);overflow:hidden}
+.lvtrack i{display:block;height:100%;background:var(--acc);border-radius:99px}
+.lvinfo{font-size:12px;color:var(--mut)}
+.lvnew{font-size:11px;font-weight:700;color:var(--acc);background:rgba(171,159,242,.14);padding:2px 7px;border-radius:999px;vertical-align:middle}
+.lvpos{font-size:11px;font-weight:700;color:var(--up);background:rgba(46,189,133,.12);padding:2px 7px;border-radius:999px;vertical-align:middle}
+.lvcats{background:var(--bg);border-radius:14px;padding:12px 14px}
+.lvmoments{display:grid;gap:8px}
+.lvmoments>b{font-size:15px}
+.lvm{background:var(--bg);border-radius:12px;padding:12px 14px;display:grid;gap:6px}
+.lvmh{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+.lvmh>span:first-child{flex:1;color:var(--mut)}
+.lvmh em{font-style:normal;font-weight:700;color:var(--down)}
+.lvmb{font-size:14px;line-height:1.55}
+.lvv{padding:3px 9px;border-radius:999px;font-size:12px;font-weight:700}
+.lvv-excellent{background:rgba(46,189,133,.15);color:var(--up)}.lvv-bon{background:rgba(46,189,133,.1);color:var(--up)}
+.lvv-imprecis{background:rgba(171,159,242,.14);color:var(--acc)}.lvv-erreur{background:rgba(246,70,93,.12);color:var(--down)}.lvv-grave{background:var(--down);color:var(--bg)}
+@media (min-width:1100px){.lvbar{margin-left:0;grid-column:1/-1}}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--surface2);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:20;display:none;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty{text-align:center;color:var(--mut);padding:40px 0}
 .hist-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
@@ -151,7 +169,7 @@ nav svg{width:22px;height:22px}
 .hubtitle{font-size:19px;font-weight:700;letter-spacing:-.01em}
 .hubdesc{font-size:14px;line-height:1.5;color:var(--mut);max-width:46ch}
 .hubgo{position:absolute;right:18px;top:50%;transform:translateY(-50%);color:var(--mut);display:flex}
-@media (min-width:720px){.hub{grid-template-columns:1fr 1fr}}
+@media (min-width:720px){.hub{grid-template-columns:repeat(auto-fit,minmax(260px,1fr))}}
 
 /* cas pratiques : l'énoncé */
 .brief{background:var(--surface);border-radius:18px;padding:20px;display:grid;gap:16px;max-width:640px}
@@ -372,7 +390,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-21';
+const APP_VERSION = '2026.10.20-22';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -1876,12 +1894,14 @@ function showEx(done = false, picked = null){
 /* --- écran d'accueil de l'entraînement --- */
 function renderHub(v){
   v.innerHTML = `<div class="train">
-    <div class="trtop"><div><div class="trtitle">Entraînement</div><div class="trsub">Deux façons de progresser.</div></div></div>
+    <div class="trtop"><div><div class="trtitle">Entraînement</div><div class="trsub">Trois niveaux, du réflexe au trading en direct.</div></div></div>
     <div class="hub">
       <button class="hubcard" data-go="auto"><span class="hubk">Exercices</span><span class="hubtitle">Automatismes</span>
         <span class="hubdesc">Les calculs à connaître par cœur : impact, slippage, frais, taille de position.</span><span class="hubgo">${CHEV}</span></button>
       <button class="hubcard" data-go="cases"><span class="hubk">Mise en situation</span><span class="hubtitle">Cas pratiques</span>
         <span class="hubdesc">Un énoncé, puis l'appli en version mission. Tu montes ton trade de A à Z et tu es noté sur 100.</span><span class="hubgo">${CHEV}</span></button>
+      <button class="hubcard" data-go="live"><span class="hubk">Niveau avancé</span><span class="hubtitle">Live Trading</span>
+        <span class="hubdesc">Trois heures de marché en accéléré, des tokens qui arrivent sans arrêt, plusieurs positions. Chaque décision est analysée.</span><span class="hubgo">${CHEV}</span></button>
     </div></div>`;
   v.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { trainView = b.dataset.go; renderTrain(v); window.scrollTo(0, 0); });
 }
@@ -1904,6 +1924,7 @@ function renderAuto(v){
 function renderTrain(v){
   if (trainView === 'auto') renderAuto(v);
   else if (trainView === 'cases') renderCases(v);
+  else if (trainView === 'live') renderLiveBrief(v);
   else renderHub(v);
   const b = $('#trback'); if (b) b.onclick = () => { trainView = 'hub'; renderTrain(v); };
 }
@@ -2685,6 +2706,659 @@ function mResult(v){
   $('#magain').onclick = () => closeMission(false);
   $('#mhead').hidden = false; mTick();
   mChart('#mrchart', true);
+}
+
+/* ---------- Live Trading ----------
+   Une session de 3 heures de marché en accéléré (1 minute = 2,5 s), avec un
+   flux de tokens, plusieurs positions, préréglages SL / TP, ralenti
+   automatique quand on tape, et quelques pauses.
+   Modèle des tokens : les indicateurs VISIBLES (volume organique, achats /
+   ventes sur 5 min, évolution des détenteurs, créateur qui vend, sécurité)
+   orientent la suite ; s'y ajoutent une part cachée propre au token et du
+   hasard. Les chutes (gros vendeur, créateur, rug) suivent des probabilités
+   qui dépendent elles aussi de ce qui est visible.
+   Notation : chaque décision est rejugée depuis l'instant où elle a été prise,
+   avec uniquement l'information visible à ce moment-là : on simule des
+   centaines de suites possibles avec le même modèle, et on compare ton choix
+   aux autres choix possibles au même instant. La suite réelle n'est jamais
+   utilisée pour noter : la chance est montrée à part. */
+const LV = { len: 180, secPerMin: 2.5, slowSecPerMin: 10, sub: 10, pauses: 3, pauseSec: 20, H: 60, N: 220, lambda: 1.5 };
+let L = null, lvTimer = null, lvChart = null, lvSeries = null;
+const LV_SYL1 = ['ZO', 'PI', 'MO', 'KA', 'BU', 'FLO', 'GRU', 'SNO', 'WI', 'PE', 'DO', 'TA', 'LU', 'BRO', 'CHI', 'NE', 'FU', 'BA', 'RI', 'QUA', 'JI', 'TOO', 'MEE', 'YA'];
+const LV_SYL2 = ['RP', 'NK', 'MBO', 'TO', 'ZZ', 'PPY', 'RK', 'BI', 'GO', 'NUT', 'LLY', 'SH', 'MP', 'X', 'DOG', 'CAT', 'PUG', 'FROG', 'BEAR', 'BULL', 'MOON', 'PEPE'];
+const lvClamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+/* --- le modèle commun au marché et à la notation --- */
+// tendance par minute, à partir des seuls indicateurs visibles
+function lvDriftBase(s){
+  // un volume peu organique (bots) pèse ; un volume organique élevé est normal, il ne pousse pas le prix
+  return s.vol*((s.organic < 40 ? (s.organic - 40)/40*0.08 : 0) + (s.sh5 - 0.5)*2*(s.type === 'major' ? 0.015 : 0.05) + lvClamp(s.hg*20, -1, 1)*0.04 + (s.devSelling ? -0.15 : 0));
+}
+// probabilité par minute d'une chute brutale (gros vendeur, créateur) et d'un rug, vue depuis les indicateurs visibles
+function lvHazards(s){
+  const T = TTYPES[s.type];
+  const whale = (T.dump || 0)/60*(s.top10 >= 45 ? 2.5 : 1)*(s.dev >= 10 ? 1.5 : 1);
+  const dev = s.devDumped ? 0 : s.devSelling ? 0.25 : s.dev >= 4 ? (s.dev >= 10 ? 0.35 : 0.2)/110 : 0;
+  const rug = s.flagged && !s.rugDone && s.age < 90 ? 0.7/85 : 0;
+  return { whale, dev, rug };
+}
+const lvShare = x => lvClamp(0.5 + x*3, 0.15, 0.85);
+
+/* --- création d'un token --- */
+function lvNewToken(type, g, rnd01 = Math.random){
+  const T = TTYPES[type];
+  let name; do { name = pickOne(LV_SYL1) + pickOne(LV_SYL2); } while (L.names.has(name)); L.names.add(name);
+  const flagged = type === 'fresh' ? Math.random() < 0.3 : type === 'estab' ? Math.random() < 0.1 : false;
+  const onCurve = T.dex === 'pumpfun' && !flagged, sol = solPx();
+  const R = rnd(T.liq[0], T.liq[1]);
+  let mc, price;
+  if (type === 'major'){ mc = R*rnd(25, 60); price = Math.exp(rnd(Math.log(T.price[0]), Math.log(T.price[1]))); }
+  else { mc = onCurve ? (R/sol)**2/32.19*sol : 2*R/(type === 'estab' ? rnd(0.03, 0.15) : rnd(0.08, 0.3)); price = mc/1e9; }
+  const checks = { mint: true, freeze: true, lp: true };
+  let rugKind = null;
+  if (flagged){ rugKind = pickOne(onCurve ? ['mint', 'freeze'] : ['mint', 'freeze', 'lp']); checks[rugKind] = false; }
+  const vol = T.vol*rnd(0.8, 1.3), q = gauss();
+  const dev = type === 'major' ? +rnd(0, 1.5).toFixed(1) : type === 'estab' ? +rnd(0, 6).toFixed(1) : Math.random() < 0.5 ? +rnd(0, 3).toFixed(1) : +rnd(3, 25).toFixed(1);
+  const tk = { id: L.tokens.length, name, full: name.charAt(0) + name.slice(1).toLowerCase(), type, label: T.label, hue: Math.floor(rnd(0, 360)),
+    addr: Array.from({ length: 44 }, () => B58[Math.floor(Math.random()*58)]).join(''),
+    dex: onCurve ? 'pumpfun' : T.dex === 'pumpfun' ? 'raydium' : T.dex, pool: onCurve ? 0.0125 : T.dex === 'pumpfun' ? 0.0025 : T.pool,
+    R, vol, slip: T.slip, flagged, checks, lpPct: checks.lp ? 100 : Math.floor(rnd(0, 30)),
+    top10: type === 'major' ? Math.round(rnd(8, 18)) : Math.round(rnd(type === 'fresh' ? 22 : 14, type === 'fresh' ? 55 : 35)),
+    appear: g, ageMs0: type === 'fresh' ? rnd(1, 6)*60e3 : rnd(T.age[0], T.age[1]),
+    q, eps: q*0.04*vol, organic: Math.round(type === 'major' ? rnd(75, 98) : type === 'estab' ? rnd(35, 90) : rnd(5, 85)),
+    dev0: dev, dev, holders: Math.round(type === 'major' ? rnd(8e4, 6e5) : type === 'estab' ? rnd(2e3, 4e4) : rnd(20, 300)), hHist: [],
+    price, p0: price, candles: [], cur: null, sh5: 0.5, sh60: 0.5, b5: 0, s5: 0, b60: 0, s60: 0, mc0: mc, liqShown: onCurve ? 2*Math.max(0, R - 30*sol) : 2*R,
+    devSellAt: null, devDumpAt: null, devDumped: false, rugAt: null, rugDone: false, frozen: false, lpGone: false };
+  // évènements cachés : créateur qui vend (visible quelques minutes avant la chute), rug si croix rouge
+  const pDev = dev >= 10 ? 0.35 : dev >= 4 ? 0.2 : 0;
+  if (pDev && Math.random() < pDev){ tk.devDumpAt = g + rnd(10, 120); tk.devSellAt = tk.devDumpAt - rnd(4, 8); }
+  if (flagged && Math.random() < 0.7) tk.rugAt = g + rnd(5, 90);
+  // historique : 60 minutes pour un token déjà établi, quelques minutes pour un nouveau
+  const back = type === 'fresh' ? Math.max(3, Math.round(tk.ageMs0/60e3)) : 60, h0 = gbm(back, 1, vol, (Math.random() - 0.5)*T.vol*0.3), k = price/h0[h0.length - 1].c;
+  tk.candles = h0.map((c, i) => ({ t: g - back + i, o: c.o*k, h: c.h*k, l: c.l*k, c: c.c*k }));
+  for (let i = 0; i < back; i++) tk.hHist.push(tk.holders);
+  lvSignals(tk);
+  tk.cur = { t: Math.floor(g), o: price, h: price, l: price, c: price };
+  return tk;
+}
+// indicateurs visibles, recalculés chaque minute à partir de ce qui s'est passé
+function lvSignals(tk){
+  const cs = tk.candles, n = cs.length, last = cs[n - 1].c;
+  const r5 = last/cs[Math.max(0, n - 5)].o - 1, r60 = last/cs[Math.max(0, n - 60)].o - 1;
+  tk.sh5 = lvShare(r5/(tk.vol*Math.sqrt(5))*0.08); tk.sh60 = lvShare(r60/(tk.vol*Math.sqrt(60))*0.08);
+  const base = tk.type === 'major' ? 600 : tk.type === 'estab' ? 120 : 40 + Math.min(200, tk.holders/4);
+  const n5 = Math.round(base*rnd(0.7, 1.3)), n60 = Math.round(n5*rnd(8, 14));
+  tk.b5 = Math.round(n5*tk.sh5); tk.s5 = n5 - tk.b5; tk.b60 = Math.round(n60*tk.sh60); tk.s60 = n60 - tk.b60;
+}
+function lvVisible(tk, g){
+  const hh = tk.hHist, h15 = hh[Math.max(0, hh.length - 15)] || tk.holders;
+  return { type: tk.type, vol: tk.vol, organic: tk.organic, sh5: tk.sh5, hg: tk.holders/h15 - 1, devSelling: tk.devSellAt != null && g >= tk.devSellAt && !tk.devDumped,
+    dev: tk.dev, devDumped: tk.devDumped, top10: tk.top10, flagged: tk.flagged, rugDone: tk.rugDone, age: g - tk.appear, kind: tk.flagged ? (!tk.checks.mint ? 'mint' : !tk.checks.freeze ? 'freeze' : 'lp') : null };
+}
+
+/* --- le moteur de la session --- */
+function lvNewSession(){
+  const target = pickOne([6, 8, 10, 12]), maxDD = pickOne([8, 10, 12, 15]), maxTrades = pickOne([5, 6, 8]);
+  L = { g: 0, last: 0, phase: 'brief', target, maxDD, maxTrades, cash: CAPITAL, minEq: CAPITAL, trades: 0, tokens: [], names: new Set(), pos: {}, log: [], decisions: [],
+    pausesLeft: LV.pauses, pausedUntil: 0, slow: false, view: 'list', open: -1, busy: new Set(), sol: Math.round(solPx()),
+    cong: pickOne(CONG), spikeAt: rnd(40, 140), spikeLen: rnd(8, 15), fees: null, nextArr: rnd(4, 9), lastSeen: {},
+    set: { prio: Math.max(PRIO_MIN, +S.settings.prio || PRIO_MIN), slip: Math.min(100, Math.max(1, +S.settings.slip || 10)), presets: JSON.parse(JSON.stringify(S.settings.presets)), preset: S.settings.preset } };
+  L.feesBase = Array.from({ length: 150 }, () => L.cong.median*Math.exp(gauss()*0.8));
+  L.tokens.push(lvNewToken('major', 0)); L.tokens.push(lvNewToken('estab', 0)); L.tokens.push(lvNewToken('estab', 0)); L.tokens.push(lvNewToken('fresh', 0));
+  shuffle(L.tokens).forEach((t, i) => t.id = i);
+}
+const lvSpike = () => L.g >= L.spikeAt && L.g < L.spikeAt + L.spikeLen;
+const lvFees = () => lvSpike() ? L.feesBase.map(f => f*6) : L.feesBase;
+const lvLand = prio => { const fs = lvFees(); return Math.min(0.95, Math.max(0.01, fs.filter(f => prio >= f).length/fs.length)); };
+const lvFeeOf = (t, prio) => ({ pct: t.pool + TTYPES[t.type].plat, net: (prio + SOL_BASE_FEE)*L.sol });
+const lvPosValue = (p, t) => t.lpGone || t.frozen ? 0 : p.qty*t.price;
+function lvSellOut(t, qty, price, prio){
+  if (t.lpGone) return 0;
+  const V = qty*price; if (!(V > 0)) return 0;
+  const f = lvFeeOf(t, prio), gross = t.R*V/(t.R + V);
+  return Math.max(0, gross*(1 - f.pct) - f.net);
+}
+function lvEquity(){ let e = L.cash; for (const k in L.pos) e += lvPosValue(L.pos[k], L.tokens[k]); return e; }
+// avance le temps d'une petite étape (un dixième de minute)
+function lvStep(){
+  const dt = 1/LV.sub, g0 = L.g, g1 = L.g + dt;
+  for (const t of L.tokens){
+    if (t.appear > g0) continue;
+    // évènements cachés
+    if (t.rugAt != null && !t.rugDone && g1 >= t.rugAt){
+      t.rugDone = true;
+      if (t.checks.freeze === false) t.frozen = true;
+      else { t.price *= 0.07; if (t.checks.lp === false) t.lpGone = true; }
+    }
+    if (t.devDumpAt != null && !t.devDumped && g1 >= t.devDumpAt){
+      t.devDumped = true; t.price *= rnd(TTYPES[t.type].dumpF ? TTYPES[t.type].dumpF[0] : 0.5, TTYPES[t.type].dumpF ? TTYPES[t.type].dumpF[1] : 0.8); t.dev = +(t.dev*0.1).toFixed(1);
+    }
+    const hz = lvHazards(lvVisible(t, g0));
+    if (Math.random() < hz.whale*dt && TTYPES[t.type].dumpF) t.price *= rnd(TTYPES[t.type].dumpF[0], TTYPES[t.type].dumpF[1]);
+    // créateur qui vend : sa part baisse, visible
+    if (t.devSellAt != null && g1 >= t.devSellAt && !t.devDumped) t.dev = Math.max(0.1, +(t.dev - t.dev0*0.5*dt/Math.max(1, t.devDumpAt - t.devSellAt)).toFixed(2));
+    const drift = lvDriftBase(lvVisible(t, g0)) + t.eps, fat = Math.random() < 0.06 ? 3 : 1;
+    t.price = Math.max(t.price*0.2, t.price*Math.exp(drift*dt + t.vol*fat*Math.sqrt(dt)*gauss()));
+    const c = t.cur; c.h = Math.max(c.h, t.price); c.l = Math.min(c.l, t.price); c.c = t.price;
+    lvTriggers(t);
+  }
+  L.g = g1;
+  // nouvelle minute
+  if (Math.floor(g1 + 1e-9) > Math.floor(g0 + 1e-9)){
+    const m = Math.floor(g1 + 1e-9);
+    for (const t of L.tokens){
+      if (t.appear > g0) continue;
+      t.candles.push(t.cur); if (t.candles.length > 400) t.candles.shift();
+      const r1 = t.cur.c/t.cur.o - 1;
+      t.holders = Math.max(5, Math.round(t.holders*(1 + lvClamp(0.003*t.q + 0.6*r1 + 0.002*gauss(), -0.02, 0.04))));
+      t.hHist.push(t.holders); if (t.hHist.length > 120) t.hHist.shift();
+      lvSignals(t);
+      t.cur = { t: m, o: t.price, h: t.price, l: t.price, c: t.price };
+      if (t.devSellAt != null && Math.abs(m - Math.ceil(t.devSellAt)) < 1e-9) lvKeyMoment(t);
+    }
+    // arrivée de nouveaux tokens
+    if (m >= L.nextArr && m < LV.len - 20){
+      L.tokens.push(lvNewToken(Math.random() < 0.85 ? 'fresh' : 'estab', m));
+      L.nextArr = m + rnd(5, 12);
+      const nt = L.tokens[L.tokens.length - 1];
+      lvLogDecision({ kind: 'appear', tok: nt.id, g: m, snap: lvSnap(nt) });
+    }
+    if (Math.abs(m - Math.ceil(L.spikeAt)) < 1e-9) toast('Le réseau Solana sature : les transactions passent mal');
+    // décisions « garder » non suivies d'effet après un signal de vente du créateur
+    for (const d of L.decisions) if (d.kind === 'devsignal' && !d.done && m >= d.g + 3){ d.done = true; d.chosen = L.pos[d.tok] ? 'hold' : 'sold'; }
+  }
+  const eq = lvEquity(); L.minEq = Math.min(L.minEq, eq);
+}
+function lvTriggers(t){
+  const p = L.pos[t.id]; if (!p || t.frozen) { if (p && t.frozen && (p.sl && t.price <= p.sl || p.tp && t.price >= p.tp) && !p.warned){ p.warned = true; toast(`${t.name} : vente impossible, le token est gelé.`); } return; }
+  if (p.sl && t.price <= p.sl) lvClose(t, 1, 'Stop loss');
+  else if (p.tp && t.price >= p.tp) lvClose(t, 1, 'Take profit');
+}
+
+/* --- ordres --- */
+async function lvBuy(){
+  const t = L.tokens[L.open], A = +$('#lamt').value, my = L;
+  if (L.phase !== 'run') return;
+  if (L.busy.has(t.id)) return toast('Transaction déjà en cours sur ce token');
+  if (!(A > 0)) return toast('Montant invalide');
+  if (A > L.cash + 1e-9) return toast('Solde insuffisant');
+  if (L.trades >= L.maxTrades) return toast(`Limite de ${L.maxTrades} achats atteinte pour cette session`);
+  const set = { ...L.set }, f = lvFeeOf(t, set.prio), dx = A*(1 - f.pct) - f.net;
+  if (!(dx > 0)) return toast('Montant trop faible pour couvrir les frais');
+  const snap = lvSnap(t);
+  L.busy.add(t.id); toast('Transaction envoyée…');
+  const q = lvLand(set.prio); let slot = 0; while (++slot <= 150 && Math.random() >= q){}
+  if (slot > 150){
+    await lvWaitGame(1); if (L !== my) return; L.busy.delete(t.id);
+    lvLogDecision({ kind: 'exec', g: snap.g, tok: t.id, what: 'expired', prio: set.prio, med: median(lvFees()) });
+    return toast('Transaction expirée : priority fee trop basse. Aucun frais payé.');
+  }
+  const sec = slot*0.4 + 0.3;
+  await sleep(Math.min(1200, 150 + sec*60)); if (L !== my) return; L.busy.delete(t.id);
+  const sd = t.vol*Math.sqrt(sec/60), move = gauss()*sd + (t.type === 'fresh' ? Math.abs(gauss())*sd*0.6 : 0), short = move > 0 ? move/(1 + move)*100 : 0;
+  if (short > set.slip){
+    L.cash -= f.net; L.log.push({ g: L.g, tok: t.id, side: 'Échec achat', usd: 0, fee: f.net });
+    lvLogDecision({ kind: 'exec', g: snap.g, tok: t.id, what: 'slip', slip: set.slip, range: t.slip });
+    return toast(`Échec : le prix a pris ${pct1(move*100)} pendant la confirmation, plus que ton slippage. Frais réseau payés.`);
+  }
+  if (L.trades >= L.maxTrades || A > L.cash + 1e-9) return toast('Achat annulé');
+  const fill = t.price*(1 + move), qty = dx/fill*t.R/(t.R + dx);
+  L.cash -= A; L.trades++;
+  const old = L.pos[t.id], p = old || (L.pos[t.id] = { qty: 0, cost: 0, sl: null, tp: null, entryG: L.g });
+  p.qty += qty; p.cost += A;
+  const lv = presetLevels(set, p.cost/p.qty, t.price);
+  if (lv){ p.sl = lv.sl; p.tp = lv.tp; }
+  L.log.push({ g: L.g, tok: t.id, side: 'Achat', usd: A, fee: A*f.pct + f.net, price: A/qty });
+  const d = lvLogDecision({ kind: 'buy', tok: t.id, g: snap.g, snap, A, set, fill, entryRel: A/(dx*(1 - dx/(t.R + dx))) });
+  d.pending = true; d.finalAt = L.g + 1;     // le plan est figé une minute après l'achat (le temps de poser stop et objectif)
+  toast('Acheté ' + fp(qty) + ' ' + t.name + (lv ? ' · SL / TP posés' : ''));
+  lvTick();
+}
+function lvClose(t, frac, reason, manual){
+  const p = L.pos[t.id]; if (!p) return;
+  if (t.frozen){ if (manual) toast('Vente impossible : le créateur a gelé les portefeuilles.'); return; }
+  const snap = manual ? lvSnap(t) : null, qty = frac >= 1 ? p.qty : p.qty*frac;
+  const out = lvSellOut(t, qty, t.price, L.set.prio), costPart = p.cost*(qty/p.qty);
+  L.cash += out; L.log.push({ g: L.g, tok: t.id, side: reason, usd: out, pnl: out - costPart });
+  if (manual) lvLogDecision({ kind: 'sell', tok: t.id, g: snap.g, snap, frac });
+  if (frac >= 1 || p.qty - qty < 1e-12) delete L.pos[t.id]; else { p.qty -= qty; p.cost -= costPart; }
+  toast(`${reason} ${t.name} : ${money(out)} (${out - costPart >= 0 ? '+' : ''}${money(out - costPart)})`);
+  lvTick();
+}
+function lvSaveTrig(t){
+  const p = L.pos[t.id]; if (!p) return;
+  const sl = +$('#lsl').value || null, tp = +$('#ltp').value || null;
+  if (sl && sl >= t.price) return toast('Le stop loss doit être sous le prix actuel');
+  if (tp && tp <= t.price) return toast('Le take profit doit être au-dessus du prix actuel');
+  const snap = lvSnap(t), old = { sl: p.sl, tp: p.tp };
+  p.sl = sl; p.tp = tp;
+  const buy = L.decisions.find(d => d.kind === 'buy' && d.tok === t.id && d.pending);
+  if (!buy) lvLogDecision({ kind: 'trig', tok: t.id, g: snap.g, snap, old, sl, tp });
+  toast('SL / TP enregistrés'); lvTick();
+}
+const lvWaitGame = mins => new Promise(r => { const target = L.g + mins, my = L; const iv = setInterval(() => { if (L !== my || L.g >= target){ clearInterval(iv); r(); } }, 100); });
+function lvKeyMoment(t){
+  if (L.pos[t.id]) lvLogDecision({ kind: 'devsignal', tok: t.id, g: L.g, snap: lvSnap(t) });
+}
+function lvLogDecision(d){ L.decisions.push(d); return d; }
+// photographie de tout ce qui est visible au moment d'une décision
+function lvSnap(t){
+  const p = L.pos[t.id], eq = lvEquity();
+  return { g: L.g, tok: t.id, price: t.price, vis: lvVisible(t, L.g), R: t.R, pool: t.pool, type: t.type, remaining: LV.len - L.g, cash: L.cash, equity: eq,
+    budget: Math.max(0, eq - CAPITAL*(1 - L.maxDD/100)), prio: L.set.prio, slip: L.set.slip, med: median(lvFees()), presets: JSON.parse(JSON.stringify(L.set.presets)),
+    pos: p ? { qty: p.qty, cost: p.cost, sl: p.sl, tp: p.tp } : null, tradesLeft: L.maxTrades - L.trades, amp: lvAmp(t), why: lvSignalsTxt(t) };
+}
+function lvAmp(t){ const cs = t.candles.slice(-60); let hi = 0, lo = Infinity; for (const c of cs){ hi = Math.max(hi, c.h); lo = Math.min(lo, c.l); } return cs.length ? (hi/lo - 1)*100 : 0; }
+function lvSignalsTxt(t){
+  const v = lvVisible(t, L.g), out = [];
+  if (t.flagged) out.push('une croix rouge dans Sécurité');
+  if (v.devSelling) out.push(`la part du créateur baissait (${nf2(t.dev, 1)} %, il vendait)`);
+  else if (t.dev >= 10) out.push(`le créateur détenait ${nf2(t.dev, 1)} %`);
+  if (t.organic < 35) out.push(`volume organique ${t.organic} / 100`);
+  else if (t.organic >= 75) out.push(`volume organique ${t.organic} / 100`);
+  if (t.s5 > t.b5*1.4) out.push(`${t.s5} ventes pour ${t.b5} achats sur 5 min`);
+  else if (t.b5 > t.s5*1.4) out.push(`${t.b5} achats pour ${t.s5} ventes sur 5 min`);
+  if (v.hg < -0.03) out.push('des détenteurs qui partaient');
+  else if (v.hg > 0.05) out.push('des détenteurs qui arrivaient vite');
+  if (t.top10 >= 45) out.push(`top 10 à ${t.top10} %`);
+  return out;
+}
+
+/* --- boucle de temps --- */
+function lvLoop(){
+  const now = performance.now(), dtReal = Math.min(0.5, (now - L.last)/1000); L.last = now;
+  if (L.phase !== 'run') return;
+  const paused = Date.now() < L.pausedUntil;
+  const ae = document.activeElement, typing = ae && ae.tagName === 'INPUT' && $('#msn').contains(ae);
+  L.slow = typing;
+  if (!paused){
+    L.acc = (L.acc || 0) + dtReal/(typing ? LV.slowSecPerMin : LV.secPerMin);
+    while (L.acc >= 1/LV.sub && L.phase === 'run'){
+      L.acc -= 1/LV.sub; lvStep();
+      lvFinalizePending();
+      if (L.g >= LV.len - 1e-9){ lvEnd(); break; }
+    }
+  }
+  if (now - (L.lastDraw || 0) > 240){ L.lastDraw = now; lvTick(); }
+}
+function lvFinalizePending(){
+  for (const d of L.decisions) if (d.kind === 'buy' && d.pending && L.g >= d.finalAt){
+    d.pending = false; const p = L.pos[d.tok];
+    d.sl = p ? p.sl : d.sl ?? null; d.tp = p ? p.tp : d.tp ?? null;
+  }
+}
+function lvStart(){
+  L.phase = 'run'; L.last = performance.now();
+  clearInterval(lvTimer); lvTimer = setInterval(lvLoop, 100);
+  for (const t of L.tokens) lvLogDecision({ kind: 'appear', tok: t.id, g: 0, snap: lvSnap(t) });
+}
+function lvEnd(){
+  L.view = 'grading';
+  for (const k of Object.keys(L.pos)){ const t = L.tokens[k]; if (t.frozen || t.lpGone){ L.log.push({ g: L.g, tok: t.id, side: 'Fin (bloqué)', usd: 0, pnl: -L.pos[k].cost }); delete L.pos[k]; } else lvClose(t, 1, 'Fin de session'); }
+  for (const d of L.decisions) if (d.kind === 'buy' && d.pending){ d.pending = false; const p = L.pos[d.tok]; d.sl = p ? p.sl : null; d.tp = p ? p.tp : null; }
+  L.phase = 'done'; L.view = 'grading'; clearInterval(lvTimer);
+  const v = $('#mview'); if (v) v.innerHTML = `<div class="grading"><div class="spin"></div>Analyse de tes décisions…</div>`;
+  lvTick();
+  const my = L;
+  setTimeout(() => { if (L !== my) return; L.grade = lvGrade(); L.view = 'result'; lvRender(); $('#msn').scrollTop = 0; }, 60);
+}
+
+/* --- notation : décision par décision --- */
+// suites possibles depuis l'instant de la décision (prix de départ = 1), avec le modèle et les seuls indicateurs visibles
+function lvSim(snap, seed){
+  const R = seeded(seed), g = () => { let u = 0, w = 0; while (!u) u = R(); while (!w) w = R(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*w); };
+  const v = snap.vis, H = Math.max(1, Math.min(LV.H, Math.floor(snap.remaining))), T = TTYPES[v.type], hz = lvHazards(v), base = lvDriftBase(v), out = [];
+  for (let n = 0; n < LV.N; n++){
+    const drift = base + g()*0.04*v.vol, o = new Float64Array(H), h = new Float64Array(H), l = new Float64Array(H), c = new Float64Array(H);
+    let p = 1, frz = 1e9, gone = 1e9, devDone = v.devDumped, rugDone = v.rugDone;
+    for (let i = 0; i < H; i++){
+      let op = p;
+      if (!rugDone && hz.rug && R() < hz.rug){ rugDone = true; if (v.kind === 'freeze') frz = i; else { op *= 0.07; if (v.kind === 'lp') gone = i; } }
+      if (!devDone && hz.dev && R() < hz.dev && T.dumpF){ devDone = true; op *= T.dumpF[0] + R()*(T.dumpF[1] - T.dumpF[0]); }
+      if (hz.whale && R() < hz.whale && T.dumpF) op *= T.dumpF[0] + R()*(T.dumpF[1] - T.dumpF[0]);
+      const fat = R() < 0.06 ? 3 : 1;
+      p = Math.max(op*0.2, op*Math.exp(drift + v.vol*fat*g()));
+      o[i] = op; h[i] = Math.max(op, p)*(1 + Math.abs(g())*v.vol*0.45); l[i] = Math.min(op, p)*(1 - Math.abs(g())*v.vol*0.45); c[i] = p;
+    }
+    out.push({ o, h, l, c, frz, gone, H });
+  }
+  return out;
+}
+function lvExit(P, sl, tp){
+  for (let i = 0; i < P.H; i++){
+    if (i >= P.gone) return 0;
+    if (i >= P.frz) continue;
+    if (sl && P.l[i] <= sl) return Math.min(sl, P.o[i]);
+    if (tp && P.h[i] >= tp) return Math.max(tp, Math.min(P.o[i], P.h[i]));
+  }
+  return P.frz < 1e9 || P.gone < 1e9 ? 0 : P.c[P.H - 1];
+}
+// utilité d'un résultat : gain espéré, moins une pénalité pour ce qui dépasse la marge de perte restante
+function lvUtil(pnls, budget){
+  let m = 0, s = 0; for (const x of pnls){ m += x; s += Math.max(0, -x - budget); }
+  return { u: (m - LV.lambda*s)/pnls.length, mean: m/pnls.length };
+}
+function lvBuyPnls(snap, paths, A, slR, tpR){
+  const f = { pct: snap.pool + TTYPES[snap.type].plat, net: (snap.prio + SOL_BASE_FEE)*L.sol }, dx = A*(1 - f.pct) - f.net;
+  if (!(dx > 0)) return null;
+  const q = dx*(1 - dx/(snap.R + dx));
+  return paths.map(P => { const x = lvExit(P, slR, tpR), V = q*x; return (V > 0 ? Math.max(0, snap.R*V/(snap.R + V)*(1 - f.pct) - f.net) : 0) - A; });
+}
+// meilleur achat possible à cet instant (montant x sortie), et utilité d'un plan donné
+function lvBuyOptions(snap, paths){
+  const opts = [{ A: 0, slP: 0, tpP: 0, u: 0, mean: 0 }];
+  const pairs = [[5, 10], [10, 20], [10, 30], [20, 50], [30, 100], [0, 0], ...snap.presets.map(p => [p.sl, p.tp])];
+  const sizes = [5, 10, 20, 30, 50, 75, 100].filter(a => a <= snap.cash + 1e-9);
+  if (snap.tradesLeft > 0) for (const A of sizes) for (const [slP, tpP] of pairs){
+    const f = { pct: snap.pool + TTYPES[snap.type].plat, net: (snap.prio + SOL_BASE_FEE)*L.sol }, dx = A*(1 - f.pct) - f.net; if (!(dx > 0)) continue;
+    const er = A/(dx*(1 - dx/(snap.R + dx))), pn = lvBuyPnls(snap, paths, A, slP ? er*(1 - slP/100) : 0, tpP ? er*(1 + tpP/100) : 0);
+    if (!pn) continue;
+    const r = lvUtil(pn, snap.budget); opts.push({ A, slP, tpP, u: r.u - (slP ? 0 : 0.05), mean: r.mean });   // à résultat presque égal, on préfère un plan avec stop
+  }
+  return opts.reduce((a, b) => b.u > a.u ? b : a);
+}
+// valeur d'une position déjà ouverte selon ce qu'on en fait (relative à « tout vendre maintenant »)
+function lvHoldU(snap, paths, frac, slR, tpR){
+  const pos = snap.pos, f = { pct: snap.pool + TTYPES[snap.type].plat, net: (snap.prio + SOL_BASE_FEE)*L.sol };
+  const sellNow = qty => { const V = qty*snap.price; return snap.vis.kind === 'lp' && snap.vis.rugDone ? 0 : Math.max(0, snap.R*V/(snap.R + V)*(1 - f.pct) - f.net); };
+  const keep = pos.qty*(1 - frac), now = sellNow(pos.qty);
+  const pn = paths.map(P => { const x = lvExit(P, slR, tpR), V = keep*snap.price*x; return (frac > 0 ? sellNow(pos.qty*frac) : 0) + (V > 0 ? Math.max(0, snap.R*V/(snap.R + V)*(1 - f.pct) - f.net) : 0) - now; });
+  return lvUtil(pn, snap.budget);
+}
+const LV_VERD = [[0.15, 'excellent', 'Excellent'], [0.5, 'bon', 'Bon'], [1.5, 'imprecis', 'Imprécis'], [4, 'erreur', 'Erreur'], [1e9, 'grave', 'Grave erreur']];
+const lvVerdict = r => LV_VERD.find(x => r <= x[0]);
+const lvPlanTxt = (A, slP, tpP) => A ? `acheter ${money(A)}${slP || tpP ? ` avec ${slP ? 'stop -' + slP + ' %' : 'sans stop'} et ${tpP ? 'objectif +' + tpP + ' %' : 'sans objectif'}` : ' sans stop ni objectif'}` : 'ne pas acheter';
+function lvGrade(){
+  const moments = [], cat = { tri: 0, taille: 0, gestion: 0, exec: 0 };
+  let expected = 0, seed = 1;
+  const boughtWithin = (tok, g) => L.decisions.some(d => d.kind === 'buy' && d.tok === tok && d.g >= g - 1e-9 && d.g <= g + 8);
+  for (const d of L.decisions){
+    const t = L.tokens[d.tok], who = `Minute ${Math.floor(d.g)} · ${t.name}`;
+    if (d.kind === 'appear'){
+      if (boughtWithin(d.tok, d.g)) continue;
+      const fair = d.snap.cash >= 10 && d.snap.tradesLeft > 0 && d.snap.remaining > 15; if (!fair) continue;
+      const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions(d.snap, paths);
+      const regret = Math.max(0, best.u);
+      if (regret < 0.15 && !t.flagged) continue;     // bon choix sans histoire : rien à dire
+      cat.tri += regret;
+      const good = regret < 0.15 && t.flagged;
+      moments.push({ g: d.g, who, regret, kind: 'tri', did: good ? 'Tu ne l\'as pas acheté' : 'Tu es passé à côté', best: best.A ? lvPlanTxt(best.A, best.slP, best.tpP) : 'passer', why: d.snap.why, good, label: good ? 'Piège évité' : null });
+    } else if (d.kind === 'buy'){
+      const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions(d.snap, paths), er = d.entryRel;
+      const dsl = d.sl ?? null, dtp = d.tp ?? null, slR = dsl ? dsl/d.snap.price : 0, tpR = dtp ? dtp/d.snap.price : 0;
+      const pn = lvBuyPnls(d.snap, paths, d.A, slR, tpR), mine = pn ? lvUtil(pn, d.snap.budget) : { u: -d.A, mean: -d.A };
+      expected += mine.mean;
+      const regret = Math.max(0, best.u - mine.u), passU = 0;
+      // part « tri » : fallait-il acheter ce token ? part « taille et sorties » : le reste
+      const triPart = best.A === 0 ? Math.max(0, passU - mine.u) : Math.max(0, Math.min(regret, -mine.u));
+      cat.tri += Math.min(regret, triPart); cat.taille += Math.max(0, regret - triPart);
+      const sp = dtp ? Math.round((dtp/(d.fill*er) - 1)*100) : 0, sl = dsl ? Math.round((1 - dsl/(d.fill*er))*100) : 0;
+      moments.push({ g: d.g, who, regret, kind: best.A === 0 ? 'tri' : 'taille', did: `Tu as ${lvPlanTxt(d.A, sl, sp).replace(/^acheter/, 'acheté')}`, best: lvPlanTxt(best.A, best.slP, best.tpP), why: d.snap.why });
+      // exécution
+      const [s0, s1] = t.slip, pr = d.set.prio/d.snap.med;
+      if (d.set.slip < s0 || d.set.slip > s1*2) cat.exec += 0.3;
+      if (pr < 1 || pr > 5) cat.exec += 0.3;
+    } else if (d.kind === 'sell' || d.kind === 'devsignal' || d.kind === 'trig'){
+      if (!d.snap.pos) continue;
+      const paths = lvSim(d.snap, 1000 + seed++), P = d.snap.pos, curSl = P.sl ? P.sl/d.snap.price : 0, curTp = P.tp ? P.tp/d.snap.price : 0;
+      const cands = [{ txt: 'tout vendre', u: 0 }, { txt: 'vendre la moitié', u: lvHoldU(d.snap, paths, 0.5, curSl, curTp).u }, { txt: 'garder avec tes niveaux', u: lvHoldU(d.snap, paths, 0, curSl, curTp).u }];
+      for (const [a, b] of [[0.95, 1.1], [0.9, 1.2], [0.8, 1.5], [0.97, 1.05]]) cands.push({ txt: `garder avec un stop à ${pct1((a - 1)*100)} et un objectif à +${nf2((b - 1)*100, 0)} % du prix actuel`, u: lvHoldU(d.snap, paths, 0, a, b).u });
+      const best = cands.reduce((a, b) => b.u > a.u ? b : a);
+      let mineU, did;
+      if (d.kind === 'sell'){ mineU = d.frac >= 1 ? 0 : lvHoldU(d.snap, paths, d.frac, curSl, curTp).u; did = d.frac >= 1 ? 'Tu as tout vendu' : `Tu as vendu ${Math.round(d.frac*100)} %`; }
+      else if (d.kind === 'trig'){ mineU = lvHoldU(d.snap, paths, 0, d.sl ? d.sl/d.snap.price : 0, d.tp ? d.tp/d.snap.price : 0).u; did = 'Tu as déplacé ton stop / objectif'; }
+      else { mineU = d.chosen === 'sold' ? 0 : cands[2].u; did = d.chosen === 'sold' ? 'Tu as vendu à temps' : 'Tu as gardé la position'; }
+      const regret = Math.max(0, best.u - mineU);
+      cat.gestion += regret;
+      moments.push({ g: d.g, who, regret, kind: 'gestion', did, best: best.txt, why: d.snap.why, good: d.kind === 'devsignal' && regret < 0.15, label: d.kind === 'devsignal' && regret < 0.15 ? 'Bonne réaction' : null });
+    } else if (d.kind === 'exec'){
+      cat.exec += d.what === 'expired' ? 0.4 : 0.5;
+      moments.push({ g: d.g, who, regret: 0.5, kind: 'exec', did: d.what === 'expired' ? 'Transaction expirée' : 'Achat échoué sur le slippage', best: d.what === 'expired' ? `une priority fee au-dessus de la médiane (${fp(d.med)} SOL)` : `un slippage de ${d.range[0]} à ${d.range[1]} %`, why: [] });
+    }
+  }
+  const total = cat.tri + cat.taille + cat.gestion + cat.exec;
+  const ddBreach = (CAPITAL - L.minEq) > CAPITAL*L.maxDD/100;
+  const final = L.cash, pnl = final - CAPITAL, goalOk = pnl >= CAPITAL*L.target/100;
+  let score = Math.round(100*Math.exp(-total/10)) - (ddBreach ? 15 : 0);
+  score = lvClamp(score, 0, 100);
+  const bad = moments.filter(m => !m.good && m.regret >= 0.15).sort((a, b) => b.regret - a.regret).slice(0, 6), good = moments.filter(m => m.good).slice(0, 2);
+  const lessons = [], worst = Object.entries(cat).sort((a, b) => b[1] - a[1]);
+  const LES = {
+    tri: `Avant d'acheter, lis l'encadré Activité. Volume organique, achats / ventes sur 5 min, détenteurs qui arrivent ou partent, part du créateur : ce sont eux qui orientent la suite. Un token sans bons signaux, on le laisse passer, même s'il vient de monter.`,
+    taille: `Dose la mise avec ta marge de perte restante, et pose toujours un stop adapté à la volatilité du token. Un objectif trop loin n'est presque jamais touché en une session.`,
+    gestion: `Surveille tes positions : quand la part du créateur baisse, il est en train de vendre, sors avant la chute. À l'inverse, une baisse normale ne justifie pas de tout vendre.`,
+    exec: `Adapte la priority fee au réseau (regarde la médiane dans Portefeuille, surtout quand il sature) et le slippage au type de token.`
+  };
+  for (const [k, v] of worst) if (v >= 0.5 && lessons.length < 2) lessons.push(LES[k]);
+  if (ddBreach) lessons.push(`Tu es descendu de plus de ${L.maxDD} % sous ton capital pendant la session : c'était la limite à ne jamais franchir.`);
+  return { score, total, cat, moments: [...bad, ...good].sort((a, b) => a.g - b.g), expected, pnl, goalOk, ddBreach, lessons };
+}
+
+/* --- interface --- */
+function renderLiveBrief(v){
+  if (!L || L.phase === 'done') lvNewSession();
+  v.innerHTML = `<div class="train">
+    ${trainHead('Live Trading', 'Une session complète, en accéléré.')}
+    <section class="brief">
+      <div class="briefk"><span>Session</span><span class="prof prof-agressif">3 heures de marché</span></div>
+      <p class="brieftxt">Tu as 100 $ et 3 heures de marché, qui passent en environ 7 minutes. Des tokens arrivent tout au long de la session : beaucoup sont médiocres, certains sont des pièges, quelques-uns valent le coup. Tu peux ouvrir plusieurs positions.</p>
+      <div class="briefrows">
+        <div class="kv"><span>Objectif de fin de session</span><span class="up">+${L.target} %</span></div>
+        <div class="kv"><span>Ne jamais descendre sous</span><span class="down">-${L.maxDD} % (${money(CAPITAL*(1 - L.maxDD/100))})</span></div>
+        <div class="kv"><span>Achats maximum</span><span>${L.maxTrades}</span></div>
+        <div class="kv"><span>Pauses</span><span>${LV.pauses} × ${LV.pauseSec} s</span></div>
+      </div>
+      <div class="briefnote">1 minute de marché = 2,5 secondes. Le marché ralentit (1 minute = 10 secondes) quand tu tapes un montant ou un prix. Tes préréglages SL / TP, ta priority fee et ton slippage sont repris. Chaque décision est notée avec ce que tu voyais à ce moment-là, pas avec la suite.</div>
+      <div class="briefbtns"><button class="btn btn-ghost" id="lvnew">Autre session</button><button class="btn btn-buy" id="lvgo">Commencer</button></div>
+    </section></div>`;
+  $('#lvnew').onclick = () => { lvNewSession(); renderTrain(v); };
+  $('#lvgo').onclick = lvOpen;
+}
+function lvOpen(){
+  M = null;
+  const el = $('#msn');
+  const navIcon = t => { const s = document.querySelector(`nav [data-t="${t}"] svg`); return s ? s.outerHTML : ''; };
+  el.innerHTML = `<div class="mbar"><button class="mq" id="lquit">${BACK}<span>Quitter</span></button>
+      <div class="grow mlab"><b>Live Trading</b><span>objectif +${L.target} % · jamais sous -${L.maxDD} % · ${L.maxTrades} achats max</span></div>
+      <button class="chip" id="lpause"></button></div>
+    <header class="mhead" id="mhead"><div class="status"><span class="dot on" id="mdot"></span><span id="mstat"></span></div>
+      <div class="mtotal" id="mtotal"></div><div class="pnlrow" id="mpnl"></div><div class="mcash" id="mcash"></div>
+      <div class="lvbar"><div class="lvtrack"><i id="lvprog"></i></div><div class="lvinfo" id="lvinfo"></div></div></header>
+    <main id="mview"></main>
+    <nav class="mnav"><div class="brand">Live Trading</div>
+      <button data-lt="list">${navIcon('meme')}Marché</button><button data-lt="porte">${navIcon('porte')}Portefeuille</button></nav>`;
+  el.classList.add('open'); el.scrollTop = 0;
+  $('#lquit').onclick = () => { if (L.phase === 'run' && !confirm('Quitter la session ? Elle ne sera pas notée.')) return; lvClose_(); };
+  $('#lpause').onclick = () => {
+    if (L.phase !== 'run' || Date.now() < L.pausedUntil) return;
+    if (!L.pausesLeft) return toast('Plus de pause disponible');
+    L.pausesLeft--; L.pausedUntil = Date.now() + LV.pauseSec*1000; lvTick();
+  };
+  el.querySelectorAll('[data-lt]').forEach(b => b.onclick = () => { if (L.phase === 'done') return; L.view = b.dataset.lt; lvRender(); el.scrollTop = 0; });
+  L.view = 'list'; lvStart(); lvRender();
+}
+function lvClose_(){
+  clearInterval(lvTimer);
+  if (lvChart){ lvChart.remove(); lvChart = null; lvSeries = null; }
+  L = null;
+  const el = $('#msn'); el.classList.remove('open'); el.innerHTML = '';
+  trainView = 'live'; renderTrain($('#view')); window.scrollTo(0, 0);
+}
+function lvRender(){
+  const v = $('#mview'); if (!v || !L) return;
+  if (lvChart){ lvChart.remove(); lvChart = null; lvSeries = null; }
+  $('#mhead').hidden = L.view === 'tok';
+  $('#msn nav').style.display = L.view === 'result' ? 'none' : '';
+  $('#msn').querySelectorAll('[data-lt]').forEach(b => b.classList.toggle('on', L.view !== 'result' && b.dataset.lt === (L.view === 'tok' ? 'list' : L.view)));
+  if (L.view === 'list'){
+    v.innerHTML = `<div class="hint">Les nouveaux tokens arrivent en haut · frais de plateforme 1&nbsp;% sur les memecoins</div><div id="mlist" class="mlist"></div>`;
+    $('#mlist').onclick = e => { const r = e.target.closest('[data-i]'); if (r){ L.open = +r.dataset.i; L.view = 'tok'; lvRender(); $('#msn').scrollTop = 0; } };
+  } else if (L.view === 'porte'){
+    v.innerHTML = `<div class="porte"><div class="pcol"><div class="card" id="msum"></div><div id="mlist" class="mlist"></div></div>
+      <div class="pcol"><div class="card"><h3>Réglages Solana</h3>
+        <div class="field" style="margin-top:0">Priority fee par transaction (SOL)</div>
+        <input id="mprio" type="number" step="0.0001" min="0.0001" inputmode="decimal" value="${L.set.prio}">
+        <div id="mnet" class="field" style="margin-top:8px"></div>
+        <div class="field">Tolérance de slippage (%)</div>
+        <input id="mslip" type="number" step="1" min="1" max="100" inputmode="decimal" value="${L.set.slip}">
+      </div><div id="lpresetedit">${presetEditor(L.set)}</div></div></div>`;
+    $('#mprio').onchange = e => { L.set.prio = Math.max(PRIO_MIN, +e.target.value || 0); e.target.value = L.set.prio; };
+    $('#mslip').onchange = e => { L.set.slip = Math.min(100, Math.max(1, +e.target.value || 10)); e.target.value = L.set.slip; };
+    bindPresetEditor($('#lpresetedit'), L.set, () => {});
+    $('#mlist').onclick = e => { const r = e.target.closest('[data-i]'); if (r){ L.open = +r.dataset.i; L.view = 'tok'; lvRender(); } };
+  } else if (L.view === 'tok'){
+    lvTokView(v);
+  } else if (L.view === 'result'){
+    lvResult(v); return;
+  }
+  lvTick();
+}
+function lvTokView(v){
+  const t = L.tokens[L.open];
+  v.innerHTML = `<div class="sheetin">
+    <div class="topbar"><button id="lback" class="iconbtn" aria-label="Retour">${BACK}</button><span class="chip">${t.addr.slice(0, 4)}…${t.addr.slice(-4)}</span></div>
+    <div class="sheetgrid"><div class="maincol">
+      <div class="tokhead">${mIcon(t)}<div class="grow"><div class="tokname">${esc(t.name)}</div><div class="mut sm">${esc(t.full)}</div></div></div>
+      <div class="msp" id="msp"></div><div class="msc" id="msc"></div>
+      <div class="chartbar"><div class="mfresh" id="mfresh"></div></div>
+      <div class="mchartwrap"><div id="mchart"></div></div>
+    </div><div class="sidecol">
+      <div class="card"><h3>Acheter</h3>
+        <input id="lamt" class="amount" type="number" inputmode="decimal" placeholder="0,00 $">
+        <div class="chips"><button data-p=".1">10 %</button><button data-p=".25">25 %</button><button data-p=".5">50 %</button><button data-p="1">Max</button></div>
+        <div class="mquote" id="mquote"></div>
+        <div id="lpresetbox"></div>
+        <button class="btn btn-buy" id="lbuy">Acheter</button>
+      </div>
+      <div id="lposbox"></div>
+      <div class="card" id="mstats"></div>
+      <div id="lact"></div>
+      <div id="lsec"></div>
+    </div></div></div>`;
+  $('#lback').onclick = () => { L.view = 'list'; lvRender(); };
+  v.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { $('#lamt').value = (Math.floor(L.cash*b.dataset.p*100)/100).toFixed(2); });
+  $('#lbuy').onclick = lvBuy;
+  const pb = $('#lpresetbox'), draw = () => { pb.innerHTML = presetChips(L.set); pb.querySelectorAll('[data-ps]').forEach(b => b.onclick = () => { L.set.preset = +b.dataset.ps; draw(); }); };
+  draw();
+  const el = $('#mchart');
+  if (el && window.LightweightCharts){
+    lvChart = LightweightCharts.createChart(el, { autoSize: true,
+      layout: { background: { type: 'solid', color: '#17171b' }, textColor: '#8e8e9a', fontSize: 11, fontFamily: 'Figtree, sans-serif', attributionLogo: false },
+      grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,.04)' } },
+      timeScale: { timeVisible: true, secondsVisible: false, borderVisible: false, rightOffset: 3 }, rightPriceScale: { borderVisible: false }, crosshair: { mode: 0 },
+      handleScroll: false, handleScale: false });
+    lvSeries = lvChart.addCandlestickSeries({ upColor: UPC, downColor: DNC, borderVisible: false, wickUpColor: UPC, wickDownColor: DNC, priceFormat: priceFmt(t.price) });
+    L.t0 = L.t0 || Math.floor(Date.now()/60000)*60 + TZ();
+    lvSeries.setData(t.candles.concat([t.cur]).slice(-120).map(c => ({ time: L.t0 + Math.round(c.t)*60, open: c.o, high: c.h, low: c.l, close: c.c })));
+    lvSeries._ml = [];
+  }
+}
+function lvLines(t){
+  if (!lvSeries) return;
+  const p = L.pos[t.id], key = p ? [p.sl, p.tp, p.cost/p.qty].join('|') : '';
+  if (lvSeries._k === key) return; lvSeries._k = key;
+  lvSeries._ml.forEach(l => { try { lvSeries.removePriceLine(l); } catch(e){} }); lvSeries._ml = [];
+  if (!p) return;
+  const add = (price, color, style, title) => lvSeries._ml.push(lvSeries.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title }));
+  add(p.cost/p.qty, '#ab9ff2', 0, 'achat'); if (p.sl) add(p.sl, DNC, 2, 'SL'); if (p.tp) add(p.tp, UPC, 2, 'TP');
+}
+function lvTick(){
+  if (!L || !$('#msn').classList.contains('open')) return;
+  const eq = lvEquity(), d = eq - CAPITAL, paused = Date.now() < L.pausedUntil;
+  $('#mtotal').textContent = money(eq);
+  $('#mpnl').innerHTML = `<span class="${cls(d)}">${d >= 0 ? '+' : ''}${money(d)}</span><span class="pill ${cls(d)}">${pct(d/CAPITAL*100)}</span>`;
+  $('#mcash').textContent = money(L.cash) + ' disponibles';
+  const mm = Math.floor(L.g), hh = Math.floor(mm/60);
+  $('#mstat').textContent = L.phase === 'done' ? 'Session terminée' : `${hh} h ${String(mm % 60).padStart(2, '0')} / 3 h 00 · ${paused ? 'pause ' + Math.ceil((L.pausedUntil - Date.now())/1000) + ' s' : L.slow ? 'ralenti' : 'accéléré'}`;
+  $('#mdot').className = 'dot' + (L.phase === 'run' && !paused ? ' on' : ' idle');
+  $('#lpause').textContent = paused ? 'En pause' : `Pause (${L.pausesLeft})`;
+  const prog = $('#lvprog'); if (prog) prog.style.width = (L.g/LV.len*100).toFixed(2) + '%';
+  const info = $('#lvinfo'); if (info){ const floor = CAPITAL*(1 - L.maxDD/100); info.innerHTML = `Achats ${L.trades} / ${L.maxTrades} · plancher ${money(floor)}${eq < floor ? ' <b class="down">dépassé</b>' : ''}${lvSpike() ? ' · <b class="down">réseau saturé</b>' : ''}`; }
+  if (L.view === 'list'){
+    const toks = L.tokens.filter(t => t.appear <= L.g).sort((a, b) => b.appear - a.appear);
+    $('#mlist').innerHTML = toks.map(t => { const ch = (t.price/t.candles[Math.max(0, t.candles.length - 5)].o - 1)*100, isNew = t.appear > 0 ? L.g - t.appear < 5 : t.type === 'fresh' && L.g < 5, p = L.pos[t.id];
+      return `<div class="row" data-i="${t.id}"><span class="ic">${mIcon(t)}</span><div class="grow"><div class="name">${esc(t.name)} <span class="mut sm">${age(Date.now() - t.ageMs0 - (L.g - t.appear)*60e3)}</span>${isNew ? ' <span class="lvnew">nouveau</span>' : ''}${p ? ' <span class="lvpos">en position</span>' : ''}</div><div class="mut sm">Liq. ${t.dex === 'pumpfun' ? 'curve' : big(t.liqShown)} · MC ${big(t.mc0*t.price/t.p0)}</div></div><div class="right"><div>${fp(t.price)}</div><div class="sm ${cls(ch)}">${pct(ch)} 5 min</div></div></div>`; }).join('');
+  } else if (L.view === 'porte'){
+    $('#msum').innerHTML = `<div class="kv"><span>Cash</span><span>${money(L.cash)}</span></div><div class="kv"><span>En positions</span><span>${money(eq - L.cash)}</span></div>`;
+    const ks = Object.keys(L.pos);
+    $('#mlist').innerHTML = ks.length ? ks.map(k => { const t = L.tokens[k], p = L.pos[k], v = lvPosValue(p, t); return `<div class="row" data-i="${k}"><span class="ic">${mIcon(t)}</span><div class="grow"><div class="name">${esc(t.name)}</div><div class="mut sm">coût ${money(p.cost)}${p.sl ? ' · SL' : ''}${p.tp ? ' · TP' : ''}</div></div><div class="right"><div>${money(v)}</div><div class="sm ${cls(v - p.cost)}">${pct((v - p.cost)/p.cost*100)}</div></div></div>`; }).join('') : `<div class="empty">Aucune position.</div>`;
+    const ne = $('#mnet'); if (ne) ne.textContent = `Réseau en ce moment : médiane ${fp(median(lvFees()))} SOL · avec ta fee, confirmation ${etaText(lvLand(L.set.prio))}`;
+  } else if (L.view === 'tok'){
+    const t = L.tokens[L.open], ch5 = (t.price/t.candles[Math.max(0, t.candles.length - 5)].o - 1)*100, ch60 = (t.price/t.candles[Math.max(0, t.candles.length - 60)].o - 1)*100;
+    $('#msp').textContent = fp(t.price);
+    $('#msc').innerHTML = `<span class="${cls(ch5)}">${pct(ch5)} 5 min</span>`;
+    $('#mfresh').textContent = L.phase === 'done' ? 'Session terminée' : t.frozen ? 'Gelé' : 'En direct';
+    if (lvSeries){ const c = t.cur; try { lvSeries.update({ time: L.t0 + c.t*60, open: c.o, high: c.h, low: c.l, close: c.c }); } catch(e){} lvLines(t); }
+    $('#mstats').innerHTML = `<div class="kv"><span>5 min / 1h</span><span><span class="${cls(ch5)}">${pct(ch5)}</span> · <span class="${cls(ch60)}">${pct(ch60)}</span></span></div>
+      <div class="kv"><span>Amplitude 1h (haut / bas)</span><span>${nf2(lvAmp(t), 1)} %</span></div>
+      <div class="kv"><span>Liquidité</span><span>${t.dex === 'pumpfun' ? 'Bonding curve' : big(t.liqShown)}</span></div>
+      <div class="kv"><span>Market cap</span><span>${big(t.mc0*t.price/t.p0)}</span></div>
+      <div class="kv"><span>DEX</span><span>${t.dex}</span></div>`;
+    const a = $('#lact'), ah = `<div class="card actcard"><h3>Activité</h3>
+      <div class="kv"><span>Part du créateur</span><span>${nf2(t.dev, t.dev < 1 ? 2 : 1)} %</span></div>
+      <div class="kv"><span>Détenteurs</span><span>${t.holders.toLocaleString('fr-FR')}</span></div>
+      <div class="kv"><span>Volume organique</span><span>${t.organic} / 100 (${t.organic >= 70 ? 'élevé' : t.organic >= 40 ? 'moyen' : 'faible'})</span></div>
+      <div class="kv"><span>Achats / ventes 5 min</span><span>${t.b5} / ${t.s5}</span></div>
+      <div class="kv"><span>Achats / ventes 1 h</span><span>${t.b60} / ${t.s60}</span></div>
+      <div class="kv"><span>Liquidité / market cap</span><span>${nf2(t.liqShown/(t.mc0*t.price/t.p0)*100, 1)} %</span></div></div>`;
+    if (a._h !== ah){ a.innerHTML = ah; a._h = ah; }
+    const s = $('#lsec'), sh = secHtml({ mint: t.checks.mint, freeze: t.checks.freeze, lp: t.dex === 'pumpfun' ? 'curve' : t.lpPct/100, top10: t.top10 });
+    if (s._h !== sh){ s.innerHTML = sh; s._h = sh; }
+    const qe = $('#mquote'), amt = +$('#lamt').value;
+    if (!(amt > 0)) qe.textContent = 'Cash disponible : ' + money(L.cash);
+    else { const f = lvFeeOf(t, L.set.prio), dx = amt*(1 - f.pct) - f.net; qe.innerHTML = dx > 0 ? `Frais : ${money(amt*f.pct + f.net)} · impact ${nf2(dx/(t.R + dx)*100, 2)} % · confirmation ${etaText(lvLand(L.set.prio))}` : 'Montant trop faible pour couvrir les frais'; }
+    lvPosBox(t);
+  }
+}
+function lvPosBox(t){
+  const box = $('#lposbox'); if (!box) return;
+  const p = L.pos[t.id];
+  if (!p){ if (box.dataset.k){ box.innerHTML = ''; box.dataset.k = ''; } return; }
+  const k = 'pos' + t.id + '|' + p.sl + '|' + p.tp;
+  if (box.dataset.k !== k){
+    box.dataset.k = k;
+    box.innerHTML = `<div class="card"><h3>Ma position</h3><div id="lpinfo"></div>
+      <div class="field">Vendre</div>
+      <div class="chips three sell" style="margin-top:0"><button data-s=".25">25 %</button><button data-s=".5">50 %</button><button data-s="1">Tout</button></div>
+      <div class="field">Stop loss (prix)</div><input id="lsl" type="number" inputmode="decimal" step="any" value="${p.sl ?? ''}">
+      <div class="field">Take profit (prix)</div><input id="ltp" type="number" inputmode="decimal" step="any" value="${p.tp ?? ''}">
+      <button id="lsave" class="btn btn-ghost" style="margin-top:12px">Enregistrer SL / TP</button></div>`;
+    box.querySelectorAll('[data-s]').forEach(b => b.onclick = () => lvClose(t, +b.dataset.s, 'Vente', true));
+    $('#lsave').onclick = () => lvSaveTrig(t);
+  }
+  const v = lvPosValue(p, t), e = p.cost/p.qty, sv = lvSellOut(t, p.qty, t.price, L.set.prio);
+  const res = x => `<span class="${cls(x - p.cost)}">${x - p.cost >= 0 ? '+' : ''}${money(x - p.cost)} (${pct((x - p.cost)/p.cost*100)})</span>`;
+  $('#lpinfo').innerHTML = `<div class="kv"><span>Coût total</span><span>${money(p.cost)}</span></div>
+    <div class="kv"><span>Valeur au prix actuel</span><span>${money(v)}</span></div><div class="kv"><span>Résultat</span>${res(v)}</div>
+    <div class="kv"><span>Si je vends tout maintenant</span><span>${money(sv)}</span></div>
+    <div class="kv"><span>Stop / objectif</span><span>${p.sl ? pct((p.sl/e - 1)*100) : '-'} · ${p.tp ? pct((p.tp/e - 1)*100) : '-'}</span></div>`;
+}
+function lvResult(v){
+  const G = L.grade, letter = G.score >= 85 ? 'A' : G.score >= 70 ? 'B' : G.score >= 55 ? 'C' : 'D', C = 2*Math.PI*44, off = C*(1 - G.score/100);
+  const luck = G.pnl - G.expected;
+  const catTxt = { tri: 'Choix des tokens', taille: 'Taille et sorties', gestion: 'Gestion des positions', exec: 'Exécution' };
+  const vb = m => { const vd = m.good ? [0, 'excellent', m.label] : lvVerdict(m.regret); return `<span class="lvv lvv-${vd[1]}">${vd[2]}</span>`; };
+  v.innerHTML = `<div class="result">
+    <div class="rescore">
+      <svg viewBox="0 0 110 110" class="ring"><circle cx="55" cy="55" r="44" style="fill:none;stroke:var(--surface2);stroke-width:10"/>
+        <circle cx="55" cy="55" r="44" style="fill:none;stroke:${G.score >= 70 ? 'var(--up)' : G.score >= 55 ? 'var(--acc)' : 'var(--down)'};stroke-width:10;stroke-linecap:round;stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${off.toFixed(1)};transform:rotate(-90deg);transform-origin:55px 55px"/>
+        <text x="55" y="58" text-anchor="middle" style="fill:var(--txt);font-size:30px;font-weight:700">${G.score}</text><text x="55" y="76" text-anchor="middle" style="fill:var(--mut);font-size:11px">/ 100</text></svg>
+      <div><div class="resgrade">Note ${letter}</div><div class="mut sm">Chaque décision est rejugée avec ce que tu voyais à ce moment-là, sur ${LV.N} suites possibles.</div></div>
+    </div>
+    <div class="resout">
+      <div class="resline"><span>Résultat de la session</span><b class="${cls(G.pnl)}">${G.pnl >= 0 ? '+' : ''}${money(G.pnl)}</b></div>
+      <div class="ressub">Résultat attendu de tes décisions : ${G.expected >= 0 ? '+' : ''}${money(G.expected)}. ${Math.abs(luck) < 0.5 ? 'La chance n\'a presque pas joué.' : luck > 0 ? `Chance : +${money(luck)}.` : `Malchance : ${money(luck)}.`}</div>
+      <div class="respills"><span class="${G.goalOk ? 'okp' : 'kop'}">${G.goalOk ? ICON_OK : ICON_KO} objectif +${L.target} %</span><span class="${G.ddBreach ? 'kop' : 'okp'}">${G.ddBreach ? ICON_KO : ICON_OK} plancher -${L.maxDD} %</span></div>
+    </div>
+    <div class="lvcats">${Object.entries(G.cat).map(([k, x]) => `<div class="kv"><span>${catTxt[k]}</span><span class="${x >= 1.5 ? 'down' : x < 0.05 ? 'up' : ''}">${x < 0.05 ? 'rien perdu' : '-' + money(x) + ' espérés'}</span></div>`).join('')}
+      <div class="mut sm" style="margin-top:6px">Ce que chaque type d'erreur t'a coûté en gain espéré, face aux meilleurs choix possibles au même instant.</div></div>
+    ${G.moments.length ? `<div class="lvmoments"><b>Moments clés</b>${G.moments.map(m => `<div class="lvm"><div class="lvmh"><span>${esc(m.who)}</span>${vb(m)}${!m.good && m.regret >= 0.15 ? `<em>-${money(m.regret)}</em>` : ''}</div>
+      <div class="lvmb"><span>${m.did}.</span>${m.good ? '' : ` <span>Le meilleur choix : ${m.best}.</span>`}${m.why && m.why.length ? ` <span class="mut">Ce que tu pouvais voir : ${m.why.join(', ')}.</span>` : ''}</div></div>`).join('')}</div>` : `<div class="mut sm">Aucune décision marquante : tu n'as presque rien fait. Ne rien faire peut être juste, mais regarde si de bonnes occasions sont passées.</div>`}
+    ${G.lessons.length ? `<div class="tips"><b>À retenir</b>${G.lessons.map(x => `<div class="lesson">${x}</div>`).join('')}</div>` : ''}
+    <div class="briefbtns"><button class="btn btn-ghost" id="lhome">Retour</button><button class="btn btn-buy" id="lagain">Nouvelle session</button></div></div>`;
+  $('#mhead').hidden = false; lvTick(); $('#lpause').style.display = 'none';
+  $('#lhome').onclick = () => { L = null; lvClose_(); trainView = 'hub'; renderTrain($('#view')); };
+  $('#lagain').onclick = () => { L = null; lvClose_(); };
 }
 
 /* ---------- fiche token ---------- */
