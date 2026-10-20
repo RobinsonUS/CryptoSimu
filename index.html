@@ -183,7 +183,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-2';
+const APP_VERSION = '2026.10.20-3';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -583,12 +583,10 @@ function tokenImg(p){
    Les ventes automatiques (stop loss, take profit) ne sont jamais retardées. */
 const SUSPECT_RATIO = 3, CONFIRM_MS = 15000, confirmUntil = {};
 async function refPrice(id){
+  if (gtBusyFor() > 1500) return null;      // file d'attente chargée : on ne retarde pas le trade
   try {
-    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 2500);
-    const r = await fetch(`https://api.geckoterminal.com/api/v2/simple/networks/solana/token_price/${id}`, { cache: 'no-store', signal: ctl.signal });
-    clearTimeout(t);
-    if (!r.ok) return null;
-    const tp = (await r.json()).data.attributes.token_prices || {};
+    const d = await gtFetch(`https://api.geckoterminal.com/api/v2/simple/networks/solana/token_price/${id}`, { tries: 1, timeout: 2500 });
+    const tp = d.data.attributes.token_prices || {};
     const vals = Object.values(tp), v = +(tp[id] ?? tp[id.toLowerCase()] ?? (vals.length === 1 ? vals[0] : NaN));
     return v > 0 ? v : null;
   } catch(e){ return null; }
@@ -817,15 +815,39 @@ function checkTriggers(key){
    les pools du token chez GeckoTerminal. En dernier recours, on reconstruit
    les bougies à partir des 300 derniers trades. */
 const GT = 'https://api.geckoterminal.com/api/v2/networks/solana', gtCache = {}, gtPools = {};
+// File d'attente : l'API gratuite tolère environ 30 requêtes par minute et par
+// appareil. On espace donc les requêtes de 2,2 s au lieu de les envoyer en rafale,
+// et si la limite est atteinte malgré tout, on fait une pause de 20 s.
+const GT_GAP = 2200;
+let gtNext = 0, gtPause = 0;
+async function gtSlot(){
+  const now = Date.now(), at = Math.max(now, gtNext, gtPause);
+  gtNext = at + GT_GAP;
+  if (at > now) await sleep(at - now);
+}
+const gtBusyFor = () => Math.max(gtNext, gtPause) - Date.now();
+async function gtFetch(url, { tries = 3, timeout = 10000 } = {}){
+  for (let i = 0; i < tries; i++){
+    await gtSlot();
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), timeout);
+    let r;
+    try { r = await fetch(url, { cache: 'no-store', signal: ctl.signal }); }
+    catch(e){ clearTimeout(tm); if (i === tries - 1) throw e; continue; }
+    clearTimeout(tm);
+    if (r.status === 429){                  // limite atteinte : pause, et on laisse l'appelant réessayer plus tard
+      gtPause = Date.now() + 20000;
+      throw Object.assign(new Error('Limite GeckoTerminal atteinte'), { rate: true });
+    }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+  throw new Error('GeckoTerminal injoignable');
+}
 async function gt(path){
   const c = gtCache[path]; if (c && Date.now() - c.t < 20000) return c.d;
-  for (let i = 0; i < 3; i++){
-    const r = await fetch(GT + path, { cache: 'no-store' });
-    if (r.status === 429){ await sleep(2500 * (i + 1)); continue; }
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const d = await r.json(); gtCache[path] = { t: Date.now(), d }; return d;
-  }
-  throw new Error('Limite GeckoTerminal atteinte');
+  const d = await gtFetch(GT + path);
+  gtCache[path] = { t: Date.now(), d };
+  return d;
 }
 function tradesOf(r, id){
   return (r.data || []).map(x => {
@@ -854,16 +876,16 @@ async function histFromPool(pool, plan, id, tf){
 }
 async function loadHist(hist, plan, id, p, tf){
   const use = h => { hist.bars.push(...h.bars); hist.vols.push(...h.vols); return true; };
-  try { const h = await histFromPool(p.pairAddress, plan, id, tf); if (h) return use(h); } catch(e){}
+  try { const h = await histFromPool(p.pairAddress, plan, id, tf); if (h) return use(h); } catch(e){ if (e.rate) return false; }
   if (!gtPools[id]){
     try { const r = await gt(`/tokens/${id}/pools?page=1`); gtPools[id] = (r.data || []).map(x => x.attributes.address).filter(a => a && a !== p.pairAddress).slice(0, 2); }
-    catch(e){ gtPools[id] = []; }
+    catch(e){ if (e.rate) return false; }
   }
-  for (const pool of gtPools[id]){
-    try { const h = await histFromPool(pool, plan, id, tf); if (h) return use(h); } catch(e){}
+  for (const pool of gtPools[id] || []){
+    try { const h = await histFromPool(pool, plan, id, tf); if (h) return use(h); } catch(e){ if (e.rate) return false; }
   }
   if (plan.src === 'ohlcv'){          // dernier recours : les derniers trades
-    for (const pool of [p.pairAddress, ...gtPools[id]]){
+    for (const pool of [p.pairAddress, ...(gtPools[id] || [])]){
       try {
         const r = await gt(`/pools/${pool}/trades`), tr = tradesOf(r, id);
         if (!tr.length) continue;
@@ -871,7 +893,7 @@ async function loadHist(hist, plan, id, p, tf){
         hist.iv = iv;
         tr.forEach(t => bucket(hist, t.ts, t.price, t.vol));
         return true;
-      } catch(e){}
+      } catch(e){ if (e.rate) return false; }
     }
   }
   return false;
@@ -984,7 +1006,13 @@ function buildChart(mode){
     series = chartObj.addAreaSeries({ lineColor: UPC, topColor: 'rgba(46,189,133,.25)', bottomColor: 'rgba(46,189,133,0)', lineWidth: 2, priceFormat, autoscaleInfoProvider: minSpan });
   }
 }
-async function loadChart(key){
+// Réessaie de charger l'historique toutes les 15 s (8 fois max) tant que la fiche reste ouverte
+function retryChart(key, tf, attempt){
+  if (attempt >= 8) return;
+  const wait = Math.max(5000, gtBusyFor() + 1000);   // après la pause de GeckoTerminal si elle est en cours
+  setTimeout(() => { if (key === sheetKey && tf === curTf) loadChart(key, attempt + 1); }, wait);
+}
+async function loadChart(key, attempt = 0){
   const {kind,id} = parse(key), tf = curTf, note = t => { const n = $('#chartnote'); if (n) n.textContent = t; };
   note('');
   if (kind === 'bn'){
@@ -995,7 +1023,10 @@ async function loadChart(key){
     try {
       const k = await bnGet(`/api/v3/klines?symbol=${id}USDT&interval=${i}&limit=${lim}`);
       pts = k.map(r => ({ time: r[0]/1000 + TZ(), value: +r[4] }));
-    } catch(e){ note('Historique indisponible, la courbe se construit en direct.'); }
+    } catch(e){
+      note(attempt < 8 ? 'Historique en cours de chargement…' : 'Historique indisponible, la courbe se construit en direct.');
+      retryChart(key, tf, attempt);
+    }
     if (key !== sheetKey || tf !== curTf) return;
     CH[key] = { tf, iv, pts };
     const pr = priceOf(key); if (pr) pushChart(key, pr);
@@ -1008,10 +1039,23 @@ async function loadChart(key){
   }
   // memecoin
   buildChart('candle');
-  const p = DEX[id], plan = dexPlan(tf, p);
-  CD[id] = { tf, iv: plan.iv, bars: [], vols: [] };   // les trades live s'y ajoutent pendant le chargement
+  let p = DEX[id];
+  if (!p){                                   // fiche ouverte avant d'avoir reçu les infos du token
+    try { await fetchTokens([id]); } catch(e){}
+    p = DEX[id];
+    if (key !== sheetKey || tf !== curTf) return;
+  }
+  const plan = dexPlan(tf, p);
+  const prev = CD[id] && CD[id].iv === plan.iv ? CD[id] : null;   // on garde les bougies déjà construites en direct
+  CD[id] = prev || { tf, iv: plan.iv, bars: [], vols: [] };
+  { const pr0 = priceOf(key); if (pr0 && !CD[id].bars.length) bucket(CD[id], Date.now()/1000, pr0, 0); }
+  if (series){ series.setData(CD[id].bars); volSeries.setData(CD[id].vols); defaultView(CD[id].bars.length); }
+  if (!prev || prev.bars.length < 20) note('Chargement de l\'historique…');
   const hist = { tf, iv: plan.iv, bars: [], vols: [] };
-  if (p && !(await loadHist(hist, plan, id, p, tf))) note('Historique indisponible pour ce token, les bougies se construisent en direct.');
+  if (!p || !(await loadHist(hist, plan, id, p, tf))){
+    note(attempt < 8 ? 'Historique en cours de chargement…' : 'Historique indisponible pour ce token, les bougies se construisent en direct.');
+    retryChart(key, tf, attempt);
+  } else note('');
   if (key !== sheetKey || tf !== curTf) return;
   const live = CD[id], lastT = hist.bars.length ? hist.bars[hist.bars.length-1].time : -Infinity;
   live.bars.forEach((b, i) => { if (b.time > lastT){ hist.bars.push(b); hist.vols.push(live.vols[i]); } });
