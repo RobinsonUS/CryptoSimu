@@ -356,7 +356,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-16';
+const APP_VERSION = '2026.10.20-17';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -1859,6 +1859,8 @@ const CONG = [
   { name: 'chargé', txt: 'Le réseau Solana est saturé : tout le monde se bat pour entrer dans les blocs.', median: 0.004 }
 ];
 const DAY = 86400e3;
+// quand les 10 plus gros portefeuilles détiennent 45 % ou plus, une grosse vente (et donc une chute) est bien plus probable
+const dumpP = (T, top10) => (T.dump || 0)*(top10 >= 45 ? 2.5 : 1);
 const TTYPES = {
   major: { label: 'Gros token', liq: [2e7, 6e7], vol: 0.0035, slip: [1, 3], price: [0.4, 12], pool: 0.001, plat: 0, dump: 0, dex: 'orca', age: [400*DAY, 1400*DAY] },
   estab: { label: 'Memecoin établi', liq: [1.5e5, 5e5], vol: 0.014, slip: [3, 8], price: [0.002, 0.2], pool: 0.0025, plat: PLAT_FEE, dump: 0.08, dumpF: [0.6, 0.8], dex: 'raydium', age: [40*DAY, 300*DAY] },
@@ -1900,7 +1902,8 @@ function mkToken(type, flagged, used){
     }
   }
   // un memecoin peut aussi s'effondrer sans croix rouge : gros vendeur, snipers qui sortent
-  if (T.dump && Math.random() < T.dump){
+  const top10 = type === 'major' ? Math.round(rnd(8, 18)) : Math.round(rnd(type === 'fresh' ? 22 : 14, type === 'fresh' ? 55 : 35));
+  if (T.dump && Math.random() < dumpP(T, top10)){
     const d = Math.floor(rnd(3, 57)), m = rnd(T.dumpF[0], T.dumpF[1]);
     for (let i = d; i < CANDLES; i++){ const c = fut[i]; fut[i] = { o: c.o*m, h: c.h*m, l: c.l*m, c: c.c*m }; }   // trou : le stop part au prix d'après la chute
   }
@@ -1910,7 +1913,7 @@ function mkToken(type, flagged, used){
     addr: Array.from({ length: 44 }, () => B58[Math.floor(Math.random()*58)]).join(''),
     vol1h: R*rnd(0.15, 0.9),
     lpPct: checks.lp ? 100 : Math.floor(rnd(0, 30)),
-    top10: type === 'major' ? Math.round(rnd(8, 18)) : Math.round(rnd(type === 'fresh' ? 22 : 14, type === 'fresh' ? 55 : 35)),
+    top10,
     mc: type === 'major' ? R*rnd(25, 60) : price*1e9 };
 }
 function newMission(){
@@ -2309,7 +2312,7 @@ function simPaths(t, seed){
   const kind = !t.checks.mint ? 'mint' : !t.checks.freeze ? 'freeze' : !t.checks.lp ? 'lp' : null, out = [];
   for (let n = 0; n < NSIM; n++){
     const T = TTYPES[t.type], drift = (R() - 0.5)*T.vol*0.3, rug = kind && R() < 0.75 ? Math.floor(8 + R()*42) : -1;
-    const dmp = T.dump && R() < T.dump ? Math.floor(3 + R()*54) : -1, dm = dmp >= 0 ? T.dumpF[0] + R()*(T.dumpF[1] - T.dumpF[0]) : 1;
+    const dmp = T.dump && R() < dumpP(T, t.top10) ? Math.floor(3 + R()*54) : -1, dm = dmp >= 0 ? T.dumpF[0] + R()*(T.dumpF[1] - T.dumpF[0]) : 1;
     const o = new Float64Array(CANDLES), h = new Float64Array(CANDLES), l = new Float64Array(CANDLES), c = new Float64Array(CANDLES);
     let p = 1;
     for (let i = 0; i < CANDLES; i++){
