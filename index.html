@@ -398,7 +398,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-23';
+const APP_VERSION = '2026.10.20-24';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -2730,7 +2730,7 @@ function mResult(v){
    centaines de suites possibles avec le même modèle, et on compare ton choix
    aux autres choix possibles au même instant. La suite réelle n'est jamais
    utilisée pour noter : la chance est montrée à part. */
-const LV = { len: 180, secPerMin: 2.5, slowSecPerMin: 10, sub: 10, pauses: 3, pauseSec: 20, H: 60, N: 220, lambda: 1.5 };
+const LV = { len: 180, secPerMin: 2.5, slowSecPerMin: 10, sub: 10, pauses: 3, pauseSec: 20, H: 60, N: 220, lambda: 4 };
 let L = null, lvTimer = null, lvChart = null, lvSeries = null;
 const LV_SYL1 = ['ZO', 'PI', 'MO', 'KA', 'BU', 'FLO', 'GRU', 'SNO', 'WI', 'PE', 'DO', 'TA', 'LU', 'BRO', 'CHI', 'NE', 'FU', 'BA', 'RI', 'QUA', 'JI', 'TOO', 'MEE', 'YA'];
 const LV_SYL2 = ['RP', 'NK', 'MBO', 'TO', 'ZZ', 'PPY', 'RK', 'BI', 'GO', 'NUT', 'LLY', 'SH', 'MP', 'X', 'DOG', 'CAT', 'PUG', 'FROG', 'BEAR', 'BULL', 'MOON', 'PEPE'];
@@ -2811,7 +2811,8 @@ function lvVisible(tk, g){
 
 /* --- le moteur de la session --- */
 function lvNewSession(){
-  const target = pickOne([6, 8, 10, 12]), maxDD = pickOne([8, 10, 12, 15]), maxTrades = pickOne([5, 6, 8]);
+  // mêmes règles pour toutes les sessions : les bilans sont comparables d'une session à l'autre
+  const target = 8, maxDD = 10, maxTrades = 6;
   L = { g: 0, last: 0, phase: 'brief', target, maxDD, maxTrades, cash: CAPITAL, minEq: CAPITAL, trades: 0, tokens: [], names: new Set(), pos: {}, log: [], decisions: [],
     pausesLeft: LV.pauses, pausedUntil: 0, slow: false, fast: false, view: 'list', open: -1, busy: new Set(), sol: Math.round(solPx()),
     cong: pickOne(CONG), spikeAt: rnd(40, 140), spikeLen: rnd(8, 15), fees: null, nextArr: rnd(4, 9), lastSeen: {},
@@ -2966,8 +2967,14 @@ function lvLogDecision(d){ L.decisions.push(d); return d; }
 function lvSnap(t){
   const p = L.pos[t.id], eq = lvEquity();
   return { g: L.g, tok: t.id, price: t.price, vis: lvVisible(t, L.g), R: t.R, pool: t.pool, type: t.type, remaining: LV.len - L.g, cash: L.cash, equity: eq,
-    budget: Math.max(0, eq - CAPITAL*(1 - L.maxDD/100)), prio: L.set.prio, slip: L.set.slip, med: median(lvFees()), presets: JSON.parse(JSON.stringify(L.set.presets)),
+    budget: lvBudget(eq, t.id), prio: L.set.prio, slip: L.set.slip, med: median(lvFees()), presets: JSON.parse(JSON.stringify(L.set.presets)),
     b5: t.b5, s5: t.s5, holders: t.holders, pos: p ? { qty: p.qty, cost: p.cost, sl: p.sl, tp: p.tp } : null, tradesLeft: L.maxTrades - L.trades, amp: lvAmp(t), why: lvSignalsTxt(t) };
+}
+// marge de perte restante avant le plancher, en tenant compte de ce que les AUTRES positions ouvertes peuvent encore perdre
+function lvBudget(eq, except){
+  let atRisk = 0;
+  for (const k in L.pos){ if (+k === except) continue; const p = L.pos[k], tk = L.tokens[k], v = lvPosValue(p, tk); atRisk += p.sl ? Math.max(0, v - p.qty*p.sl) : v*0.5; }
+  return Math.max(0, eq - CAPITAL*(1 - L.maxDD/100) - atRisk);
 }
 function lvAmp(t){ const cs = t.candles.slice(-60); let hi = 0, lo = Infinity; for (const c of cs){ hi = Math.max(hi, c.h); lo = Math.min(lo, c.l); } return cs.length ? (hi/lo - 1)*100 : 0; }
 function lvSignalsTxt(t){
@@ -3130,7 +3137,7 @@ function lvGrade(){
     if (d.kind === 'check'){
       if (!evalChecks.has(d)) continue;
       const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions({ ...d.snap, tradesLeft: 1 }, paths);
-      if (best.A && best.u >= 0.3) missed.push({ g: d.g, tok: t.name, tokId: d.tok, who, regret: best.u, kind: 'missed', snap: d.snap, ex: lvExplain(d.snap, best.A),
+      if (best.A && best.u >= 0.6 && best.A <= d.snap.cash + 1e-9) missed.push({ g: d.g, tok: t.name, tokId: d.tok, who, regret: best.u, kind: 'missed', snap: d.snap, ex: lvExplain(d.snap, best.A),
         did: L.earlyAt != null && d.g > L.earlyAt ? 'Tu avais déjà terminé la session' : 'Tu l\'as laissé passer', best: lvPlanTxt(best.A, best.slP, best.tpP), stats: `Avec ce plan, sur ${LV.N} suites simulées : ${lvStats(best.pn)}.` });
       continue;
     }
@@ -3139,7 +3146,7 @@ function lvGrade(){
       const fair = d.snap.cash >= 10 && d.snap.tradesLeft > 0 && d.snap.remaining > 15; if (!fair) continue;
       const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions(d.snap, paths);
       const regret = Math.max(0, best.u);
-      if (regret >= 0.3 && best.A){
+      if (regret >= 0.6 && best.A){
         missed.push({ g: d.g, tok: t.name, tokId: d.tok, who, regret, kind: 'missed', snap: d.snap, ex: lvExplain(d.snap, best.A),
           did: L.earlyAt != null && d.g > L.earlyAt ? 'Tu avais déjà terminé la session' : 'Tu l\'as laissé passer', best: lvPlanTxt(best.A, best.slP, best.tpP), stats: `Avec ce plan, sur ${LV.N} suites simulées : ${lvStats(best.pn)}.` });
         continue;
@@ -3190,11 +3197,13 @@ function lvGrade(){
   // occasions manquées : la meilleure par token, et seulement autant que d'achats que tu n'as pas utilisés
   const perTok = new Map(); for (const m of missed) if (!perTok.has(m.tokId) || perTok.get(m.tokId).regret < m.regret) perTok.set(m.tokId, m);
   const keep = [...perTok.values()].sort((a, b) => b.regret - a.regret).slice(0, Math.max(0, L.maxTrades - L.trades));
-  for (const m of keep){ cat.tri += m.regret; moments.push(m); }
+  // une occasion manquée coûte au plus 4 $ : passer son tour reste une erreur prudente, moins grave qu'un mauvais achat
+  for (const m of keep){ m.regret = Math.min(4, m.regret); cat.tri += m.regret; moments.push(m); }
   const total = cat.tri + cat.taille + cat.gestion + cat.exec;
   const ddBreach = (CAPITAL - L.minEq) > CAPITAL*L.maxDD/100;
   const pnl = L.cash - CAPITAL, goalOk = pnl >= CAPITAL*L.target/100;
-  const score = lvClamp(Math.round(100*Math.exp(-total/20)) - (ddBreach ? 15 : 0), 0, 100);
+  // plancher franchi : 3 points par point de pourcentage au-delà, 15 au maximum
+  const over = Math.max(0, (CAPITAL - L.minEq)/CAPITAL*100 - L.maxDD), score = lvClamp(Math.round(100*Math.exp(-total/20) - Math.min(15, 3*Math.ceil(over))), 0, 100);
   const bad = moments.filter(m => !m.good && m.regret >= 0.15).sort((a, b) => b.regret - a.regret).slice(0, 6), good = moments.filter(m => m.good).slice(0, 2);
   return { score, total, cat, moments: [...bad, ...good].sort((a, b) => a.g - b.g), expected, pnl, goalOk, ddBreach, lessons: lvLessons(moments.filter(m => !m.good && m.regret >= 0.15), ddBreach) };
 }
