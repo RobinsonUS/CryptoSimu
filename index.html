@@ -107,6 +107,7 @@ nav svg{width:22px;height:22px}
 #chartnote{font-size:12px;color:var(--mut);margin-bottom:10px}
 
 .sec{display:flex;flex-wrap:wrap;gap:6px}
+.actcard .qm{color:var(--mut)}
 .seccard .sechelp{font-size:12px;color:var(--mut);margin-top:10px}
 .secdiag{margin-top:8px;font-size:12px;color:var(--mut)}
 .secdiag summary{cursor:pointer;width:max-content}
@@ -359,7 +360,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-18';
+const APP_VERSION = '2026.10.20-19';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -812,16 +813,16 @@ async function jupAudit(mint){
   if (at > now) await sleep(at - now);
   const arr = await jsonGet('https://api.jup.ag/tokens/v2/search?query=' + mint);
   const x = Array.isArray(arr) && arr.find(o => o.id === mint);
-  if (!x || !x.audit) throw new Error('pas de données');
-  return x.audit;
+  if (!x) throw new Error('token inconnu');
+  return x;
 }
 async function loadSec(p){
   const mint = p.baseToken.address, old = SEC[mint];
   if (secBusy.has(mint)) return;
   if (old && Date.now() - old.t < (old.partial ? 30000 : 300000)) return;
   secBusy.add(mint);
-  const s = { t: Date.now(), mint: null, freeze: null, lp: null, top10: null, lpSrc: null, topSrc: null, partial: false, diag: {} };
-  if (old) for (const k of ['mint', 'freeze', 'lp', 'top10', 'lpSrc', 'topSrc']) if (old[k] != null) s[k] = old[k];
+  const s = { t: Date.now(), mint: null, freeze: null, lp: null, top10: null, lpSrc: null, topSrc: null, dev: null, holders: null, organic: null, organicLbl: null, partial: false, diag: {} };
+  if (old) for (const k of ['mint', 'freeze', 'lp', 'top10', 'lpSrc', 'topSrc', 'dev', 'holders', 'organic', 'organicLbl']) if (old[k] != null) s[k] = old[k];
   const D = s.diag, need = !old || old.partial, curve = p.dexId === 'pumpfun';
   const note = (k, pr) => pr.then(v => { D[k] = 'OK'; return v; }, e => { const m = String(e && e.message || ''); D[k] = /fetch|network|load failed/i.test(m) ? 'bloqué' : e instanceof TypeError ? 'réponse inattendue' : (m || 'erreur'); return null; });
   // les sources de repli partent tout de suite, en parallèle de Solana
@@ -872,7 +873,16 @@ async function loadSec(p){
   } catch(e){}
   // 4. ce qui manque encore : sources de repli
   const num = v => v != null && v !== '' && isFinite(+v) ? +v : null;
-  const j = jup && await jup;
+  const jt = jup && await jup, j = jt && jt.audit;
+  if (jt){
+    const got = [];
+    if (num(jt.holderCount) != null){ s.holders = num(jt.holderCount); got.push('détenteurs'); }
+    if (num(jt.organicScore) != null){ s.organic = num(jt.organicScore); s.organicLbl = jt.organicScoreLabel || null; got.push('volume organique'); }
+    if (j && num(j.devBalancePercentage) != null){ s.dev = num(j.devBalancePercentage); got.push('part du créateur'); }
+    if (j && num(j.topHoldersPercentage) != null) got.push('top 10');
+    if (j && typeof j.mintAuthorityDisabled === 'boolean') got.push('mint et gel');
+    D.Jupiter = got.length ? 'OK : ' + got.join(', ') : 'OK, aucune donnée utile';
+  }
   if (j){
     if (s.mint == null && typeof j.mintAuthorityDisabled === 'boolean') s.mint = j.mintAuthorityDisabled;
     if (s.freeze == null && typeof j.freezeAuthorityDisabled === 'boolean') s.freeze = j.freezeAuthorityDisabled;
@@ -887,15 +897,37 @@ async function loadSec(p){
     if (s.freeze == null) s.freeze = rev(a.freeze_authority);
     const d = a.holders && a.holders.distribution_percentage;
     if (s.top10 == null && d && num(d.top_10) != null){ s.top10 = num(d.top_10); s.topSrc = 'GeckoTerminal'; }
+    const got = [];
+    if (a.mint_authority != null) got.push('mint et gel');
+    if (d) got.push('top 10');
+    if (a.holders && num(a.holders.count) != null){ got.push('détenteurs'); if (s.holders == null) s.holders = num(a.holders.count); }
+    if (num(a.developer_holding_percentage) != null){ got.push('part du créateur'); if (s.dev == null) s.dev = num(a.developer_holding_percentage); }
+    D.GeckoTerminal = got.length ? 'OK : ' + got.join(', ') : 'OK, aucune donnée utile';
   }
   const pa = gtPool && await gtPool;
   if (s.lp == null && pa && num(pa.locked_liquidity_percentage) != null){ s.lp = Math.min(1, Math.max(0, num(pa.locked_liquidity_percentage)/100)); s.lpSrc = 'GeckoTerminal'; }
   if (rc && rc.lpLockedPct == null && D.RugCheck === 'OK') D.RugCheck = 'OK, sans LP';
   if (pa && pa.locked_liquidity_percentage == null && D['GeckoTerminal pool'] === 'OK') D['GeckoTerminal pool'] = 'OK, sans LP';
-  if (a && !(a.holders && a.holders.distribution_percentage) && D.GeckoTerminal === 'OK') D.GeckoTerminal = 'OK, sans top 10';
-  s.partial = s.mint == null || s.freeze == null || s.lp == null || s.top10 == null;
+  s.partial = s.mint == null || s.freeze == null || s.lp == null || s.top10 == null || (s.dev == null && s.holders == null && s.organic == null);
   if (old && old.diag && !need) s.diag = old.diag;
   SEC[mint] = s; secBusy.delete(mint);
+}
+// Encadré « Activité » : qui détient le token et comment il s'échange. « ? » quand la donnée manque.
+// Pas de couleur ni d'avis : c'est au joueur de savoir les lire.
+const ORG_LBL = { high: 'élevé', medium: 'moyen', low: 'faible' };
+function actHtml(p, s){
+  s = s || {};
+  const q = '<b class="qm">?</b>', row = (l, v) => `<div class="kv"><span>${l}</span><span>${v ?? q}</span></div>`;
+  const tx = p.txns || {}, bs = x => x && x.buys != null ? `${x.buys} / ${x.sells}` : null;
+  const a = p.baseToken.address, mc = pfPrice(a) ? pfPrice(a)*1e9 : (p.marketCap || p.fdv), L = reserveUsd(p)*2;
+  return `<div class="card actcard"><h3>Activité</h3>
+    ${row('Part du créateur', s.dev != null ? nf2(s.dev, s.dev < 1 ? 2 : 1) + ' %' : null)}
+    ${row('Détenteurs', s.holders != null ? Math.round(s.holders).toLocaleString('fr-FR') : null)}
+    ${row('Volume organique', s.organic != null ? `${nf2(s.organic, 0)} / 100${s.organicLbl ? ' (' + (ORG_LBL[s.organicLbl] || s.organicLbl) + ')' : ''}` : null)}
+    ${row('Achats / ventes 5 min', bs(tx.m5))}
+    ${row('Achats / ventes 1 h', bs(tx.h1))}
+    ${row('Liquidité / market cap', L > 0 && mc > 0 ? nf2(L/mc*100, 1) + ' %' : null)}
+  </div>`;
 }
 // Encadré « Sécurité » commun à la fiche token et aux cas pratiques. « ? » quand on ne sait pas.
 // Pas d'explication des croix : c'est au joueur de savoir les lire.
@@ -2607,7 +2639,7 @@ function openSheet(key){
     </div>
     <div id="posbox"></div>
     <div class="card" id="stats"></div>
-    ${kind === 'sol' ? '<div id="secbox"></div>' : ''}
+    ${kind === 'sol' ? '<div id="actbox"></div><div id="secbox"></div>' : ''}
     </div></div></div>`;
   sh.classList.add('open'); window.scrollTo(0,0); sh.scrollTop = 0;
   $('#back').onclick = closeSheet;
@@ -2679,6 +2711,8 @@ function refreshSheet(){
     if (p){
       const pc = p.priceChange || {};
       loadSec(p);
+      const ab = $('#actbox'), ah = actHtml(p, SEC[id]);
+      if (ab && ab._h !== ah){ ab.innerHTML = ah; ab._h = ah; }
       const sb = $('#secbox'), sh = secHtml(SEC[id]);
       if (sb && sb._h !== sh){ sb.innerHTML = sh; sb._h = sh; }
       $('#sc').innerHTML = `<span class="${cls(pc.h1 || 0)}">${pct(pc.h1)} 1h</span>`;
