@@ -213,6 +213,9 @@ nav svg{width:22px;height:22px}
 .lesson span{display:block;font-size:12px;font-weight:700;color:var(--acc);margin-bottom:4px}
 .ci.na{background:var(--surface2);color:var(--mut)}
 .critrow.na em{color:var(--mut);font-weight:600}
+.grading{display:flex;flex-direction:column;align-items:center;gap:14px;padding:80px 0;color:var(--mut);font-size:14px;text-align:center}
+.spin{width:34px;height:34px;border-radius:50%;border:3px solid var(--surface2);border-top-color:var(--acc);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .ideal{border:1px solid rgba(171,159,242,.35);border-radius:14px;padding:14px;display:grid;gap:4px;font-size:14px;line-height:1.55}
 .ideal b{color:var(--acc)}
 @media (min-width:720px){
@@ -356,7 +359,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-17';
+const APP_VERSION = '2026.10.20-18';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -648,8 +651,13 @@ function rpcSubscribe(mint){
   const c = PF[mint]; if (!c || c.sub != null) return;
   rpcSend('accountSubscribe', [c.curve, { encoding: 'base64', commitment: 'processed' }], mint);
 }
+const RPC_WSS = [RPC_WS, 'wss://solana-rpc.publicnode.com'];
+let wsI = 0;
 function connectRPC(){
-  rws = new WebSocket(RPC_WS);
+  const url = RPC_WSS[wsI % RPC_WSS.length]; let opened = false;
+  rws = new WebSocket(url);
+  rws.addEventListener('open', () => { opened = true; });
+  rws.addEventListener('close', () => { if (!opened) wsI++; });   // jamais connecté : on essaie l'autre serveur
   rws.onopen = () => { for (const k in subToMint) delete subToMint[k]; for (const m in PF){ PF[m].sub = null; rpcSubscribe(m); } };
   rws.onmessage = e => {
     const d = JSON.parse(e.data);
@@ -714,10 +722,8 @@ function readStr(u, o){
   const n = (u[o] | (u[o+1] << 8) | (u[o+2] << 16) | (u[o+3] << 24)) >>> 0;
   return [new TextDecoder().decode(u.slice(o+4, o+4+n)).replace(/\0/g, '').trim(), o+4+n];
 }
-async function rpc(method, params){
-  const r = await fetch(RPC_HTTP, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
-  return (await r.json()).result;
-}
+// toutes les requêtes Solana passent par rpcSafe : serveur principal, puis serveur de secours
+const rpc = (method, params) => rpcSafe(method, params);
 async function metaUri(mint){
   const W = window.solanaWeb3;
   if (W){
@@ -938,8 +944,21 @@ async function priceCheck(key, id, p, verb){
 }
 
 /* ---------- simulation d'exécution ---------- */
-// Frais de pool : approximation (1 % sur la bonding curve pump.fun, 0,25 % ailleurs)
-const poolFee = p => p.dexId === 'pumpfun' ? 0.01 : 0.0025;
+// Frais de pool, d'après la doc officielle de pump.fun (pump.fun/docs/fees) :
+// bonding curve 1,25 % ; PumpSwap dégressif selon la market cap en SOL (1,25 % au début, 0,30 % au-delà de 98 240 SOL).
+// Raydium et la plupart des autres pools : 0,25 %.
+const PSWAP_TIERS = [[420, 0.0125], [1470, 0.012], [2460, 0.0115], [3440, 0.011], [4420, 0.0105], [9820, 0.01], [14740, 0.0095], [19650, 0.009], [24560, 0.0085], [29470, 0.008], [34380, 0.0075],
+  [39300, 0.007], [44210, 0.0065], [49120, 0.006], [54030, 0.0055], [58940, 0.00525], [63860, 0.005], [68770, 0.00475], [73681, 0.0045], [78590, 0.00425], [83500, 0.004], [88400, 0.00375], [93330, 0.0035], [98240, 0.00325]];
+function poolFee(p){
+  if (p.dexId === 'pumpfun') return 0.0125;
+  if (p.dexId === 'pumpswap'){
+    const sol = BN.SOL && BN.SOL.last, mc = sol ? (+p.priceUsd)*1e9/sol : 0;
+    if (!mc) return 0.0125;
+    for (const [lim, f] of PSWAP_TIERS) if (mc < lim) return f;
+    return 0.003;
+  }
+  return 0.0025;
+}
 const PRIO_MIN = 0.0001;   // pas de priority fee à 0, comme sur les vraies plateformes
 const CU_LIMIT = 200000;   // unités de calcul réservées par un swap (limite par défaut de Solana)
 // Frais de plateforme fixes sur les memecoins (taux de base d'Axiom), identiques pour tous les joueurs
@@ -1682,11 +1701,11 @@ const EX = {
       viz: d => slipViz(false, tot, d ? tot : null, seed, false, [a1, a2]) };
   },
   be(){
-    const A = pickOne([20, 30, 50, 80, 100, 150]), pump = Math.random() < 0.5, f = (pump ? 0.01 : 0.0025) + PLAT_FEE;
+    const A = pickOne([20, 30, 50, 80, 100, 150]), pump = Math.random() < 0.5, f = (pump ? 0.0125 : 0.0025) + PLAT_FEE;
     const P = pickOne([0.0005, 0.001, 0.002, 0.005]), sp = Math.round(solPx()), N = (P + SOL_BASE_FEE) * sp;
     const kept = A*(1 - f) - N, m = (A + N)/(kept*(1 - f)), rise = (m - 1)*100, seed = Math.floor(Math.random()*9999);
     return { tag: 'Rentabilité', ...makeChoices(rise, [f*2*100, f*100, ((1/((1 - f)*(1 - f))) - 1)*100], pct1),
-      q: `Tu achètes pour <b>${money(A)}</b> sur ${pump ? 'pump.fun (pool 1 %)' : 'PumpSwap (pool 0,25 %)'}, plateforme 1 %, priority fee <b>${solTxt(P)} SOL</b> (SOL à ${sp} $), à l'achat comme à la revente.<span class="mut">De combien le prix doit-il monter pour récupérer exactement ta mise ? Impact ignoré.</span>`,
+      q: `Tu achètes pour <b>${money(A)}</b> sur ${pump ? 'pump.fun (pool 1,25 %)' : 'Raydium (pool 0,25 %)'}, plateforme 1 %, priority fee <b>${solTxt(P)} SOL</b> (SOL à ${sp} $), à l'achat comme à la revente.<span class="mut">De combien le prix doit-il monter pour récupérer exactement ta mise ? Impact ignoré.</span>`,
       steps: [`Frais réseau par transaction : ${money(N)}`, `Après l'achat, il te reste ${money(A)} × ${nf2(1 - f, 4)} - ${money(N)} = ${money(kept)}`, `À la revente : × ${nf2(1 - f, 4)} puis - ${money(N)}`, `Prix à multiplier par ${nf2(m, 4)} : <b>+${pct1(rise)}</b>`],
       tip: N > A*0.01 ? `Ici la priority fee pèse lourd : sur un petit montant, elle peut coûter plus que tous les autres frais.` : `Avant même de bouger, un trade part toujours en perte : c'est le prix des frais.`,
       viz(done){
@@ -1719,10 +1738,10 @@ const EX = {
       } };
   },
   fees(){
-    const A = pickOne([10, 25, 50, 100, 200]), pump = Math.random() < 0.5, pool = pump ? 0.01 : 0.0025;
+    const A = pickOne([10, 25, 50, 100, 200]), pump = Math.random() < 0.5, pool = pump ? 0.0125 : 0.0025;
     const P = pickOne([0.0005, 0.001, 0.002, 0.005, 0.01]), sp = Math.round(solPx()), N = (P + SOL_BASE_FEE)*sp, tot = A*(pool + PLAT_FEE) + N;
     return { tag: 'Frais', ...makeChoices(tot, [A*(pool + PLAT_FEE), A*pool + N, tot + N, A*PLAT_FEE + N], money),
-      q: `Achat de <b>${money(A)}</b> sur ${pump ? 'pump.fun (pool 1 %)' : 'PumpSwap (pool 0,25 %)'}, plateforme 1 %, priority fee <b>${solTxt(P)} SOL</b>, SOL à ${sp} $.<span class="mut">Combien paies-tu de frais au total sur cet achat ?</span>`,
+      q: `Achat de <b>${money(A)}</b> sur ${pump ? 'pump.fun (pool 1,25 %)' : 'Raydium (pool 0,25 %)'}, plateforme 1 %, priority fee <b>${solTxt(P)} SOL</b>, SOL à ${sp} $.<span class="mut">Combien paies-tu de frais au total sur cet achat ?</span>`,
       steps: [`Pool : ${money(A)} × ${nf2(pool*100, 2)} % = ${money(A*pool)}`, `Plateforme : ${money(A)} × 1 % = ${money(A*PLAT_FEE)}`, `Réseau : (${solTxt(P)} + 0,000005) SOL × ${sp} $ = ${money(N)}`, `Total : <b>${money(tot)}</b>, soit ${pct1(tot/A*100)} de la mise`],
       tip: N > A*(pool + PLAT_FEE) ? `La priority fee coûte ici plus que le reste. Elle est fixe : sur un petit achat, elle pèse lourd.` : `Les frais en pourcentage grossissent avec la mise, la priority fee reste fixe.`,
       viz(done){
@@ -1864,7 +1883,7 @@ const dumpP = (T, top10) => (T.dump || 0)*(top10 >= 45 ? 2.5 : 1);
 const TTYPES = {
   major: { label: 'Gros token', liq: [2e7, 6e7], vol: 0.0035, slip: [1, 3], price: [0.4, 12], pool: 0.001, plat: 0, dump: 0, dex: 'orca', age: [400*DAY, 1400*DAY] },
   estab: { label: 'Memecoin établi', liq: [1.5e5, 5e5], vol: 0.014, slip: [3, 8], price: [0.002, 0.2], pool: 0.0025, plat: PLAT_FEE, dump: 0.08, dumpF: [0.6, 0.8], dex: 'raydium', age: [40*DAY, 300*DAY] },
-  fresh: { label: 'Memecoin récent', liq: [6e3, 2.5e4], vol: 0.035, slip: [8, 20], price: [0.000004, 0.0004], pool: 0.01, plat: PLAT_FEE, dump: 0.22, dumpF: [0.25, 0.6], dex: 'pumpfun', age: [12*60e3, 100*60e3] }
+  fresh: { label: 'Memecoin récent', liq: [6e3, 2.5e4], vol: 0.035, slip: [8, 20], price: [0.000004, 0.0004], pool: 0.0125, plat: PLAT_FEE, dump: 0.22, dumpF: [0.25, 0.6], dex: 'pumpfun', age: [12*60e3, 100*60e3] }
 };
 const TNAMES = {
   major: [['ORBIT', 'Orbit Network'], ['NOVA', 'Nova Protocol'], ['ATLAS', 'Atlas Finance'], ['VEGA', 'Vega Chain']],
@@ -1908,7 +1927,8 @@ function mkToken(type, flagged, used){
     for (let i = d; i < CANDLES; i++){ const c = fut[i]; fut[i] = { o: c.o*m, h: c.h*m, l: c.l*m, c: c.c*m }; }   // trou : le stop part au prix d'après la chute
   }
   const R = rnd(T.liq[0], T.liq[1]);
-  return { name, full, type, label: T.label, pool: T.pool, dex: T.dex, price, R, vol, slip: T.slip, hist, fut, checks, rug, rugKind,
+  const onCurve = T.dex === 'pumpfun' && !flagged;
+  return { name, full, type, dex: onCurve ? 'pumpfun' : T.dex === 'pumpfun' ? 'raydium' : T.dex, pool: onCurve ? 0.0125 : T.dex === 'pumpfun' ? 0.0025 : T.pool, label: T.label, price, R, vol, slip: T.slip, hist, fut, checks, rug, rugKind,
     hue: Math.floor(rnd(0, 360)), created: Date.now() - rnd(T.age[0], T.age[1]),
     addr: Array.from({ length: 44 }, () => B58[Math.floor(Math.random()*58)]).join(''),
     vol1h: R*rnd(0.15, 0.9),
@@ -1945,7 +1965,7 @@ function mSellOut(t, qty, price, prio){
 function mCandles(t){ return t.hist.concat(t.fut.slice(0, M.i + 1)); }
 function mChange(t, n){ const a = mCandles(t), r = a[Math.max(0, a.length - n)]; return (mPrice(t)/r.o - 1)*100; }
 const mMc = t => t.mc*mPrice(t)/t.price;
-const mSec = t => ({ mint: t.checks.mint, freeze: t.checks.freeze, lp: t.lpPct/100, top10: t.top10 });
+const mSec = t => ({ mint: t.checks.mint, freeze: t.checks.freeze, lp: t.dex === 'pumpfun' ? 'curve' : t.lpPct/100, top10: t.top10 });
 const mIcon = t => `<div class="ph" style="background:hsl(${t.hue} 32% 24%);color:hsl(${t.hue} 70% 80%)">${esc(t.name.slice(0, 3))}</div>`;
 
 /* --- l'énoncé --- */
@@ -2239,9 +2259,14 @@ async function mRun(){
 }
 function mFinish(){
   if (M.exitIdx == null) M.exitIdx = M.i;
-  M.phase = 'done'; M.view = 'result';
-  M.grade = gradeMission();
-  mRender(); $('#msn').scrollTop = 0;
+  M.phase = 'done'; mTick();
+  const v = $('#mview'), my = M;
+  if (v) v.innerHTML = `<div class="grading"><div class="spin"></div>Calcul de ta note sur ${NSIM} marchés simulés…</div>`;
+  setTimeout(() => {
+    if (M !== my) return;
+    M.grade = gradeMission(); M.view = 'result';
+    mRender(); $('#msn').scrollTop = 0;
+  }, 60);
 }
 
 /* --- rafraîchissement de l'écran de mission --- */
@@ -2354,10 +2379,47 @@ function scoreExits(t, exits, A, prio){
   return { goal: goal/n, over: over/n, mean: sum/n, entryRel: A/q };
 }
 // meilleur plan possible sur un token (recherche sur une grille de montants, stops et take profits)
-function bestPlan(t, paths, prio){
+// Pour chaque marché simulé, la minute où chaque niveau de stop / take profit de la grille est touché
+// (calculée une seule fois). Une sortie se lit ensuite sans rejouer les 60 minutes.
+const NEVER = 10000;
+function hitTable(C, i){
+  if (C.hits[i]) return C.hits[i];
+  C.hits[i] = C.sims[i].map(P => {
+    const frz = P.kind === 'freeze' ? P.rug : NEVER, gone = P.kind === 'lp' ? P.rug : NEVER, lim = Math.min(frz, gone, CANDLES);
+    const fs = new Int16Array(SLG.length).fill(NEVER), ft = new Int16Array(TPG.length).fill(NEVER);
+    let si = 0, ti = 0;
+    for (let k = 0; k < lim; k++){
+      while (si < SLG.length && P.l[k] <= SLG[si]) fs[si++] = k;
+      while (ti < TPG.length && P.h[k] >= TPG[ti]) ft[ti++] = k;
+    }
+    return { fs, ft, frz, gone };
+  });
+  return C.hits[i];
+}
+function exitsFor(C, i, sl, tp){
+  const k = i + '|' + sl + '|' + tp;
+  let e = C.ex.get(k);
+  if (e) return e;
+  const si = sl ? SLG.indexOf(sl) : -2, ti = tp ? TPG.indexOf(tp) : -2;
+  if (si === -1 || ti === -1) e = C.sims[i].map(P => exitOf(P, sl, tp));      // niveaux hors grille (le plan du joueur)
+  else {
+    const H = hitTable(C, i);
+    e = C.sims[i].map((P, n) => {
+      const h = H[n], a = si >= 0 ? h.fs[si] : NEVER, b = ti >= 0 ? h.ft[ti] : NEVER;
+      if (a < NEVER && a <= b) return { x: Math.min(sl, P.o[a]), w: 'sl' };
+      if (b < NEVER) return { x: Math.max(tp, Math.min(P.o[b], P.h[b])), w: 'tp' };
+      if (h.gone < NEVER) return { x: 0, w: 'lp' };
+      return { x: h.frz < NEVER ? 0 : P.c[CANDLES - 1], w: 'end' };
+    });
+  }
+  C.ex.set(k, e);
+  return e;
+}
+function bestPlan(C, i, prio){
+  const t = M.tokens[i];
   let best = null;
   for (const sl of SLG) for (const tp of TPG){
-    const exits = paths.map(P => exitOf(P, sl, tp));
+    const exits = exitsFor(C, i, sl, tp);
     for (const A of AG){
       const r = scoreExits(t, exits, A, prio); if (!r) continue;
       const ok = r.over <= RISK_OK;
@@ -2371,9 +2433,10 @@ function bestPlan(t, paths, prio){
 function gradeCtx(){
   const med = median(M.fees), prioI = +(med*2).toPrecision(2);
   const sims = M.tokens.map((x, i) => simPaths(x, (M.seed || 1) + i*7919));
-  const bests = M.tokens.map((x, i) => isFlagged(x) ? null : bestPlan(x, sims[i], prioI));
+  const C = { sims, ex: new Map(), hits: [] };
+  const bests = M.tokens.map((x, i) => isFlagged(x) ? null : bestPlan(C, i, prioI));
   let bi = -1; bests.forEach((b, i) => { if (b && (bi < 0 || (b.ok && !bests[bi].ok) || (b.ok === bests[bi].ok && b.goal > bests[bi].goal))) bi = i; });
-  return { med, prioI, sims, bests, bi, best: bests[bi], bt: M.tokens[bi] };
+  return Object.assign(C, { med, prioI, bests, bi, best: bests[bi], bt: M.tokens[bi] });
 }
 const pcTxt = x => nf2(x*100, 0) + ' %';
 // amplitude de la dernière heure (plus haut / plus bas du graphique), affichée dans la fiche
@@ -2385,7 +2448,7 @@ const crashTxt = t => { const f = TTYPES[t.type].dumpF; return f ? `${Math.round
 // Note d'un plan (pl : sel, A, slip, prio, slRel, tpRel), avec les explications
 function scorePlan(C, pl){
   const t = M.tokens[pl.sel], P = M.profile, items = [], { best, bt, med } = C;
-  const myExits = C.sims[pl.sel].map(Pp => exitOf(Pp, pl.slRel || 0, pl.tpRel || 0));
+  const myExits = exitsFor(C, pl.sel, pl.slRel || 0, pl.tpRel || 0);
   const me = scoreExits(t, myExits, pl.A, pl.prio) || { goal: 0, over: 1, mean: -pl.A };
   const tpRate = myExits.filter(e => e.w === 'tp').length/NSIM, slRate = myExits.filter(e => e.w === 'sl').length/NSIM;
   const tb = C.bests[pl.sel], amp = nf2(ampOf(t), 0), ampB = nf2(ampOf(bt), 0);
@@ -2432,6 +2495,19 @@ function scorePlan(C, pl){
   const got = items.reduce((a, x) => a + (x[1] ?? 0), 0), max = items.reduce((a, x) => a + (x[1] == null ? 0 : x[2]), 0);
   return { items, score: Math.round(got/max*100), me };
 }
+// Même note que scorePlan, sans rédiger les explications : sert à tester des centaines de variantes rapidement.
+// (Les barèmes doivent rester identiques à ceux de scorePlan.)
+function quickScore(C, pl){
+  const t = M.tokens[pl.sel], tb = C.bests[pl.sel], fl = isFlagged(t);
+  const me = scoreExits(t, exitsFor(C, pl.sel, pl.slRel || 0, pl.tpRel || 0), pl.A, pl.prio) || { goal: 0, over: 1, mean: -pl.A };
+  const tok = fl ? 0 : Math.round(30*Math.min(1, C.best.goal > 0 ? tb.goal/C.best.goal : 1));
+  const ov = me.over, risk = ov <= 0.05 ? 25 : ov <= 0.1 ? 18 : ov <= 0.2 ? 10 : ov <= 0.35 ? 4 : 0;
+  const exec = fl || !tb || tb.goal < UNREACH ? null : Math.round(25*Math.min(1, Math.max(0, (me.goal/tb.goal - 0.25)/0.65)));
+  const [s0, s1] = t.slip, slip = pl.slip >= s0 && pl.slip <= s1 ? 10 : pl.slip < s0 ? 4 : pl.slip <= s1*2 ? 5 : 0;
+  const pr = pl.prio/C.med, prio = pr >= 1 && pr <= 5 ? 10 : pr < 1 ? 3 : 5;
+  const got = tok + risk + (exec ?? 0) + slip + prio, max = 75 + (exec == null ? 0 : 25);
+  return { score: Math.round(got/max*100), me, risk };
+}
 // pourcentages « par rapport au prix d'achat », comme dans l'appli
 function entryRelOf(t, A, prio){ const f = mFees(t, prio), dx = A*(1 - f.pct) - f.net; return dx > 0 ? A/(dx*(1 - dx/(t.R + dx))) : 1; }
 // Pistes d'amélioration : d'abord la règle à retenir pour la prochaine fois, puis UNE modification à la fois de ton plan
@@ -2448,8 +2524,8 @@ function improvements(C, pl, baseR){
   }
   if (isFlagged(t)) return out;
   // une piste ne doit pas « gagner des points » en sacrifiant l'objectif (ex. acheter 5 $ pour ne plus rien risquer)
-  const riskPts = r => r.items[1][1];
-  const sp = ch => { const r = scorePlan(C, { ...pl, ...ch }); return r.me.goal + 0.02 < baseR.me.goal*0.8 || riskPts(r) < riskPts(baseR) ? -1 : r.score; };
+  const baseRisk = baseR.items[1][1];
+  const sp = ch => { const r = quickScore(C, { ...pl, ...ch }); return r.me.goal + 0.02 < baseR.me.goal*0.8 || r.risk < baseRisk ? -1 : r.score; };
   const slTxt = r => r ? nf2(Math.floor((1 - r/er)*1000)/10, 1) + ' %' : 'aucun';
   const tpTxt = r => r ? nf2(Math.ceil((r/er - 1)*1000)/10, 1) + ' %' : 'aucun';
   const tips = [], add = (s, txt) => { if (s > base) tips.push({ s, d: s - base, txt }); };
