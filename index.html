@@ -122,6 +122,13 @@ nav svg{width:22px;height:22px}
 .streak svg{color:var(--acc)}
 .streak b{display:block;color:var(--txt);font-size:16px;line-height:1.1}
 .streak .sep{width:1px;align-self:stretch;background:var(--line)}
+.modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.modes button{text-align:left;padding:12px 14px;border-radius:16px;background:var(--surface);border:1px solid transparent;display:flex;flex-direction:column;gap:3px;min-width:0}
+.modes b{font-size:15px;font-weight:700}
+.modes span{font-size:12px;color:var(--mut);line-height:1.35}
+.modes button.on{border-color:var(--acc);background:rgba(171,159,242,.08)}
+.modes button.on b{color:var(--acc)}
+.opt.long .lab{font-size:14px;font-weight:600;line-height:1.4}
 .pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 14px;padding-bottom:2px}
 .pills::-webkit-scrollbar{display:none}
 .pills button{flex:none;padding:8px 14px;border-radius:999px;background:var(--surface);color:var(--mut);font-weight:600;font-size:14px}
@@ -232,16 +239,16 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-5';
+const APP_VERSION = '2026.10.20-6';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
 const SOL_BASE_FEE = 0.000005;
 // Cryptos de l'onglet Marché (paires USDT de Binance). Pas de memecoins ici (ils sont dans leur onglet), sauf DOGE et PEPE.
 // Celles que Binance ne cote pas ou plus sont masquées automatiquement.
-const MAJORS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','TRX','TON','AVAX','LINK','DOT','SUI','LTC','BCH','NEAR','APT','UNI','XLM','ATOM',
-  'ETC','FIL','ICP','HBAR','ARB','OP','INJ','AAVE','RENDER','FET','TAO','SEI','TIA','ALGO','VET','JUP','PYTH','WLD','ENA','ONDO',
-  'PEPE','SAND','MANA','GALA','CRV'];
+const MAJORS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','TRX','AVAX','LINK','DOT','SUI','LTC','BCH','NEAR','APT','UNI','XLM','ATOM',
+  'ETC','FIL','ICP','HBAR','ARB','OP','INJ','AAVE','RENDER','FET','TAO','ALGO','VET','WLD','ONDO',
+  'PEPE','SAND','MANA','CRV'];
 const DS = 'https://api.dexscreener.com';
 let LOGO = {};
 try { const c = JSON.parse(localStorage.getItem('logos_v2')); if (c && Date.now() - c.t < 7*86400e3) LOGO = c.logos || {}; } catch(e){}
@@ -1332,6 +1339,32 @@ const pathOf = (vals, xa, xb, yf) => vals.map((v, i) => `${i ? 'L' : 'M'}${(xa +
 const line = (d, c, w = 2) => `<path d="${d}" style="fill:none;stroke:${c};stroke-width:${w};stroke-linejoin:round;stroke-linecap:round"/>`;
 const dot = (x, y, c, r = 4.5) => `<circle cx="${x}" cy="${y}" r="${r}" style="fill:${c};stroke:var(--surface0);stroke-width:2"/>`;
 
+// Schéma slippage : prix au clic, trajet, et zone tolérée (affichée une fois connue)
+function slipViz(buy, movePct, tolPct, seed, tolIsGiven = false, steps2 = null){
+  const mv = movePct == null ? (tolPct || 10)*0.8 : movePct;
+  const p1 = buy ? 1 + mv/100 : 1 - mv/100;
+  const lim = tolPct == null ? null : (buy ? 1/(1 - tolPct/100) : 1 - tolPct/100);
+  const ext = Math.max(Math.abs(p1 - 1), lim ? Math.abs(lim - 1) : 0, 0.02) * 1.3, lo = 1 - ext, hi = 1 + ext;
+  const yf = v => Y0 + (hi - v)/(hi - lo)*(Y1 - 22 - Y0), xc = 100;
+  const pre = walk(12, 1 + (buy ? -1 : 1)*ext*0.25, 1, ext*0.5, seed);
+  let g = '';
+  if (lim) g += box(xc, Math.min(yf(1), yf(lim)), X1 - xc, Math.abs(yf(lim) - yf(1)), GREEN_BG, 0) + hline(yf(lim), GREEN, true, xc, X1) + txt(X1 + 6, yf(lim) + 4, 'limite', { c: GREEN, s: 10, w: 600 });
+  g += hline(yf(1), MUT, true) + txt(X1 + 6, yf(1) + 4, 'prix au clic', { s: 10 });
+  let post;
+  if (steps2){
+    const m1 = 1 - steps2[0]/100, m2 = m1*(1 - steps2[1]/100), xm = (xc + X1)/2;
+    post = [1, 1, m1, m1, m2];
+    g += line(`M${xc},${yf(1)}L${xm - 30},${yf(1)}L${xm - 30},${yf(m1)}L${X1 - 40},${yf(m1)}L${X1 - 40},${yf(m2)}L${X1},${yf(m2)}`, TXT, 2);
+    g += tag(xm - 26, (yf(1) + yf(m1))/2 + 4, `-${steps2[0]} %`, 'var(--surface2)', TXT) + tag(X1 - 36, (yf(m1) + yf(m2))/2 + 4, `-${steps2[1]} %`, 'var(--surface2)', TXT);
+  } else {
+    post = walk(14, 1, p1, ext*0.45, seed + 3);
+    g += line(pathOf(post, xc, X1, yf), TXT, 2);
+    g += tag(X1 - 60, yf(p1) + (buy ? -12 : 22), movePct == null ? (buy ? '+ ? %' : '- ? %') : (buy ? '+' : '-') + nf2(movePct, 1) + ' %', 'var(--surface2)', movePct == null ? ACC : TXT);
+  }
+  g += line(pathOf(pre, X0, xc, yf), MUT, 1.6) + dot(xc, yf(1), ACC) + dot(X1, yf(p1), TXT);
+  g += txt(xc, Y1 - 2, 'clic', { a: 'middle' }) + txt(X1, Y1 - 2, 'confirmation', { a: 'middle' });
+  return svg(g);
+}
 const EX = {
   impact(){
     const L = pickOne([4000, 8000, 15000, 30000, 60000, 120000]), R = L/2;
@@ -1353,30 +1386,32 @@ const EX = {
       } };
   },
   slip(){
-    const buy = Math.random() < 0.5, Y = pickOne([1, 2, 3, 5, 10, 15, 20]);
-    let X; do { X = Math.round(rnd(0.5, Y * 2.2) * 10)/10; } while (Math.abs((buy ? X/(100 + X)*100 : X) - Y) < 0.4);
-    const lossPct = buy ? X/(100 + X)*100 : X, passes = lossPct <= Y, good = passes ? 'Elle passe' : 'Elle échoue';
-    const seed = Math.floor(Math.random()*9999);
-    return { tag: 'Slippage', choices: ['Elle passe', 'Elle échoue'], answer: good,
-      q: `Tu ${buy ? 'achètes' : 'vends'} avec une tolérance de slippage de <b>${Y} %</b>. Pendant la confirmation, le prix ${buy ? 'monte' : 'baisse'} de <b>${nf2(X, 1)} %</b>.<span class="mut">Ta transaction passe-t-elle ?</span>`,
-      steps: buy
-        ? [`Prix ×${nf2(1 + X/100, 3)} : tu reçois 1 ÷ ${nf2(1 + X/100, 3)} des tokens prévus`, `Soit <b>${pct1(lossPct)}</b> de tokens en moins`, `${pct1(lossPct)} ${passes ? '≤' : '>'} ${Y} % : <b>${good.toLowerCase()}</b>`]
-        : [`Prix -${nf2(X, 1)} % : tu reçois ${nf2(X, 1)} % de dollars en moins`, `${pct1(lossPct)} ${passes ? '≤' : '>'} ${Y} % : <b>${good.toLowerCase()}</b>`],
-      tip: passes ? `La tolérance compare ce que tu reçois à ce qui était prévu au moment du clic.` : `Une transaction qui échoue coûte quand même les frais réseau. Sur un token qui bouge vite, une tolérance trop basse fait rater des trades.`,
-      viz(done){
-        const p1 = buy ? 1 + X/100 : 1 - X/100, lim = buy ? 1/(1 - Y/100) : 1 - Y/100;
-        const ext = Math.max(Math.abs(p1 - 1), Math.abs(lim - 1)) * 1.3, lo = 1 - ext, hi = 1 + ext;
-        const yf = v => Y0 + (hi - v)/(hi - lo)*(Y1 - 20 - Y0), xc = 110;
-        const pre = walk(12, 1 + (buy ? -1 : 1)*ext*0.25, 1, ext*0.5, seed), post = walk(14, 1, p1, ext*0.45, seed + 3);
-        let g = '';
-        if (done) g += box(xc, Math.min(yf(1), yf(lim)), X1 - xc, Math.abs(yf(lim) - yf(1)), GREEN_BG, 0) + hline(yf(lim), GREEN, true, xc, X1) + txt(X1 + 6, yf(lim) + 4, 'limite', { c: GREEN });
-        g += hline(yf(1), MUT, true) + txt(X1 + 6, yf(1) + 4, 'au clic');
-        g += line(pathOf(pre, X0, xc, yf), MUT, 1.6) + line(pathOf(post, xc, X1, yf), TXT, 2);
-        g += dot(xc, yf(1), ACC) + dot(X1, yf(p1), done ? (passes ? GREEN : RED) : TXT);
-        g += tag(X1 - 52, yf(p1) + (buy ? -12 : 20), (buy ? '+' : '-') + nf2(X, 1) + ' %', 'var(--surface2)', TXT);
-        g += txt(xc, Y1 - 2, 'clic', { a: 'middle' }) + txt(X1, Y1 - 2, 'confirmation', { a: 'middle' });
-        return svg(g);
-      } };
+    const seed = Math.floor(Math.random()*9999), kind = pickOne(['minBuy', 'maxRise', 'twoSells']);
+    if (kind === 'minBuy'){
+      // Prix qui monte pendant un achat : quelle tolérance minimale ?
+      const X = pickOne([3, 5, 8, 10, 12, 15, 20, 25, 30, 40, 50]), need = X/(100 + X)*100;
+      return { tag: 'Slippage', ...makeChoices(need, [X, X*1.1, need/2], pct1),
+        q: `Tu achètes un memecoin. Entre ton clic et la confirmation, d'autres acheteurs font monter le prix de <b>${X} %</b>.<span class="mut">Quelle tolérance de slippage minimale faut-il pour que ton achat passe ?</span>`,
+        steps: [`Prix × ${nf2(1 + X/100, 2)} : tu reçois 1 ÷ ${nf2(1 + X/100, 2)} = ${nf2(100/(1 + X/100), 1)} % des tokens prévus`, `Il en manque donc ${X} ÷ ${100 + X} = <b>${pct1(need)}</b>`],
+        tip: `À l'achat, une hausse de X % ne coûte pas X % de tokens mais un peu moins. Mettre exactement X % fonctionne, mais tu paies une marge pour rien.`,
+        viz: d => slipViz(true, X, d ? need : null, seed) };
+    }
+    if (kind === 'maxRise'){
+      // Tolérance donnée : à partir de quelle hausse l'achat échoue ?
+      const Y = pickOne([5, 10, 15, 20, 25, 30, 50]), rise = Y/(100 - Y)*100;
+      return { tag: 'Slippage', ...makeChoices(rise, [Y, Y*0.9, rise*1.5], pct1),
+        q: `Tu achètes avec une tolérance de slippage de <b>${Y} %</b>.<span class="mut">À partir de quelle hausse du prix pendant la confirmation ton achat échoue-t-il ?</span>`,
+        steps: [`L'achat passe tant que tu reçois au moins ${100 - Y} % des tokens prévus`, `Tokens reçus = 1 ÷ (prix relatif) ≥ ${nf2(1 - Y/100, 2)}`, `Prix relatif ≤ 1 ÷ ${nf2(1 - Y/100, 2)} = ${nf2(1/(1 - Y/100), 3)}, soit une hausse de <b>${pct1(rise)}</b>`],
+        tip: `Une tolérance de ${Y} % encaisse une hausse plus grande que ${Y} %. Plus la tolérance est haute, plus l'écart grandit : à 50 %, le prix peut doubler.`,
+        viz: d => slipViz(true, d ? rise : null, Y, seed, true) };
+    }
+    // Deux baisses successives pendant une vente
+    const a1 = pickOne([3, 5, 8, 10, 12, 15]), a2 = pickOne([4, 6, 10, 15, 20]), tot = (1 - (1 - a1/100)*(1 - a2/100))*100;
+    return { tag: 'Slippage', ...makeChoices(tot, [a1 + a2, Math.max(a1, a2), (a1 + a2)*1.1], pct1),
+      q: `Tu vends. Avant que ta transaction passe, deux grosses ventes sont exécutées : le prix baisse de <b>${a1} %</b>, puis de <b>${a2} %</b>.<span class="mut">Quelle tolérance minimale faut-il pour que ta vente passe ?</span>`,
+      steps: [`Après la 1re vente : × ${nf2(1 - a1/100, 2)}`, `Après la 2e : × ${nf2(1 - a2/100, 2)}, soit × ${nf2((1 - a1/100)*(1 - a2/100), 4)} au total`, `Baisse totale : <b>${pct1(tot)}</b>, un peu moins que ${a1} + ${a2} = ${a1 + a2} %`],
+      tip: `Les baisses successives se multiplient, elles ne s'additionnent pas. Sur un memecoin qui chute, plusieurs vendeurs passent souvent avant toi dans le même bloc.`,
+      viz: d => slipViz(false, tot, d ? tot : null, seed, false, [a1, a2]) };
   },
   be(){
     const A = pickOne([20, 30, 50, 80, 100, 150]), pump = Math.random() < 0.5, f = (pump ? 0.01 : 0.0025) + PLAT_FEE;
@@ -1470,9 +1505,160 @@ const EX = {
       viz(){ return `<img class="logo" src="${esc(LOGO[good])}" alt="">`; } };
   }
 };
+/* ---------- cas pratiques ----------
+   Situations complètes : plusieurs notions à combiner, une règle donnée dans
+   l'énoncé, et une seule réponse qui la respecte. */
+function genCandles(n, way, vol, seed, floor){
+  let r = seed; const rand = () => (r = (r*9301 + 49297) % 233280) / 233280;
+  const at = i => { for (let k = 1; k < way.length; k++){ const [i0, p0] = way[k - 1], [i1, p1] = way[k]; if (i <= i1) return p0 + (p1 - p0)*(i - i0)/(i1 - i0); } return way[way.length - 1][1]; };
+  const out = []; let prev = at(0);
+  for (let i = 0; i < n; i++){
+    const c = i === n - 1 ? at(i) : at(i)*(1 + (rand() - .5)*vol);
+    let h = Math.max(prev, c)*(1 + rand()*vol*0.5), l = Math.min(prev, c)*(1 - rand()*vol*0.5);
+    if (floor && l < floor) l = floor*(1 - rand()*0.004);
+    out.push({ o: prev, h, l, c }); prev = c;
+  }
+  return out;
+}
+function drawCandles(cs, xa, xb, yf){
+  const w = (xb - xa)/cs.length;
+  return cs.map((k, i) => {
+    const x = xa + w*i + w/2, col = k.c >= k.o ? GREEN : RED, yo = yf(k.o), yc = yf(k.c);
+    return `<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${yf(k.h).toFixed(1)}" y2="${yf(k.l).toFixed(1)}" style="stroke:${col};stroke-width:1"/>` + box(x - w*0.32, Math.min(yo, yc), w*0.64, Math.max(1.2, Math.abs(yc - yo)), col, 1);
+  }).join('');
+}
+const scaleOf = (cs, extra = []) => {
+  let lo = Math.min(...cs.map(k => k.l), ...extra), hi = Math.max(...cs.map(k => k.h), ...extra);
+  const pad = (hi - lo)*0.08; lo -= pad; hi += pad;
+  return v => Y0 + (hi - v)/(hi - lo)*(Y1 - Y0);
+};
+const fakePrice = () => pickOne([0.000042, 0.00031, 0.0027, 0.0185, 0.142, 1.27]);
+const TICKERS = ['MOON', 'FROGE', 'KITTY', 'GIGA', 'WAGMI', 'BLOB', 'ZORP', 'HONK'];
+const CHECK = (x, y, ok) => ok
+  ? `<path d="M${x - 5},${y} l3.5,3.5 l6.5,-7" style="fill:none;stroke:${GREEN};stroke-width:2;stroke-linecap:round;stroke-linejoin:round"/>`
+  : `<path d="M${x - 4.5},${y - 4.5} l9,9 M${x + 4.5},${y - 4.5} l-9,9" style="fill:none;stroke:${RED};stroke-width:2;stroke-linecap:round"/>`;
+
+const CASES = {
+  plan(){
+    const C = pickOne([100, 200, 500]), r = pickOne([2, 3, 5]), P = fakePrice(), seed = Math.floor(Math.random()*9999);
+    const S = P*(1 - pickOne([0.04, 0.06, 0.08])), SL = S*0.98, sl = (P - SL)/P, RZ = P*(1 + pickOne([0.12, 0.18, 0.25])), TP = RZ*0.99;
+    const risk = C*r/100, size = risk/sl;
+    const SLin = S*1.01, sizeIn = risk/((P - SLin)/P), TPhi = RZ*1.06;
+    const plan = (m, st, tp) => `Mise ${money(m)} · stop ${fp(st)} · objectif ${fp(tp)}`;
+    const good = plan(size, SL, TP);
+    const choices = shuffle([good, plan(sizeIn, SLin, TP), plan(size*3, SL, TP), plan(size, SL, TPhi)]);
+    return { tag: 'Plan de trade', choices, answer: good, long: true,
+      q: `Capital : <b>${money(C)}</b>. Tu ne risques jamais plus de <b>${r} %</b> du capital par trade. Le token vaut <b>${fp(P)}</b>, juste au-dessus d'un support.<span class="mut">Règles : stop 2 % sous le support, objectif 1 % sous la résistance. Quel plan respecte tout ?</span>`,
+      steps: [`Support ${fp(S)} → stop à ${fp(S)} × 0,98 = <b>${fp(SL)}</b>, soit -${pct1(sl*100)} sous l'entrée`, `Risque max : ${money(C)} × ${r} % = ${money(risk)}`, `Mise = ${money(risk)} ÷ ${nf2(sl, 4)} = <b>${money(size)}</b>`, `Objectif : résistance ${fp(RZ)} × 0,99 = <b>${fp(TP)}</b>`],
+      tip: `Un stop au-dessus du support saute au moindre retour sur ce niveau. Et viser au-delà de la résistance, c'est parier qu'elle cède du premier coup.`,
+      viz(done){
+        const n = 34, cs = genCandles(n, [[0, P*1.03], [7, S*1.004], [13, P*1.07], [20, S*1.004], [27, P*1.05], [n - 1, P]], 0.018, seed, S*0.998);
+        const yf = scaleOf(cs, [SL, RZ*1.02]), xe = X0 + (X1 - X0)*(n - 0.5)/n;
+        let g = drawCandles(cs, X0, X1, yf);
+        g += hline(yf(RZ), MUT, true) + txt(X1 + 6, yf(RZ) + 4, 'résistance', { s: 10 });
+        g += hline(yf(S), MUT, true) + txt(X1 + 6, yf(S) + 4, 'support', { s: 10 });
+        g += dot(xe, yf(P), ACC);
+        if (done){
+          g += hline(yf(TP), GREEN, false, xe - 40) + txt(X1 + 6, yf(TP) + 16, 'objectif', { c: GREEN, s: 10, w: 600 });
+          g += hline(yf(SL), RED, false, xe - 40) + txt(X1 + 6, yf(SL) + 16, 'stop', { c: RED, s: 10, w: 600 });
+        }
+        return svg(g);
+      } };
+  },
+  breakeven(){
+    const A = pickOne([50, 100, 200]), pump = Math.random() < 0.5, f = (pump ? 0.01 : 0.0025) + PLAT_FEE;
+    const Pf = pickOne([0.001, 0.002, 0.005]), sp = Math.round(solPx()), N = (Pf + SOL_BASE_FEE)*sp;
+    const E = fakePrice(), gain = pickOne([20, 35, 50, 80]), cur = E*(1 + gain/100), seed = Math.floor(Math.random()*9999);
+    const kept = A*(1 - f) - N, m = (A + N)/(kept*(1 - f)), stop = E*m;
+    return { tag: 'Stop au point mort', ...makeChoices(stop, [E, E*(1 + f), E*(1 + 2*f), cur*0.9], fp),
+      q: `Tu as acheté pour <b>${money(A)}</b> à <b>${fp(E)}</b> sur ${pump ? 'pump.fun (pool 1 %)' : 'PumpSwap (pool 0,25 %)'}, plateforme 1 %, priority fee ${solTxt(Pf)} SOL (SOL à ${sp} $). Tu es à <b>+${gain} %</b>.<span class="mut">Tu remontes ton stop loss pour ne plus pouvoir perdre d'argent, frais de revente compris. À quel prix au minimum ?</span>`,
+      steps: [`Après l'achat, il te reste l'équivalent de ${money(kept)}`, `Pour ressortir avec ${money(A)}, le prix doit valoir ${nf2(m, 4)} × le prix d'achat`, `Stop : ${fp(E)} × ${nf2(m, 4)} = <b>${fp(stop)}</b>`],
+      tip: `Un stop pile au prix d'achat te fait perdre les frais. Le vrai point mort est un peu au-dessus.`,
+      viz(done){
+        const n = 30, cs = genCandles(n, [[0, E*0.97], [5, E], [14, E*(1 + gain/250)], [22, E*(1 + gain/130)], [n - 1, cur]], 0.02, seed);
+        const yf = scaleOf(cs, [E*0.97, stop]), xe = X0 + (X1 - X0)*5.5/n;
+        let g = drawCandles(cs, X0, X1, yf);
+        g += hline(yf(E), TXT, false, xe) + txt(X1 + 6, yf(E) + 4, 'achat', { c: TXT, s: 10 }) + dot(xe, yf(E), ACC);
+        g += dot(X1 - (X1 - X0)/n/2, yf(cur), TXT) + txt(X1 + 6, yf(cur) + 4, `+${gain} %`, { c: GREEN, w: 700, s: 11 });
+        g += done ? hline(yf(stop), ACC, true, xe) + txt(X1 + 6, yf(stop) - 6, 'point mort', { c: ACC, s: 10, w: 600 })
+                  : txt(xe + 6, yf(E) + 16, 'stop ?', { c: ACC, s: 11, w: 600 });
+        return svg(g);
+      } };
+  },
+  exit(){
+    const I = pickOne([20, 50, 100]), x = pickOne([5, 10, 20, 40]), V = I*x, R = V*pickOne([0.8, 1.5, 3]);
+    const f = 0.0025 + PLAT_FEE, sp = Math.round(solPx()), N = (0.001 + SOL_BASE_FEE)*sp, seed = Math.floor(Math.random()*9999);
+    const gross = R*V/(R + V), get = gross*(1 - f) - N;
+    return { tag: 'Sortie', ...makeChoices(get, [V*(1 - f) - N, V, gross, get*0.6], money),
+      q: `Tu as investi <b>${money(I)}</b> dans un memecoin qui a fait <b>×${x}</b>. Ta position vaut <b>${money(V)}</b> au prix affiché. Le pool PumpSwap ne contient que <b>${big(R)}</b> côté SOL (frais 0,25 % + plateforme 1 %, priority fee 0,001 SOL à ${sp} $).<span class="mut">Si tu vends tout d'un coup, combien récupères-tu ?</span>`,
+      steps: [`Ta vente pousse le pool : tu reçois R × V ÷ (R + V) = ${big(R)} × ${money(V)} ÷ ${big(R + V)} = ${money(gross)}`, `Moins ${pct1(f*100)} de frais : ${money(gross*(1 - f))}`, `Moins ${money(N)} de réseau : <b>${money(get)}</b>`],
+      tip: `Un gain sur un token peu liquide n'existe qu'en partie tant que tu n'as pas vendu. Vendre en plusieurs fois aide seulement si de nouveaux acheteurs remettent de l'argent dans le pool entre-temps.`,
+      viz(done){
+        const n = 30, cs = genCandles(n, [[0, 1], [10, 1.4], [18, x*0.35], [24, x*0.8], [n - 1, x]], 0.05, seed);
+        const yf = v => Y0 + 8 + (x*1.08 - v)/(x*1.08 - 0.8)*(96 - Y0);
+        let g = drawCandles(cs, X0, X1 - 40, yf) + txt(X1 - 34, yf(x) + 4, `×${x}`, { c: GREEN, w: 700, s: 12 });
+        const W = X1 + 60 - X0, sc = W/V;
+        g += txt(X0, 136, `Valeur affichée ${money(V)}`, { c: TXT, s: 11, w: 600 }) + box(X0, 141, W, 10, 'var(--surface2)', 3);
+        g += txt(X0, 168, done ? `Récupérable ${money(get)}` : 'Récupérable ?', { c: done ? ACC : MUT, s: 11, w: 600 });
+        if (done) g += box(X0, 173, Math.max(3, get*sc), 10, ACC, 3);
+        return svg(g);
+      } };
+  },
+  split(){
+    const A = pickOne([200, 300, 400]), n = pickOne([2, 4, 5]), R = pickOne([3000, 6000, 12000]);
+    const sp = Math.round(solPx()), N = (0.002 + SOL_BASE_FEE)*sp, extra = (n - 1)*N;
+    const good = 'Un seul ordre';
+    return { tag: 'Découper un ordre', choices: [good, `${n} ordres de ${money(A/n)}`, 'Exactement pareil'], answer: good,
+      q: `Pool PumpSwap avec <b>${big(R)}</b> côté SOL. Tu veux acheter pour <b>${money(A)}</b>, priority fee 0,002 SOL (SOL à ${sp} $).<span class="mut">Tu passes soit un seul ordre, soit ${n} ordres de ${money(A/n)} à la suite, sans que personne d'autre ne trade entre-temps. Quel choix te donne le plus de tokens ?</span>`,
+      steps: [`Pool à produit constant : après tes achats, le pool contient ${big(R)} + ${money(A)} côté SOL dans les deux cas`, `Donc tu retires exactement la même quantité de tokens, l'impact total est identique`, `Mais ${n} ordres paient ${n} fois les frais réseau : ${money(extra)} de plus`],
+      tip: `Découper un ordre n'aide que si d'autres vendeurs ramènent le prix entre tes achats. Sinon, tu paies seulement plus de frais.`,
+      viz(done){
+        const W = X1 + 60 - X0, wP = W*0.5, wA = W*0.5 - 4;
+        let g = txt(X0, 30, 'Un seul ordre', { c: TXT, w: 600 }) + txt(X0 + W, 30, money(A), { a: 'end' }) + box(X0, 38, wP, 22, 'var(--surface2)', 5) + box(X0 + wP + 4, 38, wA, 22, ACC, 5);
+        g += txt(X0, 92, `${n} ordres`, { c: TXT, w: 600 }) + txt(X0 + W, 92, `${n} × ${money(A/n)}`, { a: 'end' }) + box(X0, 100, wP, 22, 'var(--surface2)', 5);
+        for (let i = 0; i < n; i++) g += box(X0 + wP + 4 + i*(wA + 4)/n, 100, (wA + 4)/n - 4, 22, ACC, 4);
+        g += txt(X0, 150, `Gris : pool (${big(R)}). Violet : ton argent. Pas à l'échelle.`, { s: 11 });
+        if (done) g += txt(X0, 172, `Même total à la fin. Écart : ${money(extra)} de frais réseau.`, { c: TXT, s: 12, w: 600 });
+        return svg(g);
+      } };
+  },
+  rug(){
+    const names = shuffle(TICKERS.slice()).slice(0, 3), bad = Math.floor(Math.random()*3), flaw = pickOne(['mint', 'freeze', 'lp']);
+    const tokens = names.map((nm, i) => ({ nm, mint: true, freeze: true, lp: true, top: Math.round(rnd(14, 32)) }));
+    tokens[(bad + 1) % 3].top = Math.round(rnd(48, 62));          // distraction : concentration élevée mais pas de piège
+    tokens[bad][flaw] = false;
+    const what = { mint: 'Autorité de mint active : le créateur peut créer des tokens à volonté et faire chuter le prix.', freeze: 'Autorité de gel active : le créateur peut bloquer ton portefeuille, tu ne pourras plus vendre.', lp: 'Liquidité non brûlée : le créateur peut retirer tout le pool d\'un coup.' }[flaw];
+    return { tag: 'Repérer un rug', choices: names.slice(), answer: names[bad],
+      q: `Trois tokens viennent de migrer de pump.fun. Voici leurs contrôles de sécurité.<span class="mut">Lequel présente un piège qui peut te faire tout perdre d'un coup ?</span>`,
+      steps: [`${names[bad]} : ${what}`, `${tokens[(bad + 1) % 3].nm} : ${tokens[(bad + 1) % 3].top} % aux 10 plus gros détenteurs. C'est un risque de grosses ventes, mais pas un piège : tu peux toujours vendre.`],
+      tip: `Avant d'acheter un memecoin, vérifie toujours trois choses : mint révoqué, gel révoqué, liquidité brûlée. Une seule croix suffit à passer ton tour.`,
+      viz(done){
+        const rows = [['Mint révoqué', 'mint'], ['Gel révoqué', 'freeze'], ['Liquidité brûlée', 'lp'], ['Top 10 détenteurs', 'top']];
+        const LW = 106, cw = (X1 + 60 - X0 - LW)/3;
+        let g = '';
+        tokens.forEach((t, i) => {
+          const x = X0 + LW + i*cw, hl = done && i === bad;
+          g += box(x + 2, 8, cw - 4, 172, hl ? RED_BG : 'var(--surface2)', 8) + txt(x + cw/2, 28, t.nm, { a: 'middle', c: TXT, w: 700, s: 12 });
+        });
+        rows.forEach(([lab, k], r) => {
+          const y = 62 + r*32;
+          g += txt(X0, y + 4, lab, { s: 10.5 });
+          tokens.forEach((t, i) => {
+            const cx = X0 + LW + i*cw + cw/2;
+            g += k === 'top' ? txt(cx, y + 4, t.top + ' %', { a: 'middle', c: t.top >= 45 ? 'var(--acc)' : TXT, w: 600, s: 12 }) : CHECK(cx, y, t[k]);
+          });
+        });
+        return svg(g);
+      } };
+  }
+};
+const CASE_CATS = [['all','Tout'],['plan','Plan de trade'],['breakeven','Point mort'],['exit','Sortie'],['split','Découper un ordre'],['rug','Repérer un rug']];
+let trainMode = 'auto', caseCat = 'all';
+
 function nextEx(){
-  const cats = trainCat === 'all' ? Object.keys(EX) : [trainCat];
-  for (let i = 0; i < 10; i++){ const ex = EX[pickOne(cats)](); if (ex){ curEx = ex; return; } }
+  const pool = trainMode === 'auto' ? EX : CASES, cat = trainMode === 'auto' ? trainCat : caseCat;
+  const cats = cat === 'all' ? Object.keys(pool) : [cat];
+  for (let i = 0; i < 10; i++){ const ex = pool[pickOne(cats)](); if (ex){ curEx = ex; return; } }
   curEx = null;
 }
 const FLAME = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.6.7-2.8 1.5-3.7.2 1.4 1 2.2 2 2.2 0-2.5-1-4.5.5-7z"/><path d="M8 20h8"/></svg>`;
@@ -1492,7 +1678,7 @@ function showEx(done = false, picked = null){
       <div class="exq">${curEx.q}</div>
       <div class="exopts">${curEx.choices.map((c, i) => {
         const st = !done ? '' : c === curEx.answer ? 'ok' : c === picked ? 'ko' : 'dim';
-        return `<button class="opt ${st}" ${done ? 'disabled' : ''} data-v="${esc(c)}"><span class="key">${'ABCD'[i]}</span><span class="lab">${esc(c)}</span></button>`;
+        return `<button class="opt ${st}${curEx.long ? ' long' : ''}" ${done ? 'disabled' : ''} data-v="${esc(c)}"><span class="key">${'ABCD'[i]}</span><span class="lab">${esc(c)}</span></button>`;
       }).join('')}</div>
       ${done ? `<div class="exfb">
         <div class="verdict ${ok ? 'up' : 'down'}">${ok ? ICON_OK + 'Bonne réponse' : ICON_KO + 'Raté, la bonne réponse est ' + esc(curEx.answer)}</div>
@@ -1509,12 +1695,21 @@ function answerEx(v){
   save(); trainStats(); showEx(true, v);
 }
 function renderTrain(v){
+  const cats = trainMode === 'auto' ? TRAIN_CATS : CASE_CATS, cur = trainMode === 'auto' ? trainCat : caseCat;
   v.innerHTML = `<div class="train">
-    <div class="trtop"><div><div class="trtitle">Entraînement</div><div class="trsub">Des situations courtes, calculées avec les règles exactes de la simulation.</div></div><div class="streak" id="streak"></div></div>
-    <div class="pills">${TRAIN_CATS.map(([k, l]) => `<button data-c="${k}" class="${k === trainCat ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div class="trtop"><div><div class="trtitle">Entraînement</div><div class="trsub">Tout est calculé avec les règles exactes de la simulation.</div></div><div class="streak" id="streak"></div></div>
+    <div class="modes">
+      <button data-mode="auto" class="${trainMode === 'auto' ? 'on' : ''}"><b>Automatismes</b><span>Calculs rapides à connaître par cœur</span></button>
+      <button data-mode="cases" class="${trainMode === 'cases' ? 'on' : ''}"><b>Cas pratiques</b><span>Situations complètes, comme en vrai</span></button>
+    </div>
+    <div class="pills">${cats.map(([k, l]) => `<button data-c="${k}" class="${k === cur ? 'on' : ''}">${l}</button>`).join('')}</div>
     <article class="ex" id="ex"></article></div>`;
+  v.querySelectorAll('[data-mode]').forEach(b => b.onclick = () => {
+    if (trainMode === b.dataset.mode) return;
+    trainMode = b.dataset.mode; curEx = null; renderTrain(v);
+  });
   v.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
-    trainCat = b.dataset.c;
+    if (trainMode === 'auto') trainCat = b.dataset.c; else caseCat = b.dataset.c;
     v.querySelectorAll('[data-c]').forEach(x => x.classList.toggle('on', x === b));
     nextEx(); showEx();
   });
