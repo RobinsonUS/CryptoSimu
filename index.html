@@ -118,6 +118,18 @@ nav svg{width:22px;height:22px}
 .secit.ok svg{color:var(--up)}
 .secit.ko{background:rgba(246,70,93,.13);color:var(--down)}
 .secit.un{color:var(--mut)}
+.pchips{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 12px}
+.pchips button{padding:8px 4px;border-radius:10px;background:var(--surface2);font-weight:600;font-size:13px;line-height:1.25;border:1px solid transparent;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.pchips button span{font-size:11px;font-weight:500;color:var(--mut);white-space:nowrap}
+.prow input::-webkit-inner-spin-button,.prow input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+.prow input[type=number]{-moz-appearance:textfield}
+.pchips button.on{border-color:var(--acc);background:rgba(171,159,242,.12)}
+.prow{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:6px;margin-top:10px}
+.prow input{padding:10px;font-weight:600}
+.prow label{position:relative;display:block}
+.prow label span{position:absolute;left:10px;top:4px;font-size:10px;color:var(--mut)}
+.prow label input{padding:16px 22px 4px 10px}
+.prow label em{position:absolute;right:10px;bottom:7px;font-style:normal;font-size:12px;color:var(--mut)}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--surface2);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:20;display:none;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty{text-align:center;color:var(--mut);padding:40px 0}
 .hist-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
@@ -360,7 +372,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-20';
+const APP_VERSION = '2026.10.20-21';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -395,6 +407,10 @@ const DEFAULT_TF = '1h';
 let curTf = DEFAULT_TF;      // durée du graphique, propre à la fiche ouverte
 delete S.settings.plat;
 if (!(S.settings.prio >= 0.0001)) S.settings.prio = 0.0001;
+// Préréglages SL / TP (comme sur les terminaux memecoins) : posés automatiquement à l'achat, en % du prix d'achat frais compris
+const DEF_PRESETS = [{ n: 'Serré', sl: 5, tp: 10 }, { n: 'Normal', sl: 10, tp: 20 }, { n: 'Large', sl: 25, tp: 60 }];
+if (!Array.isArray(S.settings.presets) || S.settings.presets.length !== 3) S.settings.presets = JSON.parse(JSON.stringify(DEF_PRESETS));
+if (!(S.settings.preset >= -1 && S.settings.preset <= 2)) S.settings.preset = -1;
 let tab = 'marche', memeTab = 'top', sheetKey = null;
 const inflight = new Set();   // tokens avec une transaction en attente
 const feed = { top: [], new: [], search: [] };
@@ -1090,7 +1106,7 @@ async function buy(key, amount){
     const t = BN[id]; if (!t) return toast('Prix pas encore reçu');
     if (amount < BN_MIN) return toast('Minimum 5 $ sur Binance');
     const fee = amount*BN_FEE, qty = (amount-fee)/t.ask;
-    addPos(key, m, qty, amount);
+    addPos(key, m, qty, amount); autoTrig(key);
     S.cash -= amount;
     log({ side:'Achat', key, sym:m.sym, qty, price:t.ask, usd:amount, fee });
     toast('Acheté '+fp(qty)+' '+m.sym);
@@ -1119,7 +1135,7 @@ async function buy(key, amount){
       save(); refresh();
       return toast('Échec : slippage dépassé (frais réseau payés)');
     }
-    addPos(key, meta(key), q.tokens, amount);
+    addPos(key, meta(key), q.tokens, amount); autoTrig(key);
     S.cash -= amount;
     log({ side:'Achat', key, sym:m.sym, qty:q.tokens, price:q.avg, usd:amount, fee:q.fee, impact:q.impact });
     toast('Acheté '+fp(q.tokens)+' '+m.sym);
@@ -1558,11 +1574,13 @@ function renderView(){
         <input id="slip" type="number" step="1" min="1" max="100" inputmode="decimal" value="${S.settings.slip}">
         <div class="field">Frais de plateforme : 1 % par trade sur les memecoins</div>
       </div>
+      <div id="presetedit">${presetEditor(S.settings)}</div>
       <button id="reset" class="btn btn-danger">Recommencer avec 100 $</button>
       <div class="credit">Graphiques : TradingView Lightweight Charts<br>Version ${APP_VERSION}</div></div></div>`;
     $('#prio').onchange = e => { S.settings.prio = Math.max(PRIO_MIN, +e.target.value || 0); e.target.value = S.settings.prio; save(); showNetInfo(); };
     showNetInfo();
     $('#slip').onchange = e => { S.settings.slip = Math.min(100, Math.max(1, +e.target.value || 10)); save(); };
+    bindPresetEditor($('#presetedit'), S.settings, save);
     $('#reset').onclick = () => { if (confirm('Tout effacer et repartir de 100 $ ?')){ const st = S.settings; S = fresh(); S.settings = st; save(); refresh(); } };
   } else {
     v.innerHTML = `<div id="list"></div>`;
@@ -1994,7 +2012,7 @@ function newMission(){
   M = { profile, cong, tokens, seed: Math.floor(Math.random()*1e9),
     fees: Array.from({ length: 150 }, () => cong.median*Math.exp(gauss()*0.8)),
     sol: Math.round(solPx()), cash: CAPITAL,
-    set: { prio: Math.max(PRIO_MIN, +S.settings.prio || PRIO_MIN), slip: Math.min(100, Math.max(1, +S.settings.slip || 10)) },
+    set: { prio: Math.max(PRIO_MIN, +S.settings.prio || PRIO_MIN), slip: Math.min(100, Math.max(1, +S.settings.slip || 10)), presets: JSON.parse(JSON.stringify(S.settings.presets)), preset: S.settings.preset },
     view: 'list', open: -1, i: -1, phase: 'prep', pos: null, fails: 0, expired: 0, failFees: 0, plan: null, why: null,
     frozen: false, lpGone: false, busy: false,
     t0: Math.floor(Date.now()/60000)*60 - CANDLES*60 + TZ() };
@@ -2103,9 +2121,10 @@ function mRender(){
         <div class="field">Tolérance de slippage (%)</div>
         <input id="mslip" type="number" step="1" min="1" max="100" inputmode="decimal" value="${M.set.slip}">
         <div class="field">Frais de plateforme : 1 % par trade sur les memecoins</div>
-      </div></div></div>`;
+      </div><div id="mpresetedit">${presetEditor(M.set)}</div></div></div>`;
     $('#mprio').onchange = e => { M.set.prio = Math.max(PRIO_MIN, +e.target.value || 0); e.target.value = M.set.prio; mNet(); };
     $('#mslip').onchange = e => { M.set.slip = Math.min(100, Math.max(1, +e.target.value || 10)); e.target.value = M.set.slip; };
+    bindPresetEditor($('#mpresetedit'), M.set, () => {});
     $('#mlist').onclick = e => { const r = e.target.closest('[data-i]'); if (r) mOpen(+r.dataset.i); };
     mNet();
   } else if (M.view === 'tok'){
@@ -2135,6 +2154,7 @@ function mTokView(v){
         <input id="mamt" class="amount" type="number" inputmode="decimal" placeholder="0,00 $">
         <div class="chips"><button data-p=".1">10 %</button><button data-p=".25">25 %</button><button data-p=".5">50 %</button><button data-p="1">Max</button></div>
         <div class="mquote" id="mquote"></div>
+        <div id="mpresetbox"></div>
         <button class="btn btn-buy" id="mbuy">Acheter</button>
       </div>
       <div id="mposbox"></div>
@@ -2146,6 +2166,8 @@ function mTokView(v){
   v.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { $('#mamt').value = (Math.floor(M.cash*b.dataset.p*100)/100).toFixed(2); mQuoteUpd(); });
   $('#mamt').oninput = mQuoteUpd;
   $('#mbuy').onclick = mBuy;
+  const pb = $('#mpresetbox'), drawPresets = () => { pb.innerHTML = presetChips(M.set); pb.querySelectorAll('[data-ps]').forEach(b => b.onclick = () => { M.set.preset = +b.dataset.ps; drawPresets(); }); };
+  drawPresets();
   mChart('#mchart', false);
 }
 function mChart(sel, full){
@@ -2221,7 +2243,9 @@ async function mBuy(){
   const pFill = t.price*(1 + move), dx = A*(1 - f.pct) - f.net, qty = dx/pFill*t.R/(t.R + dx);
   M.cash -= A;
   M.pos = { idx, qty, cost: A, entry: A/qty, fill: pFill, sl: null, tp: null, out: 0, closed: false, set, slot };
-  toast('Acheté ' + fp(qty) + ' ' + t.name);
+  const lv = presetLevels(M.set, A/qty, t.price);
+  if (lv){ M.pos.sl = lv.sl; M.pos.tp = lv.tp; }
+  toast('Acheté ' + fp(qty) + ' ' + t.name + (lv ? (lv.note || ' · SL / TP posés') : ''));
   if (M.view === 'tok') { const a = $('#mamt'); if (a) a.value = ''; }
   mTick(); mLines();
 }
@@ -2680,6 +2704,7 @@ function openSheet(key){
       <input id="amt" class="amount" type="number" inputmode="decimal" placeholder="0,00 $">
       <div class="chips"><button data-p=".1">10 %</button><button data-p=".25">25 %</button><button data-p=".5">50 %</button><button data-p="1">Max</button></div>
       <div id="quote"></div>
+      <div id="presetbox"></div>
       <button class="btn btn-buy" id="bbuy">Acheter</button>
     </div>
     <div id="posbox"></div>
@@ -2696,6 +2721,8 @@ function openSheet(key){
   sh.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { $('#amt').value = (Math.floor(S.cash*b.dataset.p*100)/100).toFixed(2); updQuote(); });
   $('#amt').oninput = updQuote;
   $('#bbuy').onclick = () => buy(key, $('#amt').value);
+  const pb = $('#presetbox'), drawPresets = () => { pb.innerHTML = presetChips(S.settings); pb.querySelectorAll('[data-ps]').forEach(b => b.onclick = () => { S.settings.preset = +b.dataset.ps; save(); drawPresets(); }); };
+  drawPresets();
   buildPos();
   refreshSheet();
   $('#chartreset').onclick = resetChart;
@@ -2751,6 +2778,37 @@ function ampReal(key){
   return lo > 0 && hi > 0 ? (hi/lo - 1)*100 : null;
 }
 const ampRow = key => { const a = ampReal(key); return `<div class="kv"><span>Amplitude 1h (haut / bas)</span><span>${a == null ? '<b class="qm">?</b>' : nf2(a, 1) + ' %'}</span></div>`; };
+/* --- préréglages SL / TP --- */
+function presetChips(st){
+  return `<div class="field">SL / TP automatiques</div><div class="pchips">${[-1, 0, 1, 2].map(i => `<button data-ps="${i}" class="${st.preset === i ? 'on' : ''}">${i < 0 ? 'Aucun' : `${esc(st.presets[i].n)}<span>${st.presets[i].sl ? '-' + nf2(st.presets[i].sl, 0) : '–'} / ${st.presets[i].tp ? '+' + nf2(st.presets[i].tp, 0) : '–'} %</span>`}</button>`).join('')}</div>`;
+}
+function presetEditor(st){
+  return `<div class="card"><h3>Préréglages SL / TP</h3><div class="mut sm">En % de ton prix d'achat, frais compris. Choisis-en un dans la carte Acheter : le stop loss et le take profit sont posés dès l'achat. 0 = aucun.</div>
+    ${st.presets.map((p, i) => `<div class="prow"><input data-pi="${i}" data-pk="n" value="${esc(p.n)}" maxlength="10" aria-label="Nom"><label><span>Stop</span><input data-pi="${i}" data-pk="sl" type="number" inputmode="decimal" value="${p.sl}"><em>%</em></label><label><span>TP</span><input data-pi="${i}" data-pk="tp" type="number" inputmode="decimal" value="${p.tp}"><em>%</em></label></div>`).join('')}</div>`;
+}
+function bindPresetEditor(root, st, onSave){
+  if (!root) return;
+  root.querySelectorAll('[data-pk]').forEach(el => el.onchange = () => {
+    const p = st.presets[+el.dataset.pi], k = el.dataset.pk;
+    if (k === 'n') p.n = el.value.trim().slice(0, 10) || p.n;
+    else { const v = Math.max(0, Math.min(k === 'sl' ? 90 : 1000, +el.value || 0)); p[k] = v; el.value = v; }
+    onSave();
+  });
+}
+// niveaux de prix d'un préréglage ; un stop au-dessus du prix actuel (frais élevés) n'est pas posé
+function presetLevels(st, entry, price){
+  if (!(st.preset >= 0)) return null;
+  const p = st.presets[st.preset], sl = p.sl > 0 ? entry*(1 - p.sl/100) : null, tp = p.tp > 0 ? entry*(1 + p.tp/100) : null;
+  if (sl && sl >= price) return { sl: null, tp, note: ' · stop du préréglage non posé : il serait au-dessus du prix actuel à cause des frais' };
+  return { sl, tp };
+}
+function autoTrig(key){
+  const pos = S.pos[key], lv = pos && presetLevels(S.settings, pos.cost/pos.qty, priceOf(key));
+  if (!lv) return;
+  pos.sl = lv.sl; pos.tp = lv.tp;
+  const box = $('#posbox'); if (box) box.dataset.has = '';
+  if (lv.note) setTimeout(() => toast('SL / TP' + lv.note), 2700);
+}
 function refreshSheet(){
   if (!sheetKey) return;
   const {kind,id} = parse(sheetKey);
