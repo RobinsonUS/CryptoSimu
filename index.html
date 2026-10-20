@@ -11,7 +11,7 @@
 <style>
 :root{
   --bg:#17171b; --surface:#222228; --surface2:#2d2d34; --line:rgba(255,255,255,.06);
-  --txt:#f4f4f6; --mut:#8e8e9a; --acc:#ab9ff2; --acc-ink:#1d1a33;
+  --txt:#f4f4f6; --surface0:#1c1c21; --mut:#8e8e9a; --acc:#ab9ff2; --acc-ink:#1d1a33;
   --up:#2ebd85; --down:#f6465d; --r:16px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -113,26 +113,52 @@ nav svg{width:22px;height:22px}
 .credit{font-size:12px;color:var(--mut);text-align:center;margin:16px 0 4px}
 
 /* entraînement */
-.train{max-width:860px;margin:0 auto}
+.train{max-width:980px;margin:0 auto}
 @media (min-width:1100px){.train{margin:0}}
-.tabs.scroll{overflow-x:auto;scrollbar-width:none}
-.tabs.scroll::-webkit-scrollbar{display:none}
-.tabs.scroll button{flex:0 0 auto;padding:8px 14px}
-.tstats{display:flex;justify-content:space-between;gap:8px;font-size:13px;color:var(--mut);margin:0 4px 10px}
-.tstats b{color:var(--txt);font-weight:600}
-.qtag{display:inline-block;padding:4px 10px;border-radius:999px;background:var(--surface2);color:var(--acc);font-size:12px;font-weight:600;margin-bottom:14px}
-.qtext{font-size:17px;line-height:1.5;font-weight:500;margin-bottom:16px}
-.qtext .mut{font-size:14px;font-weight:400}
-.qlogo{width:96px;height:96px;border-radius:50%;display:block;margin:2px auto 18px;background:var(--surface2);object-fit:cover}
-.choices{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.choices button{padding:14px 10px;border-radius:12px;background:var(--surface2);font-weight:600;font-size:15px;line-height:1.3}
-.choices button.ok{background:rgba(46,189,133,.18);color:var(--up)}
-.choices button.ko{background:rgba(246,70,93,.15);color:var(--down)}
-.choices button:disabled{cursor:default}
-.qexp{margin-top:16px;font-size:14px;line-height:1.6;color:var(--mut)}
-.qexp b{color:var(--txt);font-weight:600}
-.qverdict{font-size:16px;font-weight:700;margin-bottom:6px}
-.qexp .btn{margin-top:14px}
+.trtop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:4px 2px 14px}
+.trtitle{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.trsub{font-size:13px;color:var(--mut);margin-top:3px;max-width:42ch}
+.streak{flex:none;display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;background:var(--surface);font-size:12px;color:var(--mut)}
+.streak svg{color:var(--acc)}
+.streak b{display:block;color:var(--txt);font-size:16px;line-height:1.1}
+.streak .sep{width:1px;align-self:stretch;background:var(--line)}
+.pills{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 0 14px;padding-bottom:2px}
+.pills::-webkit-scrollbar{display:none}
+.pills button{flex:none;padding:8px 14px;border-radius:999px;background:var(--surface);color:var(--mut);font-weight:600;font-size:14px}
+.pills button.on{background:var(--txt);color:var(--bg)}
+.ex{background:var(--surface);border-radius:20px;overflow:hidden}
+.exviz{background:var(--surface0);padding:14px 12px 8px;border-bottom:1px solid var(--line)}
+.exviz svg{display:block;width:100%;height:auto;max-height:260px}
+.exviz .logo{display:block;width:120px;height:120px;border-radius:50%;margin:18px auto;object-fit:cover;background:var(--surface2)}
+.exbody{padding:18px 18px 20px}
+.extag{font-size:12px;font-weight:600;color:var(--acc);margin-bottom:8px}
+.exq{font-size:17px;line-height:1.5;font-weight:500;text-wrap:pretty}
+.exq .mut{display:block;margin-top:6px;font-size:14px;font-weight:400}
+.exopts{display:grid;gap:8px;margin-top:16px}
+.opt{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:12px 14px;border-radius:14px;background:var(--surface2);border:1px solid transparent;font-weight:600;font-size:15px}
+.opt:not(:disabled):active{border-color:var(--acc)}
+@media (hover:hover){.opt:not(:disabled):hover{border-color:rgba(171,159,242,.5)}}
+.opt .key{flex:none;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;background:var(--bg);color:var(--mut)}
+.opt .lab{flex:1}
+.opt.ok{border-color:var(--up);background:rgba(46,189,133,.1)}
+.opt.ok .key{background:var(--up);color:var(--bg)}
+.opt.ko{border-color:var(--down);background:rgba(246,70,93,.1)}
+.opt.ko .key{background:var(--down);color:var(--bg)}
+.opt.dim{opacity:.45}
+.opt:disabled{cursor:default}
+.exfb{margin-top:18px}
+.verdict{display:flex;align-items:center;gap:8px;font-size:16px;font-weight:700}
+.steps{margin:12px 0;padding:12px 14px;border-radius:12px;background:var(--bg);font-size:14px;line-height:1.75}
+.steps b{font-weight:600}
+.tip{font-size:14px;line-height:1.55;color:var(--mut)}
+.tip b{color:var(--txt);font-weight:600}
+.exfb .btn{margin-top:16px}
+@media (min-width:900px){
+  .ex{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr)}
+  .exviz{border-bottom:0;border-right:1px solid var(--line);display:flex;align-items:center;padding:20px}
+  .exviz svg{max-height:none}
+  .exbody{padding:24px}
+}
 
 /* ----- mise en page : téléphone par défaut ----- */
 .brand{display:none}
@@ -206,15 +232,16 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-4';
+const APP_VERSION = '2026.10.20-5';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
 const SOL_BASE_FEE = 0.000005;
-// Cryptos de l'onglet Marché (paires USDT de Binance). Celles que Binance ne cote pas ou plus sont masquées automatiquement.
+// Cryptos de l'onglet Marché (paires USDT de Binance). Pas de memecoins ici (ils sont dans leur onglet), sauf DOGE et PEPE.
+// Celles que Binance ne cote pas ou plus sont masquées automatiquement.
 const MAJORS = ['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','TRX','TON','AVAX','LINK','DOT','SUI','LTC','BCH','NEAR','APT','UNI','XLM','ATOM',
   'ETC','FIL','ICP','HBAR','ARB','OP','INJ','AAVE','RENDER','FET','TAO','SEI','TIA','ALGO','VET','JUP','PYTH','WLD','ENA','ONDO',
-  'SHIB','PEPE','BONK','WIF','FLOKI','TRUMP','SAND','MANA','GALA','CRV'];
+  'PEPE','SAND','MANA','GALA','CRV'];
 const DS = 'https://api.dexscreener.com';
 let LOGO = {};
 try { const c = JSON.parse(localStorage.getItem('logos_v2')); if (c && Date.now() - c.t < 7*86400e3) LOGO = c.logos || {}; } catch(e){}
@@ -235,7 +262,7 @@ const KEY = 'centballes_v1';
 const BN = {}, DEX = {}, CH = {}, SEEN = {};
 let S = load() || fresh();
 delete S.settings.tf;
-if (!S.train) S.train = { n: 0, ok: 0, streak: 0, best: 0 };
+if (!S.train) S.train = { streak: 0, best: 0 };
 const DEFAULT_TF = '1h';
 let curTf = DEFAULT_TF;      // durée du graphique, propre à la fiche ouverte
 delete S.settings.plat;
@@ -292,7 +319,7 @@ async function j(url){
 function parse(key){ const i = key.indexOf(':'); return { kind: key.slice(0,i), id: key.slice(i+1) }; }
 
 /* ---------- sauvegarde ---------- */
-function fresh(){ return { cash: START, pos: {}, hist: [], start: Date.now(), settings: { prio: 0.001, slip: 10 }, train: { n: 0, ok: 0, streak: 0, best: 0 } }; }
+function fresh(){ return { cash: START, pos: {}, hist: [], start: Date.now(), settings: { prio: 0.001, slip: 10 }, train: { streak: 0, best: 0 } }; }
 function load(){
   try { const r = localStorage.getItem(KEY); if (!r) return null; const s = JSON.parse(r); for (const k in s.pos) delete s.pos[k].pending; return s; }
   catch(e){ return null; }
@@ -1267,8 +1294,9 @@ function renderList(){
 }
 
 /* ---------- entraînement ----------
-   Exercices à réponse exacte, générés au hasard : la bonne réponse est
-   calculée avec les mêmes formules que la simulation de trading. */
+   Exercices à réponse exacte, générés au hasard, calculés avec les mêmes
+   formules que la simulation. Chaque exercice a son schéma (SVG), qui se
+   complète une fois la réponse donnée. */
 const TRAIN_CATS = [['all','Tout'],['impact','Impact'],['slip','Slippage'],['be','Rentabilité'],['size','Taille de position'],['fees','Frais'],['rr','Risque / gain'],['logo','Logos']];
 let trainCat = 'all', curEx = null;
 const rnd = (a, b) => a + Math.random()*(b - a);
@@ -1276,74 +1304,170 @@ const pickOne = arr => arr[Math.floor(Math.random()*arr.length)];
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--){ const k = Math.floor(Math.random()*(i + 1)); [a[i], a[k]] = [a[k], a[i]]; } return a; };
 const solPx = () => (BN.SOL && BN.SOL.last) || 150;
 const pct1 = x => nf2(x, 1) + ' %';
-// Une bonne réponse + des pièges plausibles, tous différents une fois affichés
+const solTxt = x => String(x).replace('.', ',');
 function makeChoices(correct, traps, fmt){
   const good = fmt(correct), out = [good], seen = new Set(out);
   for (const w of traps){ if (!(w > 0) || !isFinite(w)) continue; const t = fmt(w); if (!seen.has(t)){ seen.add(t); out.push(t); } if (out.length === 4) break; }
   for (let k = 1; out.length < 4 && k < 20; k++){ const t = fmt(correct * (k % 2 ? 1 + 0.4*k : 1/(1 + 0.4*k))); if (!seen.has(t)){ seen.add(t); out.push(t); } }
   return { choices: shuffle(out), answer: good };
 }
+
+/* --- petit kit de dessin --- */
+const VW = 340, VH = 190, X0 = 14, X1 = 262, Y0 = 18, Y1 = 170;
+const svg = inner => `<svg viewBox="0 0 ${VW} ${VH}" aria-hidden="true" style="font-family:inherit">${inner}</svg>`;
+const txt = (x, y, t, o = {}) => `<text x="${x}" y="${y}" text-anchor="${o.a || 'start'}" style="fill:${o.c || 'var(--mut)'};font-size:${o.s || 11}px;font-weight:${o.w || 500}">${t}</text>`;
+const hline = (y, c, dash, x0 = X0, x1 = X1) => `<line x1="${x0}" x2="${x1}" y1="${y}" y2="${y}" style="stroke:${c};stroke-width:1.2${dash ? ';stroke-dasharray:4 4' : ''}"/>`;
+const box = (x, y, w, h, c, r = 4) => `<rect x="${x}" y="${y}" width="${Math.max(0, w)}" height="${Math.max(0, h)}" rx="${r}" style="fill:${c}"/>`;
+const tag = (x, y, t, bg, fg) => { const w = t.length*6.4 + 12; return box(x, y - 11, w, 17, bg, 4) + txt(x + 6, y + 1, t, { c: fg, s: 11, w: 600 }); };
+const GREEN = 'var(--up)', RED = 'var(--down)', ACC = 'var(--acc)', TXT = 'var(--txt)', MUT = 'var(--mut)';
+const GREEN_BG = 'rgba(46,189,133,.16)', RED_BG = 'rgba(246,70,93,.16)';
+// Trajet de prix pseudo-aléatoire (stable pour un même exercice)
+function walk(n, from, to, wobble, seed){
+  let r = seed; const rand = () => (r = (r*9301 + 49297) % 233280) / 233280;
+  const out = [];
+  for (let i = 0; i < n; i++){ const t = i/(n - 1); out.push(from + (to - from)*t + (rand() - 0.5)*wobble*Math.sin(Math.PI*t)); }
+  out[n - 1] = to; return out;
+}
+const pathOf = (vals, xa, xb, yf) => vals.map((v, i) => `${i ? 'L' : 'M'}${(xa + (xb - xa)*i/(vals.length - 1)).toFixed(1)},${yf(v).toFixed(1)}`).join('');
+const line = (d, c, w = 2) => `<path d="${d}" style="fill:none;stroke:${c};stroke-width:${w};stroke-linejoin:round;stroke-linecap:round"/>`;
+const dot = (x, y, c, r = 4.5) => `<circle cx="${x}" cy="${y}" r="${r}" style="fill:${c};stroke:var(--surface0);stroke-width:2"/>`;
+
 const EX = {
   impact(){
     const L = pickOne([4000, 8000, 15000, 30000, 60000, 120000]), R = L/2;
-    const A = Math.round(pickOne([0.005, 0.02, 0.05, 0.1, 0.2]) * R / 5) * 5 || 10;
+    const A = Math.max(10, Math.round(pickOne([0.005, 0.02, 0.05, 0.1, 0.2]) * R / 5) * 5);
     const loss = A/(R + A)*100;
     return { tag: 'Impact sur le prix', ...makeChoices(loss, [A/L*100, A/R*100*2, loss/2], pct1),
-      q: `Un pool a <b>${big(L)}</b> de liquidité au total (la moitié de chaque côté). Tu achètes pour <b>${money(A)}</b>.<br><span class="mut">Quelle part des tokens perds-tu à cause de l'impact sur le prix ? Frais ignorés.</span>`,
-      exp: `Dans un pool à produit constant, chaque côté vaut ici ${big(R)}. Tu reçois R / (R + A) de ce que tu aurais eu sans impact, donc tu perds A / (R + A) = ${money(A)} / ${big(R + A)} = <b>${pct1(loss)}</b>. Le piège : diviser par la liquidité totale au lieu d'un seul côté.` };
+      q: `Un pool contient <b>${big(L)}</b> au total, moitié SOL, moitié token. Tu achètes pour <b>${money(A)}</b>.<span class="mut">Quelle part des tokens perds-tu à cause de l'impact ? Frais ignorés.</span>`,
+      steps: [`Côté SOL du pool : R = ${big(L)} ÷ 2 = <b>${big(R)}</b>`, `Tu reçois R ÷ (R + A) = ${big(R)} ÷ ${big(R + A)} des tokens prévus`, `Perte = A ÷ (R + A) = <b>${pct1(loss)}</b>`],
+      tip: `Le piège : diviser par la liquidité totale. Seul le côté où tu ajoutes ton argent compte.`,
+      viz(done){
+        const W = X1 + 60 - X0, sc = W / R, wa = Math.max(3, A*sc);
+        let g = txt(X0, 34, 'Côté SOL du pool', { c: TXT, w: 600 }) + txt(X0 + W, 34, big(R), { a: 'end' })
+          + box(X0, 44, W, 26, 'var(--surface2)', 6)
+          + txt(X0, 100, 'Ton achat', { c: TXT, w: 600 }) + txt(X0 + W, 100, money(A), { a: 'end' })
+          + box(X0, 110, wa, 26, ACC, 6);
+        if (done) g += txt(X0, 162, `${pct1(A/R*100)} du pool : ${pct1(loss)} de tokens perdus`, { c: TXT, s: 12, w: 600 });
+        else g += txt(X0, 162, 'Même échelle pour les deux barres.', { s: 12 });
+        return svg(g);
+      } };
   },
   slip(){
     const buy = Math.random() < 0.5, Y = pickOne([1, 2, 3, 5, 10, 15, 20]);
     let X; do { X = Math.round(rnd(0.5, Y * 2.2) * 10)/10; } while (Math.abs((buy ? X/(100 + X)*100 : X) - Y) < 0.4);
-    const lossPct = buy ? X/(100 + X)*100 : X, passes = lossPct <= Y;
-    const good = passes ? 'Elle passe' : 'Elle échoue';
+    const lossPct = buy ? X/(100 + X)*100 : X, passes = lossPct <= Y, good = passes ? 'Elle passe' : 'Elle échoue';
+    const seed = Math.floor(Math.random()*9999);
     return { tag: 'Slippage', choices: ['Elle passe', 'Elle échoue'], answer: good,
-      q: `Tu ${buy ? 'achètes' : 'vends'} un memecoin avec une tolérance de slippage de <b>${Y} %</b>. Pendant les secondes de confirmation, le prix ${buy ? 'monte' : 'baisse'} de <b>${nf2(X, 1)} %</b>.<br><span class="mut">Ta transaction passe-t-elle ?</span>`,
-      exp: buy
-        ? `Si le prix monte de ${nf2(X, 1)} %, tu reçois 1 / ${nf2(1 + X/100, 3)} des tokens prévus, soit <b>${pct1(lossPct)}</b> de moins. ${passes ? 'C\'est sous' : 'C\'est au-dessus de'} ta tolérance de ${Y} % : <b>${good.toLowerCase()}</b>. ${passes ? '' : 'Les frais réseau sont quand même payés.'}`
-        : `Si le prix baisse de ${nf2(X, 1)} %, tu reçois ${nf2(X, 1)} % de dollars en moins. ${passes ? 'C\'est sous' : 'C\'est au-dessus de'} ta tolérance de ${Y} % : <b>${good.toLowerCase()}</b>. ${passes ? '' : 'Les frais réseau sont quand même payés.'}` };
+      q: `Tu ${buy ? 'achètes' : 'vends'} avec une tolérance de slippage de <b>${Y} %</b>. Pendant la confirmation, le prix ${buy ? 'monte' : 'baisse'} de <b>${nf2(X, 1)} %</b>.<span class="mut">Ta transaction passe-t-elle ?</span>`,
+      steps: buy
+        ? [`Prix ×${nf2(1 + X/100, 3)} : tu reçois 1 ÷ ${nf2(1 + X/100, 3)} des tokens prévus`, `Soit <b>${pct1(lossPct)}</b> de tokens en moins`, `${pct1(lossPct)} ${passes ? '≤' : '>'} ${Y} % : <b>${good.toLowerCase()}</b>`]
+        : [`Prix -${nf2(X, 1)} % : tu reçois ${nf2(X, 1)} % de dollars en moins`, `${pct1(lossPct)} ${passes ? '≤' : '>'} ${Y} % : <b>${good.toLowerCase()}</b>`],
+      tip: passes ? `La tolérance compare ce que tu reçois à ce qui était prévu au moment du clic.` : `Une transaction qui échoue coûte quand même les frais réseau. Sur un token qui bouge vite, une tolérance trop basse fait rater des trades.`,
+      viz(done){
+        const p1 = buy ? 1 + X/100 : 1 - X/100, lim = buy ? 1/(1 - Y/100) : 1 - Y/100;
+        const ext = Math.max(Math.abs(p1 - 1), Math.abs(lim - 1)) * 1.3, lo = 1 - ext, hi = 1 + ext;
+        const yf = v => Y0 + (hi - v)/(hi - lo)*(Y1 - 20 - Y0), xc = 110;
+        const pre = walk(12, 1 + (buy ? -1 : 1)*ext*0.25, 1, ext*0.5, seed), post = walk(14, 1, p1, ext*0.45, seed + 3);
+        let g = '';
+        if (done) g += box(xc, Math.min(yf(1), yf(lim)), X1 - xc, Math.abs(yf(lim) - yf(1)), GREEN_BG, 0) + hline(yf(lim), GREEN, true, xc, X1) + txt(X1 + 6, yf(lim) + 4, 'limite', { c: GREEN });
+        g += hline(yf(1), MUT, true) + txt(X1 + 6, yf(1) + 4, 'au clic');
+        g += line(pathOf(pre, X0, xc, yf), MUT, 1.6) + line(pathOf(post, xc, X1, yf), TXT, 2);
+        g += dot(xc, yf(1), ACC) + dot(X1, yf(p1), done ? (passes ? GREEN : RED) : TXT);
+        g += tag(X1 - 52, yf(p1) + (buy ? -12 : 20), (buy ? '+' : '-') + nf2(X, 1) + ' %', 'var(--surface2)', TXT);
+        g += txt(xc, Y1 - 2, 'clic', { a: 'middle' }) + txt(X1, Y1 - 2, 'confirmation', { a: 'middle' });
+        return svg(g);
+      } };
   },
   be(){
     const A = pickOne([20, 30, 50, 80, 100, 150]), pump = Math.random() < 0.5, f = (pump ? 0.01 : 0.0025) + PLAT_FEE;
-    const P = pickOne([0.0005, 0.001, 0.002, 0.005]), S = Math.round(solPx()), N = (P + SOL_BASE_FEE) * S;
-    const kept = A*(1 - f) - N, m = (A + N)/(kept*(1 - f)), rise = (m - 1)*100;
-    return { tag: 'Rentabilité', ...makeChoices(rise, [f*2*100, f*100, ((A/(A*(1 - f)*(1 - f))) - 1)*100], pct1),
-      q: `Tu achètes pour <b>${money(A)}</b> sur ${pump ? 'pump.fun (frais de pool 1 %)' : 'un pool PumpSwap (frais de pool 0,25 %)'}, avec 1 % de frais de plateforme et <b>${String(P).replace('.', ',')} SOL</b> de priority fee (SOL à ${S} $), à l'achat comme à la revente.<br><span class="mut">De combien le prix doit-il monter pour que tu récupères exactement ta mise ? Impact ignoré.</span>`,
-      exp: `Frais réseau par transaction : ${money(N)}. Après l'achat, il te reste l'équivalent de ${money(kept)}. À la revente, tu perds encore ${pct1(f*100)} et ${money(N)}. Il faut donc que le prix soit multiplié par ${nf2(m, 4)}, soit une hausse de <b>${pct1(rise)}</b>. Le piège : oublier les frais réseau, qui pèsent lourd sur les petits montants.` };
+    const P = pickOne([0.0005, 0.001, 0.002, 0.005]), sp = Math.round(solPx()), N = (P + SOL_BASE_FEE) * sp;
+    const kept = A*(1 - f) - N, m = (A + N)/(kept*(1 - f)), rise = (m - 1)*100, seed = Math.floor(Math.random()*9999);
+    return { tag: 'Rentabilité', ...makeChoices(rise, [f*2*100, f*100, ((1/((1 - f)*(1 - f))) - 1)*100], pct1),
+      q: `Tu achètes pour <b>${money(A)}</b> sur ${pump ? 'pump.fun (pool 1 %)' : 'PumpSwap (pool 0,25 %)'}, plateforme 1 %, priority fee <b>${solTxt(P)} SOL</b> (SOL à ${sp} $), à l'achat comme à la revente.<span class="mut">De combien le prix doit-il monter pour récupérer exactement ta mise ? Impact ignoré.</span>`,
+      steps: [`Frais réseau par transaction : ${money(N)}`, `Après l'achat, il te reste ${money(A)} × ${nf2(1 - f, 4)} - ${money(N)} = ${money(kept)}`, `À la revente : × ${nf2(1 - f, 4)} puis - ${money(N)}`, `Prix à multiplier par ${nf2(m, 4)} : <b>+${pct1(rise)}</b>`],
+      tip: N > A*0.01 ? `Ici la priority fee pèse lourd : sur un petit montant, elle peut coûter plus que tous les autres frais.` : `Avant même de bouger, un trade part toujours en perte : c'est le prix des frais.`,
+      viz(done){
+        const yE = 128, yT = 62, yf = v => yE - (v - 1)*(yE - yT)/0.5;
+        const pre = walk(10, 0.85, 1, 0.12, seed), post = walk(16, 1, 1.62, 0.25, seed + 5), xe = 96;
+        let g = box(xe, yT, X1 - xe, yE - yT, done ? GREEN_BG : 'rgba(255,255,255,.03)', 0);
+        g += hline(yE, TXT, false) + txt(X1 + 6, yE + 4, 'achat', { c: TXT });
+        g += hline(yT, done ? GREEN : ACC, true) + txt(X1 + 6, yT + 4, done ? '+' + pct1(rise) : '?', { c: done ? GREEN : ACC, w: 700, s: 12 });
+        g += txt(X1 + 6, yT + 18, 'à zéro', { s: 10 });
+        g += line(pathOf(pre, X0, xe, yf), MUT, 1.6) + line(pathOf(post, xe, X1, yf), TXT, 2) + dot(xe, yE, ACC);
+        g += txt(xe + 8, yE + 22, `frais : ${pct1(f*100)} × 2 + réseau × 2`, { s: 11 });
+        return svg(g);
+      } };
   },
   size(){
-    const L = pickOne([2, 3, 5, 8, 10, 15, 20]), sl = pickOne([5, 10, 15, 20, 25, 30, 40, 50]), size = L/(sl/100);
+    const L = pickOne([2, 3, 5, 8, 10, 15, 20]), sl = pickOne([5, 10, 15, 20, 25, 30, 40, 50]), size = L/(sl/100), seed = Math.floor(Math.random()*9999);
     return { tag: 'Taille de position', ...makeChoices(size, [L*sl/100, size/2, size*2, L*sl], money),
-      q: `Tu acceptes de perdre au maximum <b>${money(L)}</b> sur ce trade. Ton stop loss est placé à <b>-${sl} %</b> sous ton prix d'achat.<br><span class="mut">Quelle mise maximale ? Frais et slippage ignorés.</span>`,
-      exp: `Si le stop loss se déclenche, tu perds ${sl} % de ta mise. Mise × ${nf2(sl/100, 2)} = ${money(L)}, donc mise = ${money(L)} / ${nf2(sl/100, 2)} = <b>${money(size)}</b>. Plus le stop est serré, plus tu peux miser gros pour le même risque.` };
+      q: `Tu acceptes de perdre au maximum <b>${money(L)}</b>. Ton stop loss est à <b>-${sl} %</b> sous ton prix d'achat.<span class="mut">Quelle mise maximale ? Frais ignorés.</span>`,
+      steps: [`Si le stop se déclenche, tu perds ${sl} % de ta mise`, `Mise × ${nf2(sl/100, 2)} = ${money(L)}`, `Mise = ${money(L)} ÷ ${nf2(sl/100, 2)} = <b>${money(size)}</b>`],
+      tip: `Plus ton stop est serré, plus tu peux miser gros pour un même risque. On décide d'abord la perte acceptable, ensuite la mise.`,
+      viz(done){
+        const yE = 70, yS = 70 + 30 + sl*1.4, xe = 100, pre = walk(10, 0.4, 0, 18, seed);
+        let g = box(xe, yE, X1 - xe, yS - yE, RED_BG, 0);
+        g += hline(yE, TXT, false) + txt(X1 + 6, yE + 4, 'achat', { c: TXT });
+        g += hline(yS, RED, true) + txt(X1 + 6, yS + 4, `-${sl} %`, { c: RED, w: 700, s: 12 }) + txt(X1 + 6, yS + 18, 'stop loss', { s: 10 });
+        g += line(pre.map((v, i) => `${i ? 'L' : 'M'}${(X0 + (xe - X0)*i/(pre.length - 1)).toFixed(1)},${(yE - 26 + v).toFixed(1)}`).join('') + `L${xe},${yE}`, MUT, 1.6) + dot(xe, yE, ACC);
+        g += txt((xe + X1)/2, (yE + yS)/2 + 4, `perte max ${money(L)}`, { a: 'middle', c: RED, w: 600, s: 12 });
+        g += tag(xe + 6, yE - 12, done ? `mise ${money(size)}` : 'mise ?', 'var(--surface2)', done ? TXT : ACC);
+        return svg(g);
+      } };
   },
   fees(){
     const A = pickOne([10, 25, 50, 100, 200]), pump = Math.random() < 0.5, pool = pump ? 0.01 : 0.0025;
-    const P = pickOne([0.0005, 0.001, 0.002, 0.005, 0.01]), S = Math.round(solPx()), N = (P + SOL_BASE_FEE)*S, tot = A*(pool + PLAT_FEE) + N;
+    const P = pickOne([0.0005, 0.001, 0.002, 0.005, 0.01]), sp = Math.round(solPx()), N = (P + SOL_BASE_FEE)*sp, tot = A*(pool + PLAT_FEE) + N;
     return { tag: 'Frais', ...makeChoices(tot, [A*(pool + PLAT_FEE), A*pool + N, tot + N, A*PLAT_FEE + N], money),
-      q: `Achat de <b>${money(A)}</b> sur ${pump ? 'pump.fun (frais de pool 1 %)' : 'PumpSwap (frais de pool 0,25 %)'}, plateforme à 1 %, priority fee de <b>${String(P).replace('.', ',')} SOL</b>. Le SOL vaut ${S} $.<br><span class="mut">Combien paies-tu de frais au total sur cet achat ?</span>`,
-      exp: `Pool : ${money(A*pool)}. Plateforme : ${money(A*PLAT_FEE)}. Réseau : (${String(P).replace('.', ',')} + 0,000005) SOL × ${S} $ = ${money(N)}. Total : <b>${money(tot)}</b>, soit ${pct1(tot/A*100)} de ta mise. ${N > A*0.02 ? 'Ici la priority fee coûte plus que les autres frais : sur un petit montant, elle mange une grosse part.' : ''}` };
+      q: `Achat de <b>${money(A)}</b> sur ${pump ? 'pump.fun (pool 1 %)' : 'PumpSwap (pool 0,25 %)'}, plateforme 1 %, priority fee <b>${solTxt(P)} SOL</b>, SOL à ${sp} $.<span class="mut">Combien paies-tu de frais au total sur cet achat ?</span>`,
+      steps: [`Pool : ${money(A)} × ${nf2(pool*100, 2)} % = ${money(A*pool)}`, `Plateforme : ${money(A)} × 1 % = ${money(A*PLAT_FEE)}`, `Réseau : (${solTxt(P)} + 0,000005) SOL × ${sp} $ = ${money(N)}`, `Total : <b>${money(tot)}</b>, soit ${pct1(tot/A*100)} de la mise`],
+      tip: N > A*(pool + PLAT_FEE) ? `La priority fee coûte ici plus que le reste. Elle est fixe : sur un petit achat, elle pèse lourd.` : `Les frais en pourcentage grossissent avec la mise, la priority fee reste fixe.`,
+      viz(done){
+        const parts = [['Pool', A*pool, ACC], ['Plateforme', A*PLAT_FEE, 'var(--mut)'], ['Réseau', N, TXT]], W = X1 + 60 - X0;
+        let g = txt(X0, 32, `Mise : ${money(A)}`, { c: TXT, w: 600 }) + box(X0, 42, W, 14, 'var(--surface2)', 4) + (done ? box(X0, 42, Math.max(3, W*tot/A), 14, RED, 4) : '');
+        g += txt(X0, 80, done ? `Frais : ${money(tot)}, ${pct1(tot/A*100)} de la mise` : 'Répartition des frais :', { s: 12, c: done ? TXT : MUT, w: done ? 600 : 500 });
+        let x = X0; const sum = parts.reduce((t, q) => t + q[1], 0);
+        parts.forEach(([n, v, c], i) => {
+          const w = Math.max(4, W*v/sum - 4);
+          g += box(x, 92, w, 30, c, 6);
+          g += txt(X0 + i*(W/3), 146, n, { c: TXT, w: 600 }) + box(X0 + i*(W/3), 152, 10, 4, c, 2);
+          if (done) g += txt(X0 + i*(W/3), 172, money(v), { s: 12 });
+          x += w + 4;
+        });
+        return svg(g);
+      } };
   },
   rr(){
-    const sl = pickOne([5, 10, 15, 20, 25]), tp = sl * pickOne([1, 1.5, 2, 3, 4]), R = tp/sl;
-    if (Math.random() < 0.5){
-      const fmt = x => '1 : ' + nf2(x, 1);
-      return { tag: 'Risque / gain', ...makeChoices(R, [sl/tp, R + 1, (tp + sl)/sl], fmt),
-        q: `Stop loss à <b>-${sl} %</b>, take profit à <b>+${nf2(tp, 1)} %</b>.<br><span class="mut">Quel est le ratio risque / gain ?</span>`,
-        exp: `Tu risques ${sl} % pour viser ${nf2(tp, 1)} %. Le ratio vaut ${nf2(tp, 1)} / ${sl} = <b>1 : ${nf2(R, 1)}</b> : chaque dollar risqué peut en rapporter ${nf2(R, 1)}.` };
-    }
-    const wr = 100/(1 + R);
-    return { tag: 'Risque / gain', ...makeChoices(wr, [100*R/(1 + R), 50, 100/R], pct1),
-      q: `Tu trades toujours avec un stop loss à <b>-${sl} %</b> et un take profit à <b>+${nf2(tp, 1)} %</b>.<br><span class="mut">Quel pourcentage de trades gagnants te faut-il au minimum pour ne pas perdre d'argent ? Frais ignorés.</span>`,
-      exp: `Avec un ratio de 1 : ${nf2(R, 1)}, un gain compense ${nf2(R, 1)} pertes. Équilibre quand gains × ${nf2(R, 1)} = pertes, soit un taux de réussite de 1 / (1 + ${nf2(R, 1)}) = <b>${pct1(wr)}</b>. Plus le ratio est bon, moins tu as besoin d'avoir raison souvent.` };
+    const sl = pickOne([5, 10, 15, 20, 25]), tp = sl * pickOne([1, 1.5, 2, 3, 4]), R = tp/sl, seed = Math.floor(Math.random()*9999);
+    const win = Math.random() < 0.5, wr = 100/(1 + R), fmt = x => '1 : ' + nf2(x, 1);
+    const base = win
+      ? { ...makeChoices(wr, [100*R/(1 + R), 50, 100/R], pct1),
+          q: `Tu trades toujours avec un stop loss à <b>-${sl} %</b> et un take profit à <b>+${nf2(tp, 1)} %</b>.<span class="mut">Quel taux de trades gagnants te faut-il au minimum pour ne pas perdre d'argent ? Frais ignorés.</span>`,
+          steps: [`Ratio : ${nf2(tp, 1)} ÷ ${sl} = ${nf2(R, 1)}`, `Équilibre : gains × ${nf2(R, 1)} = pertes`, `Taux minimum = 1 ÷ (1 + ${nf2(R, 1)}) = <b>${pct1(wr)}</b>`],
+          tip: `Avec un bon ratio, tu peux avoir tort plus souvent que raison et rester gagnant.` }
+      : { ...makeChoices(R, [sl/tp, R + 1, (tp + sl)/sl], fmt),
+          q: `Stop loss à <b>-${sl} %</b>, take profit à <b>+${nf2(tp, 1)} %</b>.<span class="mut">Quel est le ratio risque / gain ?</span>`,
+          steps: [`Risque : ${sl} %, gain visé : ${nf2(tp, 1)} %`, `Ratio = ${nf2(tp, 1)} ÷ ${sl} = <b>1 : ${nf2(R, 1)}</b>`],
+          tip: `Chaque dollar risqué peut en rapporter ${nf2(R, 1)}. En dessous de 1 : 1, il faut gagner plus d'un trade sur deux.` };
+    return { tag: 'Risque / gain', ...base,
+      viz(done){
+        const yE = 98, k = 66/Math.max(tp, sl*1.2), yT = yE - tp*k, yS = yE + sl*k, xe = 104, pre = walk(10, 22, 0, 16, seed);
+        let g = box(xe, yT, X1 - xe, yE - yT, GREEN_BG, 0) + box(xe, yE, X1 - xe, yS - yE, RED_BG, 0);
+        g += hline(yT, GREEN, true, xe) + txt(X1 + 6, yT + 4, `+${nf2(tp, 1)} %`, { c: GREEN, w: 700, s: 12 }) + txt(X1 + 6, yT + 18, 'take profit', { s: 10 });
+        g += hline(yE, TXT, false, xe) + txt(X1 + 6, yE + 4, 'achat', { c: TXT });
+        g += hline(yS, RED, true, xe) + txt(X1 + 6, yS + 4, `-${sl} %`, { c: RED, w: 700, s: 12 }) + txt(X1 + 6, yS + 18, 'stop loss', { s: 10 });
+        g += line(pre.map((v, i) => `${i ? 'L' : 'M'}${(X0 + (xe - X0)*i/(pre.length - 1)).toFixed(1)},${(yE + v).toFixed(1)}`).join(''), MUT, 1.6) + dot(xe, yE, ACC);
+        if (done) g += txt((xe + X1)/2, (yT + yE)/2 + 5, win ? `gagner ${pct1(wr)} du temps suffit` : `ratio 1 : ${nf2(R, 1)}`, { a: 'middle', c: TXT, w: 700, s: 13 });
+        return svg(g);
+      } };
   },
   logo(){
     const pool = MAJORS.filter(m => LOGO[m] && BN[m]);
     if (pool.length < 4) return null;
     const good = pickOne(pool), others = shuffle(pool.filter(m => m !== good)).slice(0, 3);
     return { tag: 'Logos', choices: shuffle([good, ...others]), answer: good,
-      q: `<img class="qlogo" src="${esc(LOGO[good])}" alt=""><span class="mut">De quelle crypto s'agit-il ?</span>`,
-      exp: `C'est <b>${good}</b>.` };
+      q: `De quelle crypto s'agit-il ?`, steps: null, tip: `C'est <b>${good}</b>.`,
+      viz(){ return `<img class="logo" src="${esc(LOGO[good])}" alt="">`; } };
   }
 };
 function nextEx(){
@@ -1351,34 +1475,44 @@ function nextEx(){
   for (let i = 0; i < 10; i++){ const ex = EX[pickOne(cats)](); if (ex){ curEx = ex; return; } }
   curEx = null;
 }
+const FLAME = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.6.7-2.8 1.5-3.7.2 1.4 1 2.2 2 2.2 0-2.5-1-4.5.5-7z"/><path d="M8 20h8"/></svg>`;
 function trainStats(){
-  const t = S.train, el = $('#tstats'); if (!el) return;
-  el.innerHTML = `<span>Réussite : <b>${t.ok} / ${t.n}</b>${t.n ? ' (' + Math.round(t.ok/t.n*100) + ' %)' : ''}</span><span>Série : <b>${t.streak}</b> · Record : <b>${t.best}</b></span>`;
+  const el = $('#streak'); if (!el) return;
+  el.innerHTML = `${FLAME}<div><b>${S.train.streak}</b>série</div><span class="sep"></span><div><b>${S.train.best}</b>record</div>`;
 }
-function showEx(){
-  const box = $('#quiz'); if (!box) return;
-  if (!curEx){ box.innerHTML = `<div class="empty">Les logos se chargent, essaie une autre catégorie en attendant.</div>`; return; }
-  box.innerHTML = `<div class="qtag">${curEx.tag}</div><div class="qtext">${curEx.q}</div>
-    <div class="choices">${curEx.choices.map(c => `<button>${esc(c)}</button>`).join('')}</div><div class="qexp" id="qexp"></div>`;
-  box.querySelectorAll('.choices button').forEach(b => b.onclick = () => answerEx(b));
+const ICON_OK = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
+const ICON_KO = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
+function showEx(done = false, picked = null){
+  const box = $('#ex'); if (!box) return;
+  if (!curEx){ box.innerHTML = `<div class="exbody"><div class="empty">Les logos se chargent. Choisis une autre catégorie en attendant.</div></div>`; return; }
+  const ok = picked === curEx.answer;
+  box.innerHTML = `<div class="exviz">${curEx.viz(done)}</div>
+    <div class="exbody">
+      <div class="extag">${curEx.tag}</div>
+      <div class="exq">${curEx.q}</div>
+      <div class="exopts">${curEx.choices.map((c, i) => {
+        const st = !done ? '' : c === curEx.answer ? 'ok' : c === picked ? 'ko' : 'dim';
+        return `<button class="opt ${st}" ${done ? 'disabled' : ''} data-v="${esc(c)}"><span class="key">${'ABCD'[i]}</span><span class="lab">${esc(c)}</span></button>`;
+      }).join('')}</div>
+      ${done ? `<div class="exfb">
+        <div class="verdict ${ok ? 'up' : 'down'}">${ok ? ICON_OK + 'Bonne réponse' : ICON_KO + 'Raté, la bonne réponse est ' + esc(curEx.answer)}</div>
+        ${curEx.steps ? `<div class="steps">${curEx.steps.join('<br>')}</div>` : ''}
+        <div class="tip">${curEx.tip}</div>
+        <button class="btn btn-buy" id="exnext">Exercice suivant</button></div>` : ''}
+    </div>`;
+  if (!done) box.querySelectorAll('.opt').forEach(b => b.onclick = () => answerEx(b.dataset.v));
+  else $('#exnext').onclick = () => { nextEx(); showEx(); $('#ex').scrollIntoView({ block: 'nearest' }); };
 }
-function answerEx(btn){
-  const ok = btn.textContent === curEx.answer, t = S.train;
-  $('#quiz').querySelectorAll('.choices button').forEach(b => {
-    b.disabled = true;
-    if (b.textContent === curEx.answer) b.classList.add('ok'); else if (b === btn) b.classList.add('ko');
-  });
-  t.n++; if (ok){ t.ok++; t.streak++; t.best = Math.max(t.best, t.streak); } else t.streak = 0;
-  save(); trainStats();
-  $('#qexp').innerHTML = `<div class="qverdict ${ok ? 'up' : 'down'}">${ok ? 'Bonne réponse' : 'Raté'}</div>${curEx.exp}
-    <button class="btn btn-buy" id="qnext">Exercice suivant</button>`;
-  $('#qnext').onclick = () => { nextEx(); showEx(); };
+function answerEx(v){
+  const t = S.train;
+  if (v === curEx.answer){ t.streak++; t.best = Math.max(t.best, t.streak); } else t.streak = 0;
+  save(); trainStats(); showEx(true, v);
 }
 function renderTrain(v){
   v.innerHTML = `<div class="train">
-    <div class="tabs scroll">${TRAIN_CATS.map(([k, l]) => `<button data-c="${k}" class="${k === trainCat ? 'on' : ''}">${l}</button>`).join('')}</div>
-    <div class="tstats" id="tstats"></div>
-    <div class="card" id="quiz"></div></div>`;
+    <div class="trtop"><div><div class="trtitle">Entraînement</div><div class="trsub">Des situations courtes, calculées avec les règles exactes de la simulation.</div></div><div class="streak" id="streak"></div></div>
+    <div class="pills">${TRAIN_CATS.map(([k, l]) => `<button data-c="${k}" class="${k === trainCat ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <article class="ex" id="ex"></article></div>`;
   v.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
     trainCat = b.dataset.c;
     v.querySelectorAll('[data-c]').forEach(x => x.classList.toggle('on', x === b));
