@@ -347,7 +347,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-12';
+const APP_VERSION = '2026.10.20-13';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -2296,7 +2296,19 @@ function gradeMission(){
   items.push(['Respect de la perte maximale', ok ? 25 : p.risk <= P.maxLoss*1.3 ? 12 : 0, 25,
     pl.slPct > 0 ? `Avec ton stop, perte possible d'environ ${money(p.risk)} pour ${money(P.maxLoss)} autorisés. ${ok ? 'Respecté.' : 'Il fallait acheter moins ou rapprocher le stop.'}` : `Pas de stop loss au lancement : toute la mise (${money(p.risk)}) était en jeu. ${ok ? 'Ça passe ici car le montant est petit.' : 'Bien au-delà des ' + money(P.maxLoss) + ' autorisés.'}`]);
   // 3. taille face à la liquidité
-  items.push(['Taille face à la liquidité', p.imp <= 0.01 ? 10 : p.imp <= 0.03 ? 6 : p.imp <= 0.06 ? 3 : 0, 10, `Impact de ${nf2(p.imp*100, 2)} % à l'achat, autant à la revente. ${p.imp <= 0.01 ? 'Négligeable.' : 'Sur un petit pool, acheter moins réduit cette perte.'}`]);
+  // 3. taille de la position : assez grosse pour viser l'objectif, sans que les frais mangent le gain
+  const f3 = mFees(t, pl.prio), A3 = pl.A;
+  const costs = 2*(A3*f3.pct + f3.net) + 2*A3*p.imp;
+  const gainTp = pl.tpPct > 0 ? A3*pl.tpPct/100 - (A3*(1 + pl.tpPct/100)*f3.pct + f3.net + A3*p.imp) : null;
+  let szPts, szMsg;
+  if (gainTp == null){ szPts = 2; szMsg = `Sans take profit, impossible de vérifier que ${money(A3)} suffisent à viser +${money(P.goal)}.`; }
+  else if (gainTp <= 0){ szPts = 0; szMsg = `Même au take profit, les frais aller-retour (${money(costs)}) avalent tout le gain : position trop petite pour ce token.`; }
+  else if (gainTp < P.goal*0.6){ szPts = 2; szMsg = `Au take profit tu gagnais environ ${money(gainTp)}, loin de l'objectif de +${money(P.goal)}. Il fallait acheter plus, ou viser plus loin.`; }
+  else if (gainTp < P.goal){ szPts = 6; szMsg = `Au take profit tu gagnais environ ${money(gainTp)}, un peu court pour l'objectif de +${money(P.goal)}.`; }
+  else if (costs > gainTp*0.8){ szPts = 6; szMsg = `Objectif atteignable (${money(gainTp)} au take profit), mais les frais aller-retour (${money(costs)}) pèsent presque autant que le gain.`; }
+  else if (p.imp > 0.02){ szPts = 6; szMsg = `Objectif atteignable, mais ton achat bouge le prix de ${nf2(p.imp*100, 1)} % : sur un pool aussi petit, c'est cher à l'aller comme au retour.`; }
+  else { szPts = 10; szMsg = `Au take profit tu gagnais environ ${money(gainTp)} pour un objectif de +${money(P.goal)}, avec ${money(costs)} de frais aller-retour. Bien dosé.`; }
+  items.push(['Taille de la position', szPts, 10, szMsg]);
   // 4. slippage
   const [s0, s1] = t.slip, fails = M.fails ? ` Tu as eu ${M.fails} échec${M.fails > 1 ? 's' : ''} de slippage avant de passer (${money(M.failFees)} de frais perdus).` : '';
   items.push(['Tolérance de slippage', pl.slip >= s0 && pl.slip <= s1 ? 10 : pl.slip < s0 ? 4 : pl.slip <= s1*2 ? 5 : 0, 10,
@@ -2316,8 +2328,14 @@ function gradeMission(){
   const score = items.reduce((a, x) => a + x[1], 0);
   // le plan idéal, calculé sur le meilleur token
   const bS = TTYPES[bestTok.type].slip, bNoise = bestTok.vol*Math.sqrt(10)*100;
-  const slI = Math.max(1, Math.round(bNoise*2)), A_I = Math.max(1, Math.min(CAPITAL, Math.floor(P.maxLoss/(slI/100 + 0.03))));
-  const ideal = `${bestTok.name}, achat d'environ ${money(A_I)}, slippage ${Math.round((bS[0] + bS[1])/2)} % (${bestTok.label.toLowerCase()} : ${bS[0]} à ${bS[1]} %), priority fee autour de ${fp(+(med*2).toPrecision(2))} SOL, stop loss environ ${slI} % sous le prix d'achat, take profit environ ${slI*2} % au-dessus.`;
+  const slI = Math.max(1, Math.round(bNoise*2)), fI = mFees(bestTok, +(med*2).toPrecision(2));
+  // la plus grosse mise dont la perte au stop (frais et impact compris) reste sous la perte max
+  let A_I = CAPITAL;
+  for (let k = 0; k < 4; k++){ const impI = A_I/(bestTok.R + A_I); A_I = Math.max(1, Math.min(CAPITAL, Math.floor(0.95*(P.maxLoss - 2*fI.net)/(slI/100 + 2*fI.pct + 2*impI)))); }
+  const impI = A_I/(bestTok.R + A_I), costI = 2*(A_I*fI.pct + fI.net) + 2*A_I*impI;
+  const needTp = (Math.max(P.goal, costI/0.8) + A_I*fI.pct + fI.net + A_I*impI)/(A_I*(1 - fI.pct))*100;
+  const tpI = Math.max(slI*2, Math.ceil(needTp*1.1));
+  const ideal = `${bestTok.name}, achat d'environ ${money(A_I)}, slippage ${Math.round((bS[0] + bS[1])/2)} % (${bestTok.label.toLowerCase()} : ${bS[0]} à ${bS[1]} %), priority fee autour de ${fp(+(med*2).toPrecision(2))} SOL, stop loss environ ${slI} % sous le prix d'achat, take profit environ ${tpI} % au-dessus.`;
   return { items, score, ideal };
 }
 function mResult(v){
