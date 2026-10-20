@@ -183,7 +183,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-1';
+const APP_VERSION = '2026.10.20-2';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -572,6 +572,39 @@ function tokenImg(p){
   return img || '';
 }
 
+/* ---------- contrôle de cohérence des prix ----------
+   But : repérer un MAUVAIS prix (mauvais pool, donnée aberrante), pas un vrai
+   mouvement de marché. On compare donc deux sources au même instant :
+   le prix utilisé par l'app et le prix agrégé de GeckoTerminal pour ce token.
+   Un vrai rug fait chuter les deux ensemble : pas d'alerte.
+   - écart inférieur à 3x : rien ne change ;
+   - écart supérieur à 3x : avertissement, il faut appuyer une 2e fois pour valider ;
+   - GeckoTerminal ne répond pas : la transaction part normalement.
+   Les ventes automatiques (stop loss, take profit) ne sont jamais retardées. */
+const SUSPECT_RATIO = 3, CONFIRM_MS = 15000, confirmUntil = {};
+async function refPrice(id){
+  try {
+    const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 2500);
+    const r = await fetch(`https://api.geckoterminal.com/api/v2/simple/networks/solana/token_price/${id}`, { cache: 'no-store', signal: ctl.signal });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    const tp = (await r.json()).data.attributes.token_prices || {};
+    const vals = Object.values(tp), v = +(tp[id] ?? tp[id.toLowerCase()] ?? (vals.length === 1 ? vals[0] : NaN));
+    return v > 0 ? v : null;
+  } catch(e){ return null; }
+}
+// Renvoie true si on peut continuer, false si on attend la confirmation du joueur
+async function priceCheck(key, id, p, verb){
+  if (confirmUntil[key] > Date.now()){ delete confirmUntil[key]; return true; }
+  const ref = await refPrice(id), mine = dexPrice(p);
+  if (!ref || !mine) return true;
+  const r = mine / ref;
+  if (r <= SUSPECT_RATIO && r >= 1/SUSPECT_RATIO) return true;
+  confirmUntil[key] = Date.now() + CONFIRM_MS;
+  toast(`Prix douteux : ${fp(mine)} ici, ${fp(ref)} sur GeckoTerminal. Appuie à nouveau sur ${verb} dans les 15 s pour confirmer.`);
+  return false;
+}
+
 /* ---------- simulation d'exécution ---------- */
 // Frais de pool : approximation (1 % sur la bonding curve pump.fun, 0,25 % ailleurs)
 const poolFee = p => p.dexId === 'pumpfun' ? 0.01 : 0.0025;
@@ -686,7 +719,9 @@ async function buy(key, amount){
     const p0 = DEX[id]; if (!p0) return toast('Prix pas encore reçu');
     const q0 = buyQuote(p0, amount);
     if (q0.error) return toast(q0.error);
-    inflight.add(key); toast('Transaction envoyée, en attente de confirmation…');
+    inflight.add(key);
+    if (!(await priceCheck(key, id, p0, 'Acheter'))){ inflight.delete(key); return; }
+    toast('Transaction envoyée, en attente de confirmation…');
     const landed = await waitLanding(p0);
     if (!landed){
       inflight.delete(key);
@@ -726,7 +761,9 @@ async function sell(key, frac, reason){
     const p0 = DEX[id]; if (!p0) return toast('Prix pas encore reçu');
     if (netFeeUsd() == null) return toast('Prix du SOL pas encore reçu');
     const q0 = sellQuote(p0, qty);
-    inflight.add(key); toast('Transaction envoyée, en attente de confirmation…');
+    inflight.add(key);
+    if (!reason && !(await priceCheck(key, id, p0, 'Vendre'))){ inflight.delete(key); return; }
+    toast('Transaction envoyée, en attente de confirmation…');
     const landed = await waitLanding(p0);
     if (!landed){
       inflight.delete(key);
