@@ -106,15 +106,16 @@ nav svg{width:22px;height:22px}
 #legend{position:absolute;top:6px;left:8px;z-index:3;font-size:11px;line-height:1.5;color:var(--mut);pointer-events:none}
 #chartnote{font-size:12px;color:var(--mut);margin-bottom:10px}
 
-.sec{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 2px}
-.secit{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface);color:var(--txt)}
+.sec{display:flex;flex-wrap:wrap;gap:6px}
+.seccard .sechelp{font-size:12px;color:var(--mut);margin-top:10px}
+.secit{display:inline-flex;align-items:center;gap:5px;padding:6px 11px;border-radius:999px;font-size:13px;font-weight:600;background:var(--surface2);color:var(--txt)}
+.secit b{font-weight:700;width:15px;text-align:center}
 .secit svg{width:15px;height:15px;flex:none}
 .secit.ok svg{color:var(--up)}
 .secit.ko{background:rgba(246,70,93,.13);color:var(--down)}
 .secit.un{color:var(--mut)}
 .secwarn{display:flex;align-items:flex-start;gap:6px;margin:8px 0 2px;padding:10px 12px;border-radius:12px;background:rgba(246,70,93,.1);color:var(--down);font-size:13px;font-weight:600;line-height:1.4}
 .secwarn svg{width:16px;height:16px;flex:none;margin-top:1px}
-#chartwrap,.mchartwrap{margin-top:10px}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--surface2);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:20;display:none;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty{text-align:center;color:var(--mut);padding:40px 0}
 .hist-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
@@ -345,7 +346,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-9';
+const APP_VERSION = '2026.10.20-10';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -758,54 +759,88 @@ const AMM_V4 = '675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8', AMM_CPMM = 'CPMMo
 const SEC = {}, secBusy = new Set();
 const pk58 = (u, o) => window.solanaWeb3 ? new window.solanaWeb3.PublicKey(u.slice(o, o + 32)).toBase58() : null;
 const rdU64 = (u, o) => new DataView(u.buffer, u.byteOffset).getBigUint64(o, true);
+// Plusieurs serveurs Solana gratuits : si l'un refuse (limite atteinte, blocage), on passe au suivant
+const SEC_RPCS = [RPC_HTTP, 'https://solana-rpc.publicnode.com'];
+let secRpcI = 0;
+async function rpcSafe(method, params){
+  for (let k = 0; k < SEC_RPCS.length*2; k++){
+    const url = SEC_RPCS[(secRpcI + k) % SEC_RPCS.length], ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 8000);
+    try {
+      const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
+      clearTimeout(tm);
+      const jr = r.ok ? await r.json() : null;
+      if (jr && !jr.error && 'result' in jr){ secRpcI = (secRpcI + k) % SEC_RPCS.length; return jr.result; }
+    } catch(e){ clearTimeout(tm); }
+    if (k === SEC_RPCS.length - 1) await sleep(1500);
+  }
+  throw new Error('RPC indisponible');
+}
 async function loadSec(p){
   const mint = p.baseToken.address, old = SEC[mint];
-  if (secBusy.has(mint) || (old && Date.now() - old.t < (old.err ? 30000 : 300000))) return;
+  if (secBusy.has(mint)) return;
+  if (old && Date.now() - old.t < (old.partial ? 20000 : 300000)) return;
   secBusy.add(mint);
-  const s = { t: Date.now(), mint: null, freeze: null, lp: null, top10: null };
+  const s = { t: Date.now(), mint: null, freeze: null, lp: null, top10: null, partial: false };
+  if (old) for (const k of ['mint', 'freeze', 'lp', 'top10']) if (old[k] != null) s[k] = old[k];
+  let supply = 0;
+  // 1. mint et gel : sur Solana, sinon GeckoTerminal
   try {
-    const r = await rpc('getAccountInfo', [mint, { encoding: 'jsonParsed' }]);
+    const r = await rpcSafe('getAccountInfo', [mint, { encoding: 'jsonParsed' }]);
     const info = r && r.value && r.value.data && r.value.data.parsed && r.value.data.parsed.info;
-    if (!info) throw new Error('mint');
-    s.mint = !info.mintAuthority; s.freeze = !info.freezeAuthority;
-    const supply = +info.supply;
-    let vaults = null, owners = null;
+    if (info){ s.mint = !info.mintAuthority; s.freeze = !info.freezeAuthority; supply = +info.supply; }
+  } catch(e){}
+  if (s.mint == null){
+    try {
+      const a = (await gtFetch(`${GT}/tokens/${mint}/info`, { tries: 1, timeout: 8000 })).data.attributes;
+      const rev = v => v == null ? null : String(v).toLowerCase() === 'no';
+      s.mint = rev(a.mint_authority); s.freeze = rev(a.freeze_authority);
+    } catch(e){}
+  }
+  // 2. liquidité brûlée, et comptes du pool à exclure du top 10
+  let vaults = null, owners = null;
+  try {
     if (p.dexId === 'pumpfun'){
       s.lp = 'curve'; const c = curveAddr(mint); if (c) owners = [c];
     } else {
-      const pr = await rpc('getAccountInfo', [p.pairAddress, { encoding: 'base64' }]);
+      const pr = await rpcSafe('getAccountInfo', [p.pairAddress, { encoding: 'base64' }]);
       const v = pr && pr.value, prog = v && v.owner;
       const L = prog === AMM_V4 ? { lp: 464, n: 720, va: [336, 368] } : prog === AMM_CPMM ? { lp: 136, n: 333, va: [72, 104] } : prog === AMM_PSWAP ? { lp: 107, n: 203, va: [139, 171] } : null;
-      if (L){
+      if (L && window.solanaWeb3){
         const u = b64bytes(v.data[0]);
         vaults = L.va.map(o => pk58(u, o));
-        const issued = rdU64(u, L.n), ls = await rpc('getTokenSupply', [pk58(u, L.lp)]);
+        const issued = rdU64(u, L.n), ls = await rpcSafe('getTokenSupply', [pk58(u, L.lp)]);
         if (issued > 0n && ls && ls.value) s.lp = Math.min(1, Math.max(0, 1 - Number(BigInt(ls.value.amount))/Number(issued)));
-      } else s.lp = 'na';
+      } else if (v) s.lp = 'na';
     }
+  } catch(e){}
+  // 3. top 10, hors pool
+  try {
+    if ((vaults || owners) && !supply){ const ts = await rpcSafe('getTokenSupply', [mint]); supply = ts && ts.value ? +ts.value.amount : 0; }
     if ((vaults || owners) && supply > 0){
-      const la = await rpc('getTokenLargestAccounts', [mint]);
+      const la = await rpcSafe('getTokenLargestAccounts', [mint]);
       let list = (la && la.value) || [];
-      if (vaults) list = list.filter(a => !vaults.includes(a.address));
+      if (vaults) list = list.filter(x => !vaults.includes(x.address));
       if (owners && list.length){
-        const ma = await rpc('getMultipleAccounts', [list.map(a => a.address), { encoding: 'jsonParsed' }]);
+        const ma = await rpcSafe('getMultipleAccounts', [list.map(x => x.address), { encoding: 'jsonParsed' }]);
         const vals = (ma && ma.value) || [];
-        list = list.filter((a, i) => { const o = vals[i] && vals[i].data && vals[i].data.parsed && vals[i].data.parsed.info.owner; return !owners.includes(o); });
+        list = list.filter((x, i) => { const o = vals[i] && vals[i].data && vals[i].data.parsed && vals[i].data.parsed.info.owner; return !owners.includes(o); });
       }
-      if (la && la.value) s.top10 = list.slice(0, 10).reduce((x, a) => x + Number(a.amount), 0)/supply*100;
+      if (la && la.value) s.top10 = list.slice(0, 10).reduce((x, y) => x + Number(y.amount), 0)/supply*100;
     }
-  } catch(e){ s.err = true; }
+  } catch(e){}
+  s.partial = s.mint == null || s.freeze == null || s.lp == null || (s.top10 == null && (vaults || owners));
   SEC[mint] = s; secBusy.delete(mint);
 }
-// Bloc « Sécurité » commun à la fiche token et aux cas pratiques
+// Encadré « Sécurité » commun à la fiche token et aux cas pratiques. « ? » quand on ne sait pas.
+const secBad = s => !!s && (s.mint === false || s.freeze === false || (typeof s.lp === 'number' && s.lp < 0.95));
 function secHtml(s){
-  if (!s) return `<div class="sec"><span class="secit un">Vérification de la sécurité…</span></div>`;
-  if (s.err && s.mint == null) return `<div class="sec"><span class="secit un">Sécurité indisponible pour l'instant</span></div>`;
-  const it = (ok, txt) => `<span class="secit ${ok === true ? 'ok' : ok === false ? 'ko' : 'un'}">${ok === true ? ICON_OK : ok === false ? ICON_KO : ''}${txt}</span>`;
-  const lp = s.lp === 'curve' ? it(true, 'Liquidité bloquée (curve)') : typeof s.lp === 'number' ? it(s.lp >= 0.95, `LP brûlée ${Math.floor(s.lp*100)} %`) : it(null, 'LP non vérifiable');
-  const bad = s.mint === false || s.freeze === false || (typeof s.lp === 'number' && s.lp < 0.95);
-  return `<div class="sec">${it(s.mint, s.mint ? 'Mint révoqué' : 'Mint actif')}${it(s.freeze, s.freeze ? 'Gel révoqué' : 'Gel actif')}${lp}${s.top10 != null ? `<span class="secit ${s.top10 >= 45 ? 'ko' : 'un'}">Top 10 : ${nf2(s.top10, 0)} %</span>` : ''}</div>`
-    + (bad ? `<div class="secwarn">${ICON_KO}Le créateur garde un pouvoir sur ce token : il peut ${s.mint === false ? 'créer des tokens et les revendre' : s.freeze === false ? 'bloquer ton portefeuille' : 'retirer la liquidité'}.</div>` : '');
+  s = s || {};
+  const it = (ok, txt) => `<span class="secit ${ok === true ? 'ok' : ok === false ? 'ko' : 'un'}">${ok === true ? ICON_OK : ok === false ? ICON_KO : '<b>?</b>'}${txt}</span>`;
+  const lp = s.lp === 'curve' ? it(true, 'Liquidité bloquée (curve)') : typeof s.lp === 'number' ? it(s.lp >= 0.95, `LP brûlée ${Math.floor(s.lp*100)} %`) : it(null, 'LP brûlée');
+  const top = s.top10 != null ? `<span class="secit ${s.top10 >= 45 ? 'ko' : 'un'}">Top 10 : ${nf2(s.top10, 0)} %</span>` : it(null, 'Top 10');
+  return `<div class="card seccard"><h3>Sécurité</h3><div class="sec">${it(s.mint, s.mint === false ? 'Mint actif' : 'Mint révoqué')}${it(s.freeze, s.freeze === false ? 'Gel actif' : 'Gel révoqué')}${lp}${top}</div>`
+    + (secBad(s) ? `<div class="secwarn">${ICON_KO}Le créateur garde un pouvoir sur ce token : il peut ${s.mint === false ? 'créer des tokens et les revendre' : s.freeze === false ? 'bloquer ton portefeuille' : 'retirer la liquidité'}.</div>` : '')
+    + (s.mint == null || s.freeze == null || s.lp == null || s.lp === 'na' || s.top10 == null ? `<div class="sechelp">? = information introuvable pour l'instant</div>` : '') + '</div>';
 }
 
 /* ---------- contrôle de cohérence des prix ----------
@@ -1840,6 +1875,7 @@ function mSellOut(t, qty, price, prio){
 function mCandles(t){ return t.hist.concat(t.fut.slice(0, M.i + 1)); }
 function mChange(t, n){ const a = mCandles(t), r = a[Math.max(0, a.length - n)]; return (mPrice(t)/r.o - 1)*100; }
 const mMc = t => t.mc*mPrice(t)/t.price;
+const mSec = t => ({ mint: t.checks.mint, freeze: t.checks.freeze, lp: t.lpPct/100, top10: t.top10 });
 const mIcon = t => `<div class="ph" style="background:hsl(${t.hue} 32% 24%);color:hsl(${t.hue} 70% 80%)">${esc(t.name.slice(0, 3))}</div>`;
 function planPreview(pl){
   const t = M.tokens[pl.sel], A = pl.A, f = mFees(t, pl.prio), dx = Math.max(0, A*(1 - f.pct) - f.net), imp = dx/(t.R + dx);
@@ -1866,7 +1902,7 @@ function renderCases(v){
       <div class="briefk"><span>Énoncé</span><span class="prof prof-${P.id}">Profil ${P.name.toLowerCase()}</span></div>
       <p class="brieftxt">${P.story} ${M.cong.txt}</p>
       ${briefRows()}
-      <div class="briefnote">Trois tokens sont listés. Vérifie le bloc Sécurité de chaque fiche. Tu règles tout comme dans l'appli : token, montant, slippage, priority fee, stop loss, take profit. Les prix restent figés pendant ta préparation. Une seule position. Ton plan est noté au moment où tu lances le marché.</div>
+      <div class="briefnote">Trois tokens sont listés. Vérifie l'encadré Sécurité en bas de chaque fiche. Tu règles tout comme dans l'appli : token, montant, slippage, priority fee, stop loss, take profit. Les prix restent figés pendant ta préparation. Une seule position. Ton plan est noté au moment où tu lances le marché.</div>
       <div class="briefbtns"><button class="btn btn-ghost" id="cpnew">Autre énoncé</button><button class="btn btn-buy" id="cpgo">Commencer</button></div>
     </section></div>`;
   $('#cpnew').onclick = () => { newMission(); renderTrain(v); };
@@ -1943,7 +1979,7 @@ function mTokView(v){
     <div class="topbar"><button id="mback" class="iconbtn" aria-label="Retour">${BACK}</button><span class="chip">${t.addr.slice(0, 4)}…${t.addr.slice(-4)}</span></div>
     <div class="sheetgrid"><div class="maincol">
       <div class="tokhead">${mIcon(t)}<div class="grow"><div class="tokname">${esc(t.name)}</div><div class="mut sm">${esc(t.full)}</div></div></div>
-      <div class="msp" id="msp"></div><div class="msc" id="msc"></div><div id="msec">${secHtml({ mint: t.checks.mint, freeze: t.checks.freeze, lp: t.lpPct/100, top10: t.top10 })}</div>
+      <div class="msp" id="msp"></div><div class="msc" id="msc"></div>
       <div class="chartbar"><div class="mfresh" id="mfresh"></div></div>
       <div class="mchartwrap"><div id="mchart"></div></div>
     </div><div class="sidecol">
@@ -1955,6 +1991,7 @@ function mTokView(v){
       </div>
       <div id="mposbox"></div>
       <div class="card" id="mstats"></div>
+      ${secHtml(mSec(t))}
     </div></div></div>`;
   $('#mback').onclick = () => { M.view = 'list'; mRender(); };
   v.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { $('#mamt').value = (Math.floor(M.cash*b.dataset.p*100)/100).toFixed(2); mQuoteUpd(); });
@@ -2197,7 +2234,7 @@ function gradeMission(){
   const bestTok = safe.slice().sort((a, b) => FIT[P.id][b.type] - FIT[P.id][a.type])[0];
   // 1. choix du token
   let pts, msg;
-  if (flagged){ pts = 0; msg = `${t.name} avait ${!t.checks.mint ? 'son autorité de mint active' : !t.checks.freeze ? 'son autorité de gel active' : 'sa liquidité non brûlée'}. Le bloc Sécurité, sous le prix dans la fiche, l'affichait en rouge. Une seule croix rouge suffit à passer son tour.`; }
+  if (flagged){ pts = 0; msg = `${t.name} avait ${!t.checks.mint ? 'son autorité de mint active' : !t.checks.freeze ? 'son autorité de gel active' : 'sa liquidité non brûlée'}. L'encadré Sécurité, en bas de la fiche, l'affichait en rouge. Une seule croix rouge suffit à passer son tour.`; }
   else { pts = FIT[P.id][t.type]; msg = pts >= 25 ? `Bon choix pour un profil ${P.name.toLowerCase()}.` : `Un ${t.label.toLowerCase()} colle moins à un profil ${P.name.toLowerCase()}. ${bestTok.name} (${bestTok.label.toLowerCase()}) était plus adapté.`; }
   items.push(['Choix du token', pts, 25, msg]);
   // 2. risque
@@ -2272,7 +2309,7 @@ function openSheet(key){
     <div class="topbar"><button id="back" class="iconbtn" aria-label="Retour"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>${links}</div>
     <div class="sheetgrid"><div class="maincol">
     <div class="tokhead">${icon(m.img, m.sym)}<div class="grow"><div class="tokname">${esc(m.sym)}</div><div class="mut sm">${esc(m.name)}</div></div></div>
-    <div id="sp">-</div><div id="sc"></div>${kind === 'sol' ? '<div id="secbox"></div>' : ''}
+    <div id="sp">-</div><div id="sc"></div>
     <div class="chartbar"><div id="fresh"></div><button id="chartreset" class="chartreset" aria-label="Recentrer le graphique"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5"/><path d="M20 9V4h-5"/><path d="M4 15v5h5"/><path d="M20 15v5h-5"/></svg></button></div>
     <div id="chartwrap"><div id="chart"></div><div id="legend"></div></div><div id="chartnote"></div>
     </div><div class="sidecol">
@@ -2284,6 +2321,7 @@ function openSheet(key){
     </div>
     <div id="posbox"></div>
     <div class="card" id="stats"></div>
+    ${kind === 'sol' ? '<div id="secbox"></div>' : ''}
     </div></div></div>`;
   sh.classList.add('open'); window.scrollTo(0,0); sh.scrollTop = 0;
   $('#back').onclick = closeSheet;
