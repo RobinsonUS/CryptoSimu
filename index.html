@@ -118,81 +118,60 @@ nav svg{width:22px;height:22px}
 .trtop{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:4px 2px 14px}
 .trtitle{font-size:22px;font-weight:700;letter-spacing:-.01em}
 .trsub{font-size:13px;color:var(--mut);margin-top:3px;max-width:42ch}
-.streak{flex:none;display:flex;align-items:center;gap:10px;padding:8px 14px;border-radius:999px;background:var(--surface);font-size:12px;color:var(--mut)}
-.streak svg{color:var(--acc)}
-.streak b{display:block;color:var(--txt);font-size:16px;line-height:1.1}
-.streak .sep{width:1px;align-self:stretch;background:var(--line)}
 .trback{display:flex;align-items:center;gap:12px}
-.hub{display:grid;gap:12px}
-.hubcard{display:flex;flex-direction:column;text-align:left;background:var(--surface);border-radius:22px;overflow:hidden;border:1px solid transparent;transition:border-color .15s}
-@media (hover:hover){.hubcard:hover{border-color:rgba(171,159,242,.45)}}
-.hubcard:active{border-color:var(--acc)}
-.hubart{background:var(--surface0);padding:18px 18px 10px;display:flex;justify-content:center}
-.hubart svg{width:100%;max-width:300px;height:auto}
-.hubtxt{padding:18px 18px 20px;display:flex;flex-direction:column;gap:8px;flex:1}
-.hubtitle{font-size:21px;font-weight:700;letter-spacing:-.01em}
-.hubdesc{font-size:14px;line-height:1.55;color:var(--mut)}
-.hubmeta{margin-top:auto;padding-top:8px;display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px;color:var(--mut)}
-.hubmeta span:first-child{display:flex;align-items:center;gap:6px}
-.hubmeta svg{width:15px;height:15px;color:var(--acc)}
-.hubmeta .go{flex:none;padding:8px 14px;border-radius:999px;background:var(--acc);color:var(--acc-ink);font-weight:700}
+.hub{display:grid;gap:10px}
+.hubcard{position:relative;display:flex;flex-direction:column;gap:6px;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px 54px 22px 20px;transition:border-color .15s,background .15s}
+@media (hover:hover){.hubcard:hover{border-color:rgba(171,159,242,.4)}}
+.hubcard:active{background:var(--surface2)}
+.hubk{font-size:12px;font-weight:600;color:var(--acc);letter-spacing:.02em}
+.hubtitle{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.hubdesc{font-size:14px;line-height:1.5;color:var(--mut);max-width:46ch}
+.hubgo{position:absolute;right:18px;top:50%;transform:translateY(-50%);color:var(--mut);display:flex}
 @media (min-width:720px){.hub{grid-template-columns:1fr 1fr}}
 
-/* cas pratiques */
-.brief{background:var(--surface);border-radius:18px;padding:16px;margin-bottom:12px;display:grid;gap:12px}
-.briefhead{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:14px}
-.prof{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700}
+/* cas pratiques : l'énoncé */
+.brief{background:var(--surface);border-radius:18px;padding:20px;display:grid;gap:16px;max-width:640px}
+.briefk{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12px;font-weight:600;color:var(--acc);letter-spacing:.02em}
+.prof{padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;letter-spacing:0}
 .prof-prudent{background:rgba(46,189,133,.15);color:var(--up)}
 .prof-equi{background:rgba(171,159,242,.15);color:var(--acc)}
 .prof-agressif{background:rgba(246,70,93,.15);color:var(--down)}
-.briefgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.briefgrid>div{background:var(--surface2);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.briefgrid span{font-size:12px;color:var(--mut)}
-.briefgrid b{font-size:17px;font-weight:700}
-.briefgrid em{font-style:normal;font-size:11px;color:var(--mut)}
-@media (min-width:720px){.briefgrid{grid-template-columns:repeat(4,minmax(0,1fr))}}
-.cpgrid{display:grid;gap:12px}
-.cpmain{background:var(--surface);border-radius:18px;padding:12px;min-width:0}
-.toks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:10px}
-.tok{padding:10px;border-radius:12px;background:var(--surface2);border:1px solid transparent;text-align:left;display:flex;flex-direction:column;gap:2px;min-width:0}
-.tok b{font-size:15px}
-.tok span{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tok.on{border-color:var(--acc);background:rgba(171,159,242,.1)}
-.cpchartwrap{position:relative;border-radius:12px;overflow:hidden}
-#cpchart{height:260px}
-.cplive{position:absolute;left:10px;top:8px;z-index:3;font-size:13px;color:var(--txt);pointer-events:none}
-.tinfo{margin-top:10px;display:grid;gap:10px}
-.tistats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
-.tistats>div{background:var(--surface2);border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
-.tistats span{font-size:11px;color:var(--mut)}
-.tistats b{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tisec{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 12px;font-size:13px}
-.tisec>div{display:flex;align-items:center;gap:6px}
-.ck{display:inline-flex;width:18px;height:18px}.ck svg{width:18px;height:18px}
+.brieftxt{font-size:16px;line-height:1.6;text-wrap:pretty}
+.briefrows{border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:8px 0}
+.briefnote{font-size:13px;line-height:1.55;color:var(--mut)}
+.briefbtns{display:grid;grid-template-columns:auto 1fr;gap:8px}
+.briefbtns .btn{white-space:nowrap;padding:15px 20px}
+.ck{display:inline-flex;width:18px;height:18px;vertical-align:middle}.ck svg{width:18px;height:18px}
 .ck.ok{color:var(--up)}.ck.ko{color:var(--down)}
-.ticket{background:var(--surface);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.tkhead{font-size:16px;font-weight:700}
-.tf{display:flex;flex-direction:column;gap:5px;min-width:0}
-.tfl{font-size:13px;color:var(--mut)}
-.tfi{position:relative;display:block}
-.tfi input{padding-right:46px;font-weight:600}
-.tfi em{position:absolute;right:14px;top:50%;transform:translateY(-50%);font-style:normal;font-size:13px;color:var(--mut)}
-.tfh{font-size:11px;color:var(--mut)}
-.tfrow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tchips{display:flex;flex-wrap:wrap;gap:6px;margin-top:-2px}
-.tchips button{padding:6px 10px;border-radius:999px;background:var(--surface2);font-size:12px;font-weight:600;color:var(--mut)}
-.tchips button.on{background:var(--txt);color:var(--bg)}
-.tchips button:disabled,.tfi input:disabled{opacity:.55}
-.tprev{background:var(--bg);border-radius:12px;padding:12px;display:grid;gap:4px}
-.riskbar{display:grid;gap:6px;margin-bottom:4px}
-.rbtop{display:flex;justify-content:space-between;font-size:13px;color:var(--mut)}
-.rbtop b{color:var(--txt);font-weight:700}.rbtop b.down{color:var(--down)}
-.rbtop em{font-style:normal;color:var(--mut);font-weight:500}
-.rbtrack{position:relative;height:8px;border-radius:99px;background:var(--surface2);overflow:hidden}
-.rbtrack i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--up)}
-.rbtrack i.over{background:var(--down)}
-.rbtrack s{position:absolute;top:0;bottom:0;width:2px;background:var(--txt);opacity:.6}
-.ticket .btn:disabled{opacity:.5}
+
+/* cas pratiques : l'appli en version mission */
+#msn{position:fixed;inset:0;background:var(--bg);z-index:12;overflow-y:auto;display:none;padding-bottom:90px}
+#msn.open{display:block}
+.mbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:10px;padding:10px 16px;background:rgba(29,26,51,.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(171,159,242,.2)}
+.mq{display:flex;align-items:center;gap:2px;font-size:14px;font-weight:600;color:var(--acc);margin-left:-6px;flex:none}
+.mlab{display:flex;flex-direction:column;min-width:0;font-size:12px;color:var(--mut);line-height:1.3}
+.mlab b{font-size:14px;color:var(--txt);font-weight:600}
+.mlab span,.mlab b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mbar .chip{flex:none;background:rgba(171,159,242,.14);color:var(--acc)}
+.mbriefbox{margin:12px 16px 0;padding:16px;border-radius:16px;background:var(--surface);font-size:14px;line-height:1.55;display:grid;gap:10px}
+.mbriefbox[hidden]{display:none}
+.mbriefbox .briefrows{padding:4px 0}
+.mhead[hidden]{display:none}
+.dot.idle{background:var(--mut)}
+.mtotal{font-size:42px;font-weight:700;letter-spacing:-.02em;margin:8px 0 6px}
+.mcash{margin-top:6px;font-size:13px;color:var(--mut)}
+#mview{padding-top:12px}
+.mhead+#mview{padding-top:0}
+.msp{font-size:30px;font-weight:700;letter-spacing:-.01em;margin-top:16px}
+.msc{font-size:14px;font-weight:600;margin-top:2px}
+.mfresh{font-size:12px;color:var(--mut)}
+.mchartwrap{position:relative;margin:0 -4px 6px}
+#mchart{height:280px}
+.mquote{font-size:13px;color:var(--mut);line-height:1.6;margin-bottom:12px;min-height:20px}
+.mfh{font-size:12px;color:var(--mut);margin-top:6px}
+.ksep{height:1px;background:var(--line);margin:8px 0}
+.reschart{display:grid;gap:8px}
+#mrchart{height:220px;border-radius:12px;overflow:hidden}
 .result{margin-top:12px;background:var(--surface);border-radius:18px;padding:18px;display:grid;gap:16px}
 .rescore{display:flex;align-items:center;gap:16px}
 .ring{width:110px;height:110px;flex:none}
@@ -216,11 +195,28 @@ nav svg{width:22px;height:22px}
 .critmsg{font-size:13px;color:var(--mut);line-height:1.5;margin:6px 0 0 30px}
 .ideal{border:1px solid rgba(171,159,242,.35);border-radius:14px;padding:14px;display:grid;gap:4px;font-size:14px;line-height:1.55}
 .ideal b{color:var(--acc)}
+@media (min-width:720px){
+  #mview{max-width:1000px;margin:0 auto;padding-left:24px;padding-right:24px}
+  .mlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+  .mlist .row{margin:0}
+  .mlist .empty{grid-column:1/-1}
+  #mchart{height:360px}
+  .mbriefbox{max-width:952px;margin:12px auto 0}
+}
 @media (min-width:900px){
-  .cpgrid{grid-template-columns:minmax(0,1fr) 340px;align-items:start}
-  .ticket{position:sticky;top:12px}
-  #cpchart{height:320px}
   .crit{grid-template-columns:1fr 1fr}
+  #mchart{height:400px}
+  #mrchart{height:280px}
+}
+@media (min-width:1100px){
+  #msn{padding:0 0 0 232px}
+  #mview{max-width:1240px;padding:0 32px 32px}
+  .mhead{max-width:1240px;margin:0 auto;padding:28px 32px 22px;text-align:left;display:grid;grid-template-columns:auto 1fr;grid-template-areas:"status status" "total total" "pnl cash";column-gap:16px;align-items:center}
+  .mtotal{grid-area:total;font-size:48px;margin:6px 0 4px}
+  .mcash{grid-area:cash;margin:0}
+  .mbar{padding:12px 32px}
+  .mbriefbox{max-width:1176px}
+  #mchart{height:clamp(380px, calc(100vh - 330px), 620px)}
 }
 .modes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .modes button{text-align:left;padding:12px 14px;border-radius:16px;background:var(--surface);border:1px solid transparent;display:flex;flex-direction:column;gap:3px;min-width:0}
@@ -334,12 +330,13 @@ nav svg{width:22px;height:22px}
   <button data-t="hist"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Historique</button>
 </nav>
 <div id="sheet"></div>
+<div id="msn"></div>
 <div id="toast"></div>
 <script src="https://unpkg.com/@solana/web3.js@1/lib/index.iife.min.js"></script>
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-7';
+const APP_VERSION = '2026.10.20-8';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -369,8 +366,7 @@ const KEY = 'centballes_v1';
 const BN = {}, DEX = {}, CH = {}, SEEN = {};
 let S = load() || fresh();
 delete S.settings.tf;
-if (!S.train) S.train = { streak: 0, best: 0 };
-if (!S.cases) S.cases = { best: 0, played: 0 };
+delete S.train; delete S.cases;
 const DEFAULT_TF = '1h';
 let curTf = DEFAULT_TF;      // durée du graphique, propre à la fiche ouverte
 delete S.settings.plat;
@@ -427,7 +423,7 @@ async function j(url){
 function parse(key){ const i = key.indexOf(':'); return { kind: key.slice(0,i), id: key.slice(i+1) }; }
 
 /* ---------- sauvegarde ---------- */
-function fresh(){ return { cash: START, pos: {}, hist: [], start: Date.now(), settings: { prio: 0.001, slip: 10 }, train: { streak: 0, best: 0 } }; }
+function fresh(){ return { cash: START, pos: {}, hist: [], start: Date.now(), settings: { prio: 0.001, slip: 10 } }; }
 function load(){
   try { const r = localStorage.getItem(KEY); if (!r) return null; const s = JSON.parse(r); for (const k in s.pos) delete s.pos[k].pending; return s; }
   catch(e){ return null; }
@@ -1315,7 +1311,6 @@ async function showNetInfo(){
 }
 function renderView(){
   const v = $('#view');
-  if (cpChart && tab !== 'train'){ cpChart.remove(); cpChart = null; cpSeries = null; }
   if (tab === 'marche'){
     v.innerHTML = `<div class="hint">Prix Binance en direct · frais 0,1 % · ordre min. 5 $</div><div id="list"></div>`;
   } else if (tab === 'meme'){
@@ -1349,7 +1344,7 @@ function renderView(){
     $('#prio').onchange = e => { S.settings.prio = Math.max(PRIO_MIN, +e.target.value || 0); e.target.value = S.settings.prio; save(); showNetInfo(); };
     showNetInfo();
     $('#slip').onchange = e => { S.settings.slip = Math.min(100, Math.max(1, +e.target.value || 10)); save(); };
-    $('#reset').onclick = () => { if (confirm('Tout effacer et repartir de 100 $ ?')){ const st = S.settings, tr = S.train, cs = S.cases; S = fresh(); S.settings = st; S.train = tr; S.cases = cs; save(); refresh(); } };
+    $('#reset').onclick = () => { if (confirm('Tout effacer et repartir de 100 $ ?')){ const st = S.settings; S = fresh(); S.settings = st; save(); refresh(); } };
   } else {
     v.innerHTML = `<div id="list"></div>`;
   }
@@ -1614,12 +1609,8 @@ function nextEx(){
   for (let i = 0; i < 10; i++){ const ex = EX[pickOne(cats)](); if (ex){ curEx = ex; return; } }
   curEx = null;
 }
-const FLAME = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c1 3 4 4.5 4 8.5a4 4 0 0 1-8 0c0-1.6.7-2.8 1.5-3.7.2 1.4 1 2.2 2 2.2 0-2.5-1-4.5.5-7z"/><path d="M8 20h8"/></svg>`;
 const BACK = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>`;
-function trainStats(){
-  const el = $('#streak'); if (!el) return;
-  el.innerHTML = `${FLAME}<div><b>${S.train.streak}</b>série</div><span class="sep"></span><div><b>${S.train.best}</b>record</div>`;
-}
+const CHEV = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"/></svg>`;
 const ICON_OK = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>`;
 const ICON_KO = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>`;
 const ICON_MID = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 12h12"/></svg>`;
@@ -1641,57 +1632,28 @@ function showEx(done = false, picked = null){
         <div class="tip">${curEx.tip}</div>
         <button class="btn btn-buy" id="exnext">Exercice suivant</button></div>` : ''}
     </div>`;
-  if (!done) box.querySelectorAll('.opt').forEach(b => b.onclick = () => answerEx(b.dataset.v));
+  if (!done) box.querySelectorAll('.opt').forEach(b => b.onclick = () => showEx(true, b.dataset.v));
   else $('#exnext').onclick = () => { nextEx(); showEx(); $('#ex').scrollIntoView({ block: 'nearest' }); };
-}
-function answerEx(v){
-  const t = S.train;
-  if (v === curEx.answer){ t.streak++; t.best = Math.max(t.best, t.streak); } else t.streak = 0;
-  save(); trainStats(); showEx(true, v);
 }
 
 /* --- écran d'accueil de l'entraînement --- */
-const HUB_AUTO_ART = `<svg viewBox="0 0 220 120" aria-hidden="true">
-  <rect x="14" y="16" width="86" height="40" rx="10" style="fill:var(--surface2)"/><text x="57" y="42" text-anchor="middle" style="fill:var(--txt);font-size:15px;font-weight:700">× 1,25</text>
-  <rect x="112" y="16" width="94" height="40" rx="10" style="fill:var(--surface2)"/><text x="159" y="42" text-anchor="middle" style="fill:var(--acc);font-size:15px;font-weight:700">-16,7 %</text>
-  <rect x="14" y="66" width="62" height="40" rx="10" style="fill:var(--surface2)"/><text x="45" y="92" text-anchor="middle" style="fill:var(--txt);font-size:15px;font-weight:700">1 : 2</text>
-  <rect x="86" y="66" width="120" height="40" rx="10" style="fill:rgba(46,189,133,.16)"/><path d="M128 86l7 7 14-15" style="fill:none;stroke:var(--up);stroke-width:3;stroke-linecap:round;stroke-linejoin:round"/><text x="158" y="92" style="fill:var(--up);font-size:13px;font-weight:700">juste</text>
-</svg>`;
-const HUB_CASE_ART = (() => {
-  const c = [[20,70,60,78,52],[34,62,50,70,44],[48,50,58,62,42],[62,56,40,60,34],[76,42,46,54,36],[90,46,30,48,24],[104,32,38,44,26],[118,38,26,40,20],[132,26,30,36,18],[146,30,20,32,14]];
-  let g = '<rect x="10" y="10" width="200" height="100" rx="12" style="fill:var(--surface2)"/>';
-  g += '<rect x="96" y="14" width="74" height="18" style="fill:rgba(46,189,133,.16)"/><line x1="96" x2="200" y1="14" y2="14" style="stroke:var(--up);stroke-dasharray:4 3"/>';
-  g += '<rect x="96" y="50" width="74" height="26" style="fill:rgba(246,70,93,.14)"/><line x1="96" x2="200" y1="76" y2="76" style="stroke:var(--down);stroke-dasharray:4 3"/>';
-  c.forEach(([x, o, cl, h, l]) => { const up = cl < o, col = up ? 'var(--up)' : 'var(--down)'; g += `<line x1="${x}" x2="${x}" y1="${l + 20}" y2="${h + 20}" style="stroke:${col}"/><rect x="${x - 4}" y="${Math.min(o, cl) + 20}" width="8" height="${Math.max(2, Math.abs(o - cl))}" rx="1" style="fill:${col}"/>`; });
-  g += '<circle cx="96" cy="50" r="5" style="fill:var(--acc);stroke:var(--surface2);stroke-width:2"/><text x="176" y="30" style="fill:var(--up);font-size:11px;font-weight:700">TP</text><text x="176" y="80" style="fill:var(--down);font-size:11px;font-weight:700">SL</text>';
-  return `<svg viewBox="0 0 220 120" aria-hidden="true">${g}</svg>`;
-})();
 function renderHub(v){
-  const cs = S.cases || { best: 0, played: 0 };
   v.innerHTML = `<div class="train">
-    <div class="trtop"><div><div class="trtitle">Entraînement</div><div class="trsub">Deux façons de progresser, avec les règles exactes de la simulation.</div></div></div>
+    <div class="trtop"><div><div class="trtitle">Entraînement</div><div class="trsub">Deux façons de progresser.</div></div></div>
     <div class="hub">
-      <button class="hubcard" data-go="auto">
-        <div class="hubart">${HUB_AUTO_ART}</div>
-        <div class="hubtxt"><div class="hubtitle">Automatismes</div>
-          <div class="hubdesc">Les calculs qu'un trader fait sans réfléchir : impact, slippage, frais, taille de position. Une question, quatre réponses, dix secondes.</div>
-          <div class="hubmeta"><span>${FLAME} Série ${S.train.streak} · record ${S.train.best}</span><span class="go">Commencer</span></div></div>
-      </button>
-      <button class="hubcard" data-go="cases">
-        <div class="hubart">${HUB_CASE_ART}</div>
-        <div class="hubtxt"><div class="hubtitle">Cas pratiques</div>
-          <div class="hubdesc">Une mission complète : tu choisis le token, la mise, le slippage, la priority fee, le stop et l'objectif. Le marché se déroule, puis tu es noté sur 100.</div>
-          <div class="hubmeta"><span>${cs.played ? `Meilleure note ${cs.best} / 100 · ${cs.played} mission${cs.played > 1 ? 's' : ''}` : 'Aucune mission jouée'}</span><span class="go">Commencer</span></div></div>
-      </button>
+      <button class="hubcard" data-go="auto"><span class="hubk">Exercices</span><span class="hubtitle">Automatismes</span>
+        <span class="hubdesc">Les calculs à connaître par cœur : impact, slippage, frais, taille de position.</span><span class="hubgo">${CHEV}</span></button>
+      <button class="hubcard" data-go="cases"><span class="hubk">Mise en situation</span><span class="hubtitle">Cas pratiques</span>
+        <span class="hubdesc">Un énoncé, puis l'appli en version mission. Tu montes ton trade de A à Z et tu es noté sur 100.</span><span class="hubgo">${CHEV}</span></button>
     </div></div>`;
   v.querySelectorAll('[data-go]').forEach(b => b.onclick = () => { trainView = b.dataset.go; renderTrain(v); window.scrollTo(0, 0); });
 }
-function trainHead(title, sub, extra = ''){
-  return `<div class="trtop"><div class="trback"><button class="iconbtn" id="trback" aria-label="Retour">${BACK}</button><div><div class="trtitle">${title}</div><div class="trsub">${sub}</div></div></div>${extra}</div>`;
+function trainHead(title, sub){
+  return `<div class="trtop"><div class="trback"><button class="iconbtn" id="trback" aria-label="Retour">${BACK}</button><div><div class="trtitle">${title}</div><div class="trsub">${sub}</div></div></div></div>`;
 }
 function renderAuto(v){
   v.innerHTML = `<div class="train">
-    ${trainHead('Automatismes', 'Calculs rapides à connaître par cœur.', '<div class="streak" id="streak"></div>')}
+    ${trainHead('Automatismes', 'Calculs rapides à connaître par cœur.')}
     <div class="pills">${TRAIN_CATS.map(([k, l]) => `<button data-c="${k}" class="${k === trainCat ? 'on' : ''}">${l}</button>`).join('')}</div>
     <article class="ex" id="ex"></article></div>`;
   v.querySelectorAll('[data-c]').forEach(b => b.onclick = () => {
@@ -1699,38 +1661,46 @@ function renderAuto(v){
     v.querySelectorAll('[data-c]').forEach(x => x.classList.toggle('on', x === b));
     nextEx(); showEx();
   });
-  trainStats();
   if (!curEx) nextEx();
   showEx();
 }
 function renderTrain(v){
-  if (cpChart && trainView !== 'cases'){ cpChart.remove(); cpChart = null; }
   if (trainView === 'auto') renderAuto(v);
   else if (trainView === 'cases') renderCases(v);
   else renderHub(v);
-  const b = $('#trback'); if (b) b.onclick = () => { if (M && M.running) return; trainView = 'hub'; renderTrain(v); };
+  const b = $('#trback'); if (b) b.onclick = () => { trainView = 'hub'; renderTrain(v); };
 }
 
-/* ---------- cas pratiques : missions ----------
-   Une mission = un énoncé (profil de risque, réseau), trois tokens au choix,
-   un ticket d'ordre complet, puis le marché se déroule. Les prix futurs sont
-   simulés : il y a une vraie part de hasard. La note juge les DÉCISIONS
-   (sur 100) ; le résultat en dollars est montré à part. */
+/* ---------- cas pratiques ----------
+   Un énoncé, puis l'appli en version mission : trois tokens fictifs, prix
+   figés, solde fictif de 100 $. On règle tout comme dans la vraie appli
+   (réglages Solana, montant, SL / TP), puis on lance 60 minutes de marché
+   simulé. La note juge les DÉCISIONS (sur 100), prises au moment du
+   lancement. Le résultat en dollars est montré à part : il y a du hasard. */
 const PROFILES = [
-  { id: 'prudent', name: 'Prudent', maxLoss: 3, goal: 2, desc: 'Tu protèges ton capital avant tout. Mieux vaut un petit gain sûr qu\'un gros pari.' },
-  { id: 'equi', name: 'Équilibré', maxLoss: 8, goal: 5, desc: 'Un risque mesuré pour un gain correct.' },
-  { id: 'agressif', name: 'Agressif', maxLoss: 20, goal: 15, desc: 'Tu acceptes une grosse perte possible pour viser un gros gain.' }
+  { id: 'prudent', name: 'Prudent', maxLoss: 3, goal: 2, story: 'Tu viens de déposer 100 $ et tu ne veux surtout pas les entamer. Trouve un trade propre : pas plus de 3 $ de perte, pour viser un petit +2 $.' },
+  { id: 'equi', name: 'Équilibré', maxLoss: 8, goal: 5, story: 'Tu acceptes un risque mesuré : jusqu\'à 8 $ de perte pour aller chercher +5 $. Ni trop timide, ni tête brûlée.' },
+  { id: 'agressif', name: 'Agressif', maxLoss: 20, goal: 15, story: 'Tu vises gros : +15 $. Tu acceptes de perdre jusqu\'à 20 $, mais pas de tout laisser sur un piège.' }
 ];
-const CONG = [ { name: 'calme', median: 0.0002 }, { name: 'normal', median: 0.001 }, { name: 'chargé', median: 0.004 } ];
+const CONG = [
+  { name: 'calme', txt: 'Le réseau Solana est calme en ce moment.', median: 0.0002 },
+  { name: 'normal', txt: 'Le réseau Solana tourne normalement.', median: 0.001 },
+  { name: 'chargé', txt: 'Le réseau Solana est saturé : tout le monde se bat pour entrer dans les blocs.', median: 0.004 }
+];
+const DAY = 86400e3;
 const TTYPES = {
-  major: { label: 'Grosse crypto', liq: [2e7, 6e7], vol: 0.0035, slip: [0.5, 2], price: [20, 400], pool: 0.0025 },
-  estab: { label: 'Memecoin établi', liq: [1.5e5, 5e5], vol: 0.014, slip: [2, 8], price: [0.002, 0.2], pool: 0.0025 },
-  fresh: { label: 'Memecoin récent', liq: [6e3, 2.5e4], vol: 0.035, slip: [8, 20], price: [0.000004, 0.0004], pool: 0.01 }
+  major: { label: 'Gros token', liq: [2e7, 6e7], vol: 0.0035, slip: [1, 3], price: [0.4, 12], pool: 0.0025, dex: 'raydium', age: [400*DAY, 1400*DAY] },
+  estab: { label: 'Memecoin établi', liq: [1.5e5, 5e5], vol: 0.014, slip: [3, 8], price: [0.002, 0.2], pool: 0.0025, dex: 'raydium', age: [40*DAY, 300*DAY] },
+  fresh: { label: 'Memecoin récent', liq: [6e3, 2.5e4], vol: 0.035, slip: [8, 20], price: [0.000004, 0.0004], pool: 0.01, dex: 'pumpfun', age: [12*60e3, 100*60e3] }
 };
-const TNAMES = { major: ['ORBIT', 'NOVA', 'ATLAS', 'VEGA'], estab: ['FROGE', 'KITTY', 'BLOB', 'HONK'], fresh: ['ZORP', 'GIGA', 'WAGMI', 'PLOP', 'YEET', 'MOON'] };
+const TNAMES = {
+  major: [['ORBIT', 'Orbit Network'], ['NOVA', 'Nova Protocol'], ['ATLAS', 'Atlas Finance'], ['VEGA', 'Vega Chain']],
+  estab: [['FROGE', 'Froge'], ['KITTY', 'Kitty Inu'], ['BLOB', 'Blob'], ['HONK', 'Honk the Goose']],
+  fresh: [['ZORP', 'Zorp'], ['GIGAPUG', 'Giga Pug'], ['PLOP', 'Plop'], ['YEET', 'Yeet Coin'], ['MOONBOY', 'Moon Boy'], ['SNOOT', 'Snoot']]
+};
 const FIT = { prudent: { major: 25, estab: 17, fresh: 6 }, equi: { major: 17, estab: 25, fresh: 14 }, agressif: { major: 8, estab: 18, fresh: 25 } };
-const CAPITAL = 100, CANDLES = 60;
-let M = null, cpChart = null, cpSeries = null;
+const CAPITAL = 100, CANDLES = 60, TICK_MS = 260;
+let M = null, msChart = null, msSeries = null;
 const gauss = () => { let u = 0, w = 0; while (!u) u = Math.random(); while (!w) w = Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*w); };
 function gbm(n, p0, vol, drift){
   const out = []; let p = p0;
@@ -1742,11 +1712,11 @@ function gbm(n, p0, vol, drift){
   }
   return out;
 }
+const B58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 function mkToken(type, flagged, used){
   const T = TTYPES[type], price = Math.exp(rnd(Math.log(T.price[0]), Math.log(T.price[1])));
-  const names = TNAMES[type].filter(n => !used.has(n)), name = pickOne(names); used.add(name);
+  const [name, full] = pickOne(TNAMES[type].filter(n => !used.has(n[0]))); used.add(name);
   const vol = T.vol*rnd(0.8, 1.3), drift = (Math.random() - 0.5)*T.vol*0.3;
-  // historique qui se termine au prix actuel
   const h0 = gbm(CANDLES, 1, vol, (Math.random() - 0.5)*T.vol*0.3), k = price/h0[h0.length - 1].c;
   const hist = h0.map(c => ({ o: c.o*k, h: c.h*k, l: c.l*k, c: c.c*k }));
   const fut = gbm(CANDLES, price, vol, drift);
@@ -1756,11 +1726,14 @@ function mkToken(type, flagged, used){
     rugKind = pickOne(['mint', 'freeze', 'lp']); checks[rugKind] = false;
     if (Math.random() < 0.75){
       rug = Math.floor(rnd(8, 50));
-      if (rugKind !== 'freeze') for (let i = rug; i < CANDLES; i++){ const c = fut[i]; const m = 0.07; fut[i] = { o: i === rug ? c.o : c.o*m, h: i === rug ? c.o : c.h*m, l: c.l*m, c: c.c*m }; }
+      if (rugKind !== 'freeze') for (let i = rug; i < CANDLES; i++){ const c = fut[i], m = 0.07; fut[i] = { o: i === rug ? c.o : c.o*m, h: i === rug ? c.o : c.h*m, l: c.l*m, c: c.c*m }; }
     }
   }
   const R = rnd(T.liq[0], T.liq[1]);
-  return { name, type, label: T.label, pool: T.pool, price, R, vol, slip: T.slip, hist, fut, checks, rug, rugKind,
+  return { name, full, type, label: T.label, pool: T.pool, dex: T.dex, price, R, vol, slip: T.slip, hist, fut, checks, rug, rugKind,
+    hue: Math.floor(rnd(0, 360)), created: Date.now() - rnd(T.age[0], T.age[1]),
+    addr: Array.from({ length: 44 }, () => B58[Math.floor(Math.random()*58)]).join(''),
+    vol1h: R*rnd(0.15, 0.9),
     top10: type === 'major' ? Math.round(rnd(8, 18)) : Math.round(rnd(type === 'fresh' ? 22 : 14, type === 'fresh' ? 55 : 35)),
     mc: type === 'major' ? R*rnd(25, 60) : price*1e9 };
 }
@@ -1768,262 +1741,456 @@ function newMission(){
   const used = new Set(), profile = pickOne(PROFILES), cong = pickOne(CONG);
   const flagEstab = Math.random() < 0.25, flagFresh = !flagEstab && Math.random() < 0.6;
   const tokens = shuffle([mkToken('major', false, used), mkToken('estab', flagEstab, used), mkToken('fresh', flagFresh, used)]);
-  M = { profile, cong, tokens, sol: Math.round(solPx()), sel: 0, amount: 30, slip: 5, prio: 0.001, sl: 10, tp: 20, running: false, result: null };
+  M = { profile, cong, tokens,
+    fees: Array.from({ length: 150 }, () => cong.median*Math.exp(gauss()*0.8)),
+    sol: Math.round(solPx()), cash: CAPITAL,
+    set: { prio: Math.max(PRIO_MIN, +S.settings.prio || PRIO_MIN), slip: Math.min(100, Math.max(1, +S.settings.slip || 10)) },
+    view: 'list', open: -1, i: -1, phase: 'prep', pos: null, fails: 0, expired: 0, failFees: 0, plan: null, why: null,
+    frozen: false, lpGone: false, busy: false,
+    t0: Math.floor(Date.now()/60000)*60 - CANDLES*60 + TZ() };
 }
-const missionFees = (t, A) => ({ pct: t.pool + PLAT_FEE, net: (M.prio + SOL_BASE_FEE)*M.sol });
-function preview(){
-  const t = M.tokens[M.sel], A = +M.amount || 0, f = missionFees(t, A);
-  const dx = Math.max(0, A*(1 - f.pct) - f.net), imp = dx/(t.R + dx);
-  const sl = +M.sl, tp = +M.tp;
-  const exitCost = A*(f.pct) + f.net;
-  const risk = sl > 0 ? Math.min(A, A*(sl/100) + 2*(A*f.pct + f.net) + 2*A*imp) : A;
-  return { A, f, imp, risk, rr: sl > 0 && tp > 0 ? tp/sl : 0, buyFees: A*f.pct + f.net, exitCost };
+const mPrice = t => M.i < 0 ? t.price : t.fut[M.i].c;
+const mLand = prio => Math.min(0.95, Math.max(0.01, M.fees.filter(f => prio >= f).length/M.fees.length));
+const mFees = (t, prio) => ({ pct: t.pool + PLAT_FEE, net: (prio + SOL_BASE_FEE)*M.sol });
+function mQuote(t, A, prio){
+  const f = mFees(t, prio), dx = A*(1 - f.pct) - f.net;
+  if (!(dx > 0)) return null;
+  const imp = dx/(t.R + dx), qty = dx/mPrice(t)*(1 - imp);
+  return { f, imp, qty, avg: A/qty, fee: A*f.pct + f.net };
+}
+function mSellOut(t, qty, price, prio){
+  const V = qty*price; if (!(V > 0)) return 0;
+  const f = mFees(t, prio), gross = t.R*V/(t.R + V);
+  return Math.max(0, gross*(1 - f.pct) - f.net);
+}
+function mCandles(t){ return t.hist.concat(t.fut.slice(0, M.i + 1)); }
+function mChange(t, n){ const a = mCandles(t), r = a[Math.max(0, a.length - n)]; return (mPrice(t)/r.o - 1)*100; }
+const mMc = t => t.mc*mPrice(t)/t.price;
+const mIcon = t => `<div class="ph" style="background:hsl(${t.hue} 32% 24%);color:hsl(${t.hue} 70% 80%)">${esc(t.name.slice(0, 3))}</div>`;
+function planPreview(pl){
+  const t = M.tokens[pl.sel], A = pl.A, f = mFees(t, pl.prio), dx = Math.max(0, A*(1 - f.pct) - f.net), imp = dx/(t.R + dx);
+  const risk = pl.slPct > 0 ? Math.min(A, A*(pl.slPct/100) + 2*(A*f.pct + f.net) + 2*A*imp) : A;
+  return { A, imp, risk, rr: pl.slPct > 0 && pl.tpPct > 0 ? pl.tpPct/pl.slPct : 0 };
 }
 
-/* --- interface --- */
+/* --- l'énoncé --- */
+function briefRows(){
+  const P = M.profile;
+  return `<div class="briefrows">
+    <div class="kv"><span>Solde de la mission</span><span>${money(CAPITAL)}</span></div>
+    <div class="kv"><span>Perte maximale acceptée</span><span class="down">${money(P.maxLoss)}</span></div>
+    <div class="kv"><span>Objectif de gain</span><span class="up">+${money(P.goal)}</span></div>
+    <div class="kv"><span>Durée du marché</span><span>60 minutes</span></div>
+  </div>`;
+}
 function renderCases(v){
-  if (!M) newMission();
+  if (!M || M.phase === 'done') newMission();
   const P = M.profile;
   v.innerHTML = `<div class="train">
-    ${trainHead('Cas pratiques', 'Prépare ton trade, puis laisse le marché parler.', `<button class="chip" id="cpnew">Nouvelle mission</button>`)}
+    ${trainHead('Cas pratiques', 'Lis l\'énoncé, puis passe à l\'action.')}
     <section class="brief">
-      <div class="briefhead"><span class="prof prof-${P.id}">${P.name}</span><span class="mut">${P.desc}</span></div>
-      <div class="briefgrid">
-        <div><span>Capital</span><b>${money(CAPITAL)}</b></div>
-        <div><span>Perte maximale</span><b class="down">${money(P.maxLoss)}</b></div>
-        <div><span>Objectif</span><b class="up">+${money(P.goal)}</b></div>
-        <div><span>Réseau Solana</span><b>${M.cong.name}</b><em>médiane ${solTxt(M.cong.median)} SOL</em></div>
-      </div>
-      <div class="mut sm">La mission dure 60 minutes. Choisis un seul token. Si ni le stop ni l'objectif ne sont touchés, la position est vendue à la fin.</div>
-    </section>
-    <div class="cpgrid">
-      <div class="cpmain">
-        <div class="toks">${M.tokens.map((t, i) => `<button class="tok ${i === M.sel ? 'on' : ''}" data-i="${i}"><b>${t.name}</b><span>${t.label}</span></button>`).join('')}</div>
-        <div class="cpchartwrap"><div id="cpchart"></div><div class="cplive" id="cplive"></div></div>
-        <div class="tinfo" id="tinfo"></div>
-      </div>
-      <aside class="ticket" id="ticket"></aside>
-    </div>
-    <section id="cpres"></section></div>`;
-  $('#cpnew').onclick = () => { if (M.running) return; M = null; renderTrain(v); };
-  v.querySelectorAll('.tok').forEach(b => b.onclick = () => {
-    if (M.running || M.result) return;
-    M.sel = +b.dataset.i; v.querySelectorAll('.tok').forEach(x => x.classList.toggle('on', x === b));
-    drawMissionChart(); renderTokenInfo(); renderTicket();
-  });
-  drawMissionChart(); renderTokenInfo(); renderTicket();
-  if (M.result) renderResult(true);
+      <div class="briefk"><span>Énoncé</span><span class="prof prof-${P.id}">Profil ${P.name.toLowerCase()}</span></div>
+      <p class="brieftxt">${P.story} ${M.cong.txt}</p>
+      ${briefRows()}
+      <div class="briefnote">Trois tokens sont listés. Tu règles tout comme dans l'appli : token, montant, slippage, priority fee, stop loss, take profit. Les prix restent figés pendant ta préparation. Une seule position. Ton plan est noté au moment où tu lances le marché.</div>
+      <div class="briefbtns"><button class="btn btn-ghost" id="cpnew">Autre énoncé</button><button class="btn btn-buy" id="cpgo">Commencer</button></div>
+    </section></div>`;
+  $('#cpnew').onclick = () => { newMission(); renderTrain(v); };
+  $('#cpgo').onclick = openMission;
 }
-function drawMissionChart(){
-  const el = $('#cpchart'); if (!el || !window.LightweightCharts) return;
-  if (cpChart){ cpChart.remove(); cpChart = null; }
-  const t = M.tokens[M.sel];
-  cpChart = LightweightCharts.createChart(el, {
+
+/* --- l'appli en version mission --- */
+function openMission(){
+  const el = $('#msn'), P = M.profile;
+  const navIcon = t => { const s = document.querySelector(`nav [data-t="${t}"] svg`); return s ? s.outerHTML : ''; };
+  el.innerHTML = `<div class="mbar"><button class="mq" id="mquit">${BACK}<span>Quitter</span></button>
+      <div class="grow mlab"><b>Mission · profil ${P.name.toLowerCase()}</b><span>perte max ${money(P.maxLoss)} · objectif +${money(P.goal)}</span></div>
+      <button class="chip" id="mbrief">Énoncé</button></div>
+    <div class="mbriefbox" id="mbriefbox" hidden><p>${P.story} ${M.cong.txt}</p>${briefRows()}</div>
+    <header class="mhead" id="mhead"><div class="status"><span class="dot" id="mdot"></span><span id="mstat"></span></div>
+      <div class="mtotal" id="mtotal"></div><div class="pnlrow" id="mpnl"></div><div class="mcash" id="mcash"></div></header>
+    <main id="mview"></main>
+    <nav class="mnav"><div class="brand">Mission</div>
+      <button data-mt="list">${navIcon('meme')}Marché</button><button data-mt="porte">${navIcon('porte')}Portefeuille</button></nav>`;
+  el.classList.add('open'); el.scrollTop = 0;
+  $('#mquit').onclick = () => {
+    if (M.phase !== 'done' && M.pos && !confirm('Quitter la mission ? Elle ne sera pas notée.')) return;
+    closeMission();
+  };
+  $('#mbrief').onclick = () => { const b = $('#mbriefbox'); b.hidden = !b.hidden; };
+  el.querySelectorAll('[data-mt]').forEach(b => b.onclick = () => { if (M.phase === 'done') return; M.view = b.dataset.mt; mRender(); el.scrollTop = 0; });
+  M.view = 'list'; mRender();
+}
+function closeMission(toHub){
+  if (msChart){ msChart.remove(); msChart = null; msSeries = null; }
+  M = null;
+  const el = $('#msn'); el.classList.remove('open'); el.innerHTML = '';
+  trainView = toHub ? 'hub' : 'cases'; renderTrain($('#view')); window.scrollTo(0, 0);
+}
+function mRender(){
+  const v = $('#mview'); if (!v) return;
+  if (msChart){ msChart.remove(); msChart = null; msSeries = null; }
+  $('#mhead').hidden = M.view === 'tok';
+  $('#msn nav').style.display = M.view === 'result' ? 'none' : '';
+  $('#msn').querySelectorAll('[data-mt]').forEach(b => b.classList.toggle('on', M.view !== 'result' && b.dataset.mt === (M.view === 'tok' ? 'list' : M.view)));
+  if (M.view === 'list'){
+    v.innerHTML = `<div class="hint">Tokens fictifs · frais de plateforme 1&nbsp;%</div><div id="mlist" class="mlist"></div>`;
+    $('#mlist').onclick = e => { const r = e.target.closest('[data-i]'); if (r) mOpen(+r.dataset.i); };
+  } else if (M.view === 'porte'){
+    v.innerHTML = `<div class="porte"><div class="pcol"><div class="card" id="msum"></div><div id="mlist" class="mlist"></div></div>
+      <div class="pcol"><div class="card"><h3>Réglages Solana</h3>
+        <div class="field" style="margin-top:0">Priority fee par transaction (SOL)</div>
+        <input id="mprio" type="number" step="0.0001" min="0.0001" inputmode="decimal" value="${M.set.prio}">
+        <div id="mnet" class="field" style="margin-top:8px"></div>
+        <div class="field">Tolérance de slippage (%)</div>
+        <input id="mslip" type="number" step="1" min="1" max="100" inputmode="decimal" value="${M.set.slip}">
+        <div class="field">Frais de plateforme : 1 % par trade sur les memecoins</div>
+      </div></div></div>`;
+    $('#mprio').onchange = e => { M.set.prio = Math.max(PRIO_MIN, +e.target.value || 0); e.target.value = M.set.prio; mNet(); };
+    $('#mslip').onchange = e => { M.set.slip = Math.min(100, Math.max(1, +e.target.value || 10)); e.target.value = M.set.slip; };
+    $('#mlist').onclick = e => { const r = e.target.closest('[data-i]'); if (r) mOpen(+r.dataset.i); };
+    mNet();
+  } else if (M.view === 'tok'){
+    mTokView(v);
+  } else if (M.view === 'result'){
+    mResult(v);
+    return;
+  }
+  mTick();
+}
+function mNet(){
+  const el = $('#mnet'); if (!el) return;
+  el.textContent = `Réseau en ce moment : médiane ${fp(median(M.fees))} SOL · avec ta fee, confirmation ${etaText(mLand(M.set.prio))}`;
+}
+function mOpen(i){ M.open = i; M.view = 'tok'; mRender(); $('#msn').scrollTop = 0; }
+function mTokView(v){
+  const t = M.tokens[M.open];
+  v.innerHTML = `<div class="sheetin">
+    <div class="topbar"><button id="mback" class="iconbtn" aria-label="Retour">${BACK}</button><span class="chip">${t.addr.slice(0, 4)}…${t.addr.slice(-4)}</span></div>
+    <div class="sheetgrid"><div class="maincol">
+      <div class="tokhead">${mIcon(t)}<div class="grow"><div class="tokname">${esc(t.name)}</div><div class="mut sm">${esc(t.full)}</div></div></div>
+      <div class="msp" id="msp"></div><div class="msc" id="msc"></div>
+      <div class="chartbar"><div class="mfresh" id="mfresh"></div></div>
+      <div class="mchartwrap"><div id="mchart"></div></div>
+    </div><div class="sidecol">
+      <div class="card"><h3>Acheter</h3>
+        <input id="mamt" class="amount" type="number" inputmode="decimal" placeholder="0,00 $">
+        <div class="chips"><button data-p=".1">10 %</button><button data-p=".25">25 %</button><button data-p=".5">50 %</button><button data-p="1">Max</button></div>
+        <div class="mquote" id="mquote"></div>
+        <button class="btn btn-buy" id="mbuy">Acheter</button>
+      </div>
+      <div id="mposbox"></div>
+      <div class="card" id="mstats"></div>
+    </div></div></div>`;
+  $('#mback').onclick = () => { M.view = 'list'; mRender(); };
+  v.querySelectorAll('[data-p]').forEach(b => b.onclick = () => { $('#mamt').value = (Math.floor(M.cash*b.dataset.p*100)/100).toFixed(2); mQuoteUpd(); });
+  $('#mamt').oninput = mQuoteUpd;
+  $('#mbuy').onclick = mBuy;
+  mChart('#mchart', false);
+}
+function mChart(sel, full){
+  const el = $(sel), t = M.tokens[full ? M.plan.sel : M.open];
+  if (!el || !window.LightweightCharts) return;
+  msChart = LightweightCharts.createChart(el, {
     autoSize: true,
-    layout: { background: { type: 'solid', color: '#1c1c21' }, textColor: '#8e8e9a', fontSize: 11, fontFamily: 'Figtree, sans-serif', attributionLogo: false },
+    layout: { background: { type: 'solid', color: full ? '#222228' : '#17171b' }, textColor: '#8e8e9a', fontSize: 11, fontFamily: 'Figtree, sans-serif', attributionLogo: false },
     grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,.04)' } },
     timeScale: { timeVisible: true, secondsVisible: false, borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
     rightPriceScale: { borderVisible: false }, crosshair: { mode: 0 },
     handleScroll: false, handleScale: false
   });
-  cpSeries = cpChart.addCandlestickSeries({ upColor: UPC, downColor: DNC, borderVisible: false, wickUpColor: UPC, wickDownColor: DNC, priceFormat: priceFmt(t.price) });
-  const t0 = M.t0 || (Math.floor(Date.now()/60000)*60 - CANDLES*60 + TZ());
-  const data = t.hist.map((c, i) => ({ time: t0 + i*60, open: c.o, high: c.h, low: c.l, close: c.c }));
-  const rr = M.result || M.live;
-  if (rr && rr.shown) rr.shown.forEach((c, i) => data.push({ time: t0 + (CANDLES + i)*60, open: c.o, high: c.h, low: c.l, close: c.c }));
-  cpSeries.setData(data);
-  M.t0 = t0;
-  if (rr && rr.entry) addTradeLines(rr);
-  cpChart.timeScale().fitContent();
+  msSeries = msChart.addCandlestickSeries({ upColor: UPC, downColor: DNC, borderVisible: false, wickUpColor: UPC, wickDownColor: DNC, priceFormat: priceFmt(t.price) });
+  const bars = full ? t.hist.concat(t.fut) : mCandles(t);
+  msSeries.setData(bars.map((c, i) => ({ time: M.t0 + i*60, open: c.o, high: c.h, low: c.l, close: c.c })));
+  mLines();
+  if (full && M.pos){
+    const mk = [{ time: M.t0 + (CANDLES - 1)*60, position: 'belowBar', color: '#ab9ff2', shape: 'arrowUp', text: 'achat' }];
+    if (M.exitIdx != null) mk.push({ time: M.t0 + (CANDLES + M.exitIdx)*60, position: 'aboveBar', color: M.why === 'tp' ? UPC : M.why === 'stop' ? DNC : '#8e8e9a', shape: 'arrowDown',
+      text: { tp: 'take profit', stop: 'stop loss', manual: 'vente', end: 'fin', lp: 'liquidité retirée', freeze: 'gelé' }[M.why] || 'fin' });
+    msSeries.setMarkers(mk);
+  }
+  msChart.timeScale().fitContent();
 }
-function addTradeLines(r){
-  if (!cpSeries) return;
-  cpSeries.createPriceLine({ price: r.entry, color: '#ab9ff2', lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: 'achat' });
-  if (r.slp) cpSeries.createPriceLine({ price: r.slp, color: DNC, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'stop' });
-  if (r.tpp) cpSeries.createPriceLine({ price: r.tpp, color: UPC, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: 'objectif' });
+function mLines(){
+  if (!msSeries) return;
+  (msSeries._ml || []).forEach(l => { try { msSeries.removePriceLine(l); } catch(e){} });
+  msSeries._ml = [];
+  const P = M.pos; if (!P || (M.view === 'tok' && P.idx !== M.open)) return;
+  const add = (price, color, style, title) => msSeries._ml.push(msSeries.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title }));
+  add(P.entry, '#ab9ff2', 0, 'achat');
+  if (P.sl) add(P.sl, DNC, 2, 'SL');
+  if (P.tp) add(P.tp, UPC, 2, 'TP');
 }
-const CK = ok => ok ? `<span class="ck ok">${ICON_OK}</span>` : `<span class="ck ko">${ICON_KO}</span>`;
-function renderTokenInfo(){
-  const t = M.tokens[M.sel], el = $('#tinfo'); if (!el) return;
-  const ch = (t.hist[t.hist.length - 1].c/t.hist[0].o - 1)*100;
-  el.innerHTML = `<div class="tistats">
-      <div><span>Prix</span><b>${fp(t.price)}</b></div>
-      <div><span>Sur 1 h</span><b class="${cls(ch)}">${pct(ch)}</b></div>
-      <div><span>Volatilité / min</span><b>${pct1(t.vol*100)}</b></div>
-      <div><span>Pool (côté SOL)</span><b>${big(t.R)}</b></div>
-      <div><span>Market cap</span><b>${big(t.mc)}</b></div>
-      <div><span>Frais de pool</span><b>${nf2(t.pool*100, 2)} %</b></div>
-    </div>
-    ${t.type === 'major' ? '' : `<div class="tisec"><div>${CK(t.checks.mint)}Mint révoqué</div><div>${CK(t.checks.freeze)}Gel révoqué</div><div>${CK(t.checks.lp)}Liquidité brûlée</div><div><b class="${t.top10 >= 45 ? 'down' : ''}">${t.top10} %</b> aux 10 plus gros</div></div>`}`;
-}
-const SLIPS = [0.5, 1, 3, 5, 10, 20], PRIOS = [0.0001, 0.0005, 0.001, 0.003, 0.01];
-function renderTicket(){
-  const el = $('#ticket'); if (!el) return;
-  const lock = M.running || !!M.result;
-  const field = (id, label, val, unit, help) => `<label class="tf"><span class="tfl">${label}</span><span class="tfi"><input id="${id}" type="number" inputmode="decimal" step="any" value="${val}" ${lock ? 'disabled' : ''}><em>${unit}</em></span>${help ? `<span class="tfh">${help}</span>` : ''}</label>`;
-  const chips = (key, list, fmt) => `<div class="tchips">${list.map(x => `<button data-k="${key}" data-x="${x}" class="${+M[key] === x ? 'on' : ''}" ${lock ? 'disabled' : ''}>${fmt(x)}</button>`).join('')}</div>`;
-  el.innerHTML = `<div class="tkhead">Ton ordre</div>
-    ${field('cpA', 'Mise', M.amount, '$', `sur ${money(CAPITAL)} de capital`)}
-    <div class="tchips">${[10, 25, 50, 100].map(x => `<button data-amt="${x}" ${lock ? 'disabled' : ''}>${x === 100 ? 'Tout' : x + ' %'}</button>`).join('')}</div>
-    ${field('cpSlip', 'Tolérance de slippage', M.slip, '%')}
-    ${chips('slip', SLIPS, x => nf2(x, x < 1 ? 1 : 0) + ' %')}
-    ${field('cpPrio', 'Priority fee', M.prio, 'SOL')}
-    ${chips('prio', PRIOS, x => solTxt(x))}
-    <div class="tfrow">${field('cpSL', 'Stop loss', M.sl, '%', 'sous l\'achat, 0 = aucun')}${field('cpTP', 'Objectif', M.tp, '%', 'au-dessus, 0 = aucun')}</div>
-    <div class="tprev" id="tprev"></div>
-    <button class="btn btn-buy" id="cpgo" ${lock ? 'disabled' : ''}>${M.result ? 'Mission terminée' : M.running ? 'Marché en cours…' : 'Lancer le trade'}</button>`;
-  const upd = () => { M.amount = Math.max(0, +$('#cpA').value || 0); M.slip = Math.max(0, +$('#cpSlip').value || 0); M.prio = Math.max(0, +$('#cpPrio').value || 0); M.sl = Math.max(0, +$('#cpSL').value || 0); M.tp = Math.max(0, +$('#cpTP').value || 0); renderPreview(); el.querySelectorAll('[data-k]').forEach(b => b.classList.toggle('on', +M[b.dataset.k] === +b.dataset.x)); };
-  ['cpA', 'cpSlip', 'cpPrio', 'cpSL', 'cpTP'].forEach(id => $('#' + id).oninput = upd);
-  el.querySelectorAll('[data-k]').forEach(b => b.onclick = () => { M[b.dataset.k] = +b.dataset.x; renderTicket(); });
-  el.querySelectorAll('[data-amt]').forEach(b => b.onclick = () => { M.amount = CAPITAL*b.dataset.amt/100; renderTicket(); });
-  $('#cpgo').onclick = runMission;
-  renderPreview();
-}
-function renderPreview(){
-  const el = $('#tprev'); if (!el) return;
-  const p = preview(), max = M.profile.maxLoss, ratio = Math.min(1, p.risk/(max*2));
-  const over = p.risk > max;
-  el.innerHTML = `<div class="riskbar"><div class="rbtop"><span>Perte possible</span><b class="${over ? 'down' : ''}">${money(p.risk)} <em>/ ${money(max)} max</em></b></div>
-      <div class="rbtrack"><i style="width:${(ratio*100).toFixed(1)}%" class="${over ? 'over' : ''}"></i><s style="left:50%"></s></div></div>
-    <div class="kv sm"><span>Frais d'achat</span><span>${money(p.buyFees)}</span></div>
-    <div class="kv sm"><span>Impact sur le prix</span><span class="${p.imp > 0.05 ? 'down' : ''}">${nf2(p.imp*100, 2)} %</span></div>
-    <div class="kv sm"><span>Ratio risque / gain</span><span>${p.rr ? '1 : ' + nf2(p.rr, 1) : '-'}</span></div>`;
+function mQuoteUpd(){
+  const el = $('#mquote'); if (!el) return;
+  const t = M.tokens[M.open], amt = +$('#mamt').value;
+  if (!(amt > 0)){ el.textContent = 'Cash disponible : ' + money(M.cash); return; }
+  const q = mQuote(t, amt, M.set.prio);
+  if (!q){ el.textContent = 'Montant trop faible pour couvrir les frais'; return; }
+  el.innerHTML = `Prix moyen estimé : ${fp(q.avg)}<br>Frais : ${money(q.fee)} (pool ${money(amt*t.pool)} · plateforme ${money(amt*PLAT_FEE)} · réseau ${money(q.f.net)})<br>Confirmation estimée : ${etaText(mLand(M.set.prio))}<br>Impact sur le prix : <span class="${q.imp > .05 ? 'down' : ''}">${nf2(q.imp*100, 2)} %</span><br>Tu reçois environ : ${fp(q.qty)} ${esc(t.name)}`;
 }
 
-/* --- déroulé du marché --- */
-async function runMission(){
-  if (M.running || M.result) return;
-  const t = M.tokens[M.sel], A = Math.min(CAPITAL, +M.amount || 0);
-  if (!(A >= 1)) return toast('Mise invalide');
-  if (!(M.slip > 0)) return toast('Choisis une tolérance de slippage');
-  M.amount = A; M.running = true; renderTicket();
-  const say = h => { const l = $('#cplive'); if (l) l.innerHTML = h; };
-  const f = missionFees(t, A), N = f.net;
-  // 1. confirmation : dépend de ta priority fee face à la médiane du réseau
-  const ratio = M.prio/M.cong.median, q = ratio < 0.3 ? 0.012 : Math.min(0.95, 0.12 + 0.42*ratio);
-  let slot = 0; while (++slot <= 150 && Math.random() >= q){}
-  const r = { token: t.name, A, shown: [] }; M.live = r;
-  if (slot > 150){
-    say('<b class="down">Transaction expirée</b>'); await sleep(900);
-    r.status = 'expired'; r.pnl = 0; return finishMission(r);
+/* --- achat, vente, SL / TP --- */
+async function mBuy(){
+  if (M.busy) return toast('Transaction déjà en cours');
+  if (M.pos) return toast('Une seule position par mission. Gère celle que tu as.');
+  const my = M, t = M.tokens[M.open], idx = M.open, A = +$('#mamt').value;
+  if (!(A > 0)) return toast('Montant invalide');
+  if (A > M.cash + 1e-9) return toast('Solde insuffisant');
+  const q0 = mQuote(t, A, M.set.prio);
+  if (!q0) return toast('Montant trop faible pour couvrir les frais');
+  const set = { ...M.set }, f = q0.f;
+  M.busy = true; toast('Transaction envoyée, en attente de confirmation…');
+  let slot = 0; const q = mLand(set.prio);
+  while (++slot <= MAX_SLOTS && Math.random() >= q){}
+  if (slot > MAX_SLOTS){
+    await sleep(3000); if (M !== my) return;
+    M.busy = false; M.expired++;
+    return toast('Transaction expirée : priority fee trop basse. Aucun frais payé.');
   }
-  const sec = slot*0.4 + 0.3;
-  for (let s = 0; s < Math.min(sec, 6); s += 0.25){ say(`Confirmation… <b>${nf2(Math.min(s, sec), 1)} s</b>`); await sleep(110); }
-  r.confirmSec = sec;
-  // 2. le prix bouge pendant l'attente : d'autres acheteurs passent avant toi
+  const sec = slot*SLOT_MS/1000 + 0.3;
+  await sleep(Math.min(4000, 200 + sec*1000)); if (M !== my) return;
+  M.busy = false;
+  // pendant la confirmation, d'autres acheteurs passent avant toi
   const sd = t.vol*Math.sqrt(sec/60), move = gauss()*sd + (t.type === 'fresh' ? Math.abs(gauss())*sd*0.6 : 0);
   const short = move > 0 ? move/(1 + move)*100 : 0;
-  r.move = move*100;
-  if (short > M.slip){
-    say('<b class="down">Échec : slippage dépassé</b>'); await sleep(900);
-    r.status = 'slip'; r.pnl = -N; return finishMission(r);
+  if (short > set.slip){
+    M.cash -= f.net; M.fails++; M.failFees += f.net; mTick();
+    return toast(`Échec : le prix a pris ${pct1(move*100)} pendant la confirmation, plus que ton slippage de ${nf2(set.slip, 1)} %. Frais réseau payés.`);
   }
-  const pFill = t.price*(1 + move), dx = A*(1 - f.pct) - N, tokens = dx/pFill * t.R/(t.R + dx);
-  r.entry = pFill; r.slp = M.sl > 0 ? pFill*(1 - M.sl/100) : null; r.tpp = M.tp > 0 ? pFill*(1 + M.tp/100) : null;
-  addTradeLines(r);
-  if (cpSeries) cpSeries.setMarkers([{ time: M.t0 + (CANDLES - 1)*60, position: 'belowBar', color: '#ab9ff2', shape: 'arrowUp', text: 'achat' }]);
-  // 3. les 60 minutes suivantes
-  let exitP = null, why = null, blocked = false;
+  const pFill = t.price*(1 + move), dx = A*(1 - f.pct) - f.net, qty = dx/pFill*t.R/(t.R + dx);
+  M.cash -= A;
+  M.pos = { idx, qty, cost: A, entry: A/qty, fill: pFill, sl: null, tp: null, out: 0, closed: false, set, slot };
+  toast('Acheté ' + fp(qty) + ' ' + t.name);
+  if (M.view === 'tok') { const a = $('#mamt'); if (a) a.value = ''; }
+  mTick(); mLines();
+}
+function mPosBox(){
+  const box = $('#mposbox'); if (!box) return;
+  const P = M.pos;
+  if (!P || P.idx !== M.open){ box.innerHTML = ''; box.dataset.k = ''; return; }
+  const key = M.phase + (P.closed ? 'c' : '');
+  if (box.dataset.k === key) return;
+  box.dataset.k = key;
+  box.innerHTML = `<div class="card"><h3>Ma position</h3><div id="mpinfo"></div>
+    ${P.closed ? '' : `<div class="field">Vendre</div>
+    <div class="chips three sell" style="margin-top:0"><button data-s=".25">25 %</button><button data-s=".5">50 %</button><button data-s="1">Tout</button></div>
+    <div class="field">Stop loss (prix)</div><input id="msl" type="number" inputmode="decimal" step="any" value="${P.sl ?? ''}"><div class="mfh" id="mslh"></div>
+    <div class="field">Take profit (prix)</div><input id="mtp" type="number" inputmode="decimal" step="any" value="${P.tp ?? ''}"><div class="mfh" id="mtph"></div>
+    <button id="msave" class="btn btn-ghost" style="margin-top:12px">Enregistrer SL / TP</button>
+    ${M.phase === 'prep' ? `<button id="mrun" class="btn btn-buy" style="margin-top:8px">Lancer le marché (60 min)</button><div class="mfh" style="margin-top:8px">Ton plan est noté à ce moment-là. Les prix se mettent alors à bouger.</div>` : ''}`}
+  </div>`;
+  if (P.closed) return;
+  box.querySelectorAll('[data-s]').forEach(b => b.onclick = () => mSell(+b.dataset.s));
+  const hint = () => {
+    const sl = +$('#msl').value, tp = +$('#mtp').value;
+    $('#mslh').textContent = sl > 0 ? `${pct((sl/P.entry - 1)*100)} par rapport à ton prix d'achat (${fp(P.entry)})` : 'Vide = aucun stop loss';
+    $('#mtph').textContent = tp > 0 ? `${pct((tp/P.entry - 1)*100)} par rapport à ton prix d'achat` : 'Vide = aucun take profit';
+  };
+  $('#msl').oninput = hint; $('#mtp').oninput = hint; hint();
+  $('#msave').onclick = () => { if (mSaveTrig()) toast('SL / TP enregistrés'); };
+  if ($('#mrun')) $('#mrun').onclick = () => { if (mSaveTrig()) mRun(); };
+}
+function mSaveTrig(){
+  const P = M.pos, t = M.tokens[P.idx], pr = mPrice(t);
+  const sl = +$('#msl').value || null, tp = +$('#mtp').value || null;
+  if (sl && sl >= pr){ toast('Le stop loss doit être sous le prix actuel (' + fp(pr) + ')'); return false; }
+  if (tp && tp <= pr){ toast('Le take profit doit être au-dessus du prix actuel (' + fp(pr) + ')'); return false; }
+  P.sl = sl; P.tp = tp; mLines();
+  return true;
+}
+function mSnapshot(){
+  const P = M.pos;
+  return { sel: P.idx, A: P.cost, slip: P.set.slip, prio: P.set.prio,
+    slPct: P.sl ? Math.max(0.01, (1 - P.sl/P.entry)*100) : 0, tpPct: P.tp ? Math.max(0.01, (P.tp/P.entry - 1)*100) : 0 };
+}
+function mClose(price, why){
+  const P = M.pos, t = M.tokens[P.idx];
+  const out = M.lpGone || !(price > 0) ? 0 : mSellOut(t, P.qty, price, P.set.prio);
+  M.cash += out; P.out += out; P.qty = 0; P.closed = true; M.why = why; M.exitIdx = M.i;
+}
+function mSell(frac){
+  const P = M.pos; if (!P || P.closed || M.phase === 'done') return;
+  if (M.frozen) return toast('Vente impossible : le créateur a gelé les portefeuilles.');
+  if (!M.plan) M.plan = mSnapshot();
+  const t = M.tokens[P.idx];
+  if (frac >= 1){
+    if (M.lpGone) toast('La liquidité a été retirée : la vente ne rapporte rien.');
+    mClose(mPrice(t), M.lpGone ? 'lp' : 'manual');
+    if (M.phase === 'prep') return mFinish();
+    return mTick();
+  }
+  const q = P.qty*frac, out = M.lpGone ? 0 : mSellOut(t, q, mPrice(t), P.set.prio);
+  M.cash += out; P.out += out; P.qty -= q;
+  toast(`Vendu ${Math.round(frac*100)} % : ${money(out)}`);
+  mTick();
+}
+async function mRun(){
+  if (M.phase !== 'prep' || !M.pos || M.pos.closed) return;
+  const my = M, P = M.pos, t = M.tokens[P.idx];
+  M.plan = mSnapshot(); M.phase = 'run';
+  if (M.view === 'tok') $('#mposbox').dataset.k = '';
+  mTick();
+  let warned = false;
   for (let i = 0; i < CANDLES; i++){
+    await sleep(i ? TICK_MS : 500);
+    if (M !== my) return;
+    if (P.closed) break;
+    M.i = i;
     const c = t.fut[i];
-    if (t.rug === i && t.rugKind === 'freeze') blocked = true;
-    if (t.rug === i && t.rugKind === 'lp'){ exitP = 0; why = 'lp'; }
-    if (exitP === null && !blocked){
-      if (r.slp && c.l <= r.slp){ exitP = Math.min(r.slp, c.o); why = 'stop'; }
-      else if (r.tpp && c.h >= r.tpp){ exitP = Math.max(r.tpp, Math.min(c.o, c.h)); why = 'tp'; }
+    if (t.rug === i && t.rugKind === 'freeze') M.frozen = true;
+    if (t.rug === i && t.rugKind === 'lp'){ M.lpGone = true; if (P.sl) mClose(0, 'lp'); }
+    if (!P.closed){
+      const hitSl = P.sl && c.l <= P.sl, hitTp = P.tp && c.h >= P.tp;
+      if (M.frozen && (hitSl || hitTp) && !warned){ warned = true; toast(`Ton ${hitSl ? 'stop loss' : 'take profit'} s'est déclenché mais la vente a échoué : le token est gelé.`); }
+      else if (!M.frozen && !M.lpGone){
+        if (hitSl) mClose(Math.min(P.sl, c.o), 'stop');
+        else if (hitTp) mClose(Math.max(P.tp, Math.min(c.o, c.h)), 'tp');
+      }
     }
-    r.shown.push(c);
-    try { if (cpSeries) cpSeries.update({ time: M.t0 + (CANDLES + i)*60, open: c.o, high: c.h, low: c.l, close: c.c }); } catch(e){}
-    const val = exitP !== null ? null : tokens*c.c;
-    say(exitP !== null ? '' : `Position ouverte · <b class="${cls(val - A)}">${val - A >= 0 ? '+' : ''}${money(val - A)}</b> <span class="mut">minute ${i + 1} / 60</span>`);
-    if (exitP !== null){ r.exitIdx = i; break; }
-    await sleep(70);
+    if (msSeries && M.view === 'tok'){
+      const o = M.tokens[M.open].fut[i];
+      try { msSeries.update({ time: M.t0 + (CANDLES + i)*60, open: o.o, high: o.h, low: o.l, close: o.c }); } catch(e){}
+    }
+    mTick();
+    if (P.closed) break;
   }
-  if (exitP === null){ exitP = blocked ? 0 : t.fut[CANDLES - 1].c; why = blocked ? 'freeze' : 'end'; r.exitIdx = CANDLES - 1; }
-  if (blocked && why !== 'freeze' && why !== 'lp'){ exitP = 0; why = 'freeze'; }
-  const V = tokens*exitP, gross = t.R*V/(t.R + V), out = Math.max(0, gross*(1 - f.pct) - (V > 0 ? N : 0));
-  r.status = why; r.exitP = exitP; r.out = out; r.pnl = out - A;
-  if (exitP > 0 && cpSeries) cpSeries.setMarkers([{ time: M.t0 + (CANDLES - 1)*60, position: 'belowBar', color: '#ab9ff2', shape: 'arrowUp', text: 'achat' },
-    { time: M.t0 + (CANDLES + r.exitIdx)*60, position: 'aboveBar', color: why === 'tp' ? UPC : why === 'stop' ? DNC : '#8e8e9a', shape: 'arrowDown', text: why === 'tp' ? 'objectif' : why === 'stop' ? 'stop' : 'fin' }]);
-  await sleep(500);
-  finishMission(r);
+  if (M !== my) return;
+  if (!P.closed) mClose(M.frozen || M.lpGone ? 0 : t.fut[M.i].c, M.frozen ? 'freeze' : M.lpGone ? 'lp' : 'end');
+  mTick();
+  await sleep(900); if (M !== my) return;
+  mFinish();
+}
+function mFinish(){
+  if (M.exitIdx == null) M.exitIdx = M.i;
+  M.phase = 'done'; M.view = 'result';
+  M.grade = gradeMission();
+  mRender(); $('#msn').scrollTop = 0;
+}
+
+/* --- rafraîchissement de l'écran de mission --- */
+function mTick(){
+  if (!M || !$('#msn').classList.contains('open')) return;
+  const P = M.pos, held = P && !P.closed ? P.qty*mPrice(M.tokens[P.idx]) : 0, tot = M.cash + held, d = tot - CAPITAL;
+  $('#mtotal').textContent = money(tot);
+  $('#mpnl').innerHTML = `<span class="${cls(d)}">${d >= 0 ? '+' : ''}${money(d)}</span><span class="pill ${cls(d)}">${pct(d/CAPITAL*100)}</span>`;
+  $('#mcash').textContent = money(M.cash) + ' disponibles';
+  $('#mdot').className = 'dot' + (M.phase === 'run' ? ' on' : ' idle');
+  $('#mstat').textContent = M.phase === 'prep' ? 'Prix figés' : M.phase === 'run' ? `Marché en cours · minute ${M.i + 1} / 60` : 'Mission terminée';
+  if (M.view === 'list'){
+    $('#mlist').innerHTML = M.tokens.map((t, i) => { const ch = mChange(t, 60); return `<div class="row" data-i="${i}"><span class="ic">${mIcon(t)}</span><div class="grow"><div class="name">${esc(t.name)} <span class="mut sm">${age(t.created)}</span></div><div class="mut sm">Liq. ${big(2*t.R)} · MC ${big(mMc(t))}</div></div><div class="right"><div>${fp(mPrice(t))}</div><div class="sm ${cls(ch)}">${pct(ch)} 1h</div></div></div>`; }).join('');
+  } else if (M.view === 'porte'){
+    $('#msum').innerHTML = `<div class="kv"><span>Cash</span><span>${money(M.cash)}</span></div><div class="kv"><span>En positions</span><span>${money(held)}</span></div>`;
+    const t = P && !P.closed ? M.tokens[P.idx] : null;
+    $('#mlist').innerHTML = t ? `<div class="row" data-i="${P.idx}"><span class="ic">${mIcon(t)}</span><div class="grow"><div class="name">${esc(t.name)}</div><div class="mut sm">${fp(P.qty)} · coût ${money(P.cost)}</div></div><div class="right"><div>${money(held)}</div><div class="sm ${cls(held - P.cost)}">${pct((held - P.cost)/P.cost*100)}</div></div></div>`
+      : `<div class="empty">Aucune position. Achète un token depuis Marché.</div>`;
+  } else if (M.view === 'tok'){
+    const t = M.tokens[M.open];
+    $('#msp').textContent = fp(mPrice(t));
+    const ch = mChange(t, 60);
+    $('#msc').innerHTML = `<span class="${cls(ch)}">${pct(ch)} 1h</span>`;
+    $('#mfresh').textContent = M.phase === 'prep' ? 'Prix figés pendant ta préparation' : M.phase === 'run' ? `Minute ${M.i + 1} / 60` : 'Mission terminée';
+    const m5 = mChange(t, 5), CK = ok => `<span class="ck ${ok ? 'ok' : 'ko'}">${ok ? ICON_OK : ICON_KO}</span>`;
+    $('#mstats').innerHTML = `
+      <div class="kv"><span>5 min / 1h</span><span><span class="${cls(m5)}">${pct(m5)}</span> · <span class="${cls(ch)}">${pct(ch)}</span></span></div>
+      <div class="kv"><span>Liquidité</span><span>${big(2*t.R)}</span></div>
+      <div class="kv"><span>Market cap</span><span>${big(mMc(t))}</span></div>
+      <div class="kv"><span>Volume 1h</span><span>${big(t.vol1h)}</span></div>
+      <div class="kv"><span>DEX</span><span>${t.dex} · ${age(t.created)}</span></div>
+      <div class="ksep"></div>
+      <div class="kv"><span>Mint révoqué</span><span>${CK(t.checks.mint)}</span></div>
+      <div class="kv"><span>Gel révoqué</span><span>${CK(t.checks.freeze)}</span></div>
+      <div class="kv"><span>Liquidité brûlée</span><span>${CK(t.checks.lp)}</span></div>
+      <div class="kv"><span>Top 10 détenteurs</span><span class="${t.top10 >= 45 ? 'down' : ''}">${t.top10} %</span></div>`;
+    if (document.activeElement !== $('#mamt')) mQuoteUpd();
+    mPosBox();
+    const pi = $('#mpinfo');
+    if (P && pi && P.idx === M.open){
+      const mv = P.qty*mPrice(t), sv = P.qty > 0 && !M.lpGone ? mSellOut(t, P.qty, mPrice(t), P.set.prio) : 0;
+      const res = v => `<span class="${cls(v - P.cost)}">${v - P.cost >= 0 ? '+' : ''}${money(v - P.cost)} (${pct((v - P.cost)/P.cost*100)})</span>`;
+      pi.innerHTML = P.closed ? `<div class="kv"><span>Position fermée</span><span>${money(P.out)} récupérés</span></div><div class="kv"><span>Résultat</span>${res(P.out)}</div>` : `
+        <div class="kv"><span>Quantité</span><span>${fp(P.qty)}</span></div>
+        <div class="kv"><span>Coût total (frais d'achat inclus)</span><span>${money(P.cost)}</span></div>
+        <div class="kv"><span>Valeur au prix actuel</span><span>${money(mv)}</span></div>
+        <div class="kv"><span>Résultat</span>${res(mv)}</div>
+        <div class="kv"><span>Si je vends tout maintenant</span><span>${money(sv + P.out)}</span></div>
+        <div class="kv"><span>Résultat après revente</span>${res(sv + P.out)}</div>`;
+    }
+  }
 }
 
 /* --- notation : 100 points sur les décisions --- */
 function gradeMission(){
-  const t = M.tokens[M.sel], P = M.profile, p = preview(), items = [];
+  const pl = M.plan, t = M.tokens[pl.sel], P = M.profile, p = planPreview(pl), items = [];
   const flagged = !t.checks.mint || !t.checks.freeze || !t.checks.lp;
   const safe = M.tokens.filter(x => x.checks.mint && x.checks.freeze && x.checks.lp);
   const bestTok = safe.slice().sort((a, b) => FIT[P.id][b.type] - FIT[P.id][a.type])[0];
   // 1. choix du token
   let pts, msg;
-  if (flagged){ pts = 0; msg = `${t.name} avait ${!t.checks.mint ? 'son autorité de mint active' : !t.checks.freeze ? 'son autorité de gel active' : 'sa liquidité non brûlée'}. Une seule croix rouge suffit à passer son tour.`; }
+  if (flagged){ pts = 0; msg = `${t.name} avait ${!t.checks.mint ? 'son autorité de mint active' : !t.checks.freeze ? 'son autorité de gel active' : 'sa liquidité non brûlée'}. Une seule croix rouge dans la fiche suffit à passer son tour.`; }
   else { pts = FIT[P.id][t.type]; msg = pts >= 25 ? `Bon choix pour un profil ${P.name.toLowerCase()}.` : `Un ${t.label.toLowerCase()} colle moins à un profil ${P.name.toLowerCase()}. ${bestTok.name} (${bestTok.label.toLowerCase()}) était plus adapté.`; }
   items.push(['Choix du token', pts, 25, msg]);
   // 2. risque
   const ok = p.risk <= P.maxLoss;
   items.push(['Respect de la perte maximale', ok ? 25 : p.risk <= P.maxLoss*1.3 ? 12 : 0, 25,
-    M.sl > 0 ? `Perte possible ${money(p.risk)} pour ${money(P.maxLoss)} autorisés. ${ok ? 'Respecté.' : 'Il fallait miser moins ou serrer le stop.'}` : `Sans stop loss, toute la mise (${money(p.risk)}) est en jeu. ${ok ? 'Ça passe ici car la mise est petite.' : 'Bien au-delà des ' + money(P.maxLoss) + ' autorisés.'}`]);
+    pl.slPct > 0 ? `Avec ton stop, perte possible d'environ ${money(p.risk)} pour ${money(P.maxLoss)} autorisés. ${ok ? 'Respecté.' : 'Il fallait acheter moins ou rapprocher le stop.'}` : `Pas de stop loss au lancement : toute la mise (${money(p.risk)}) était en jeu. ${ok ? 'Ça passe ici car le montant est petit.' : 'Bien au-delà des ' + money(P.maxLoss) + ' autorisés.'}`]);
   // 3. taille face à la liquidité
-  items.push(['Taille face à la liquidité', p.imp <= 0.01 ? 10 : p.imp <= 0.03 ? 6 : p.imp <= 0.06 ? 3 : 0, 10, `Impact de ${nf2(p.imp*100, 2)} % à l'achat, autant à la revente. ${p.imp <= 0.01 ? 'Négligeable.' : 'Sur un petit pool, miser moins réduit cette perte.'}`]);
+  items.push(['Taille face à la liquidité', p.imp <= 0.01 ? 10 : p.imp <= 0.03 ? 6 : p.imp <= 0.06 ? 3 : 0, 10, `Impact de ${nf2(p.imp*100, 2)} % à l'achat, autant à la revente. ${p.imp <= 0.01 ? 'Négligeable.' : 'Sur un petit pool, acheter moins réduit cette perte.'}`]);
   // 4. slippage
-  const [s0, s1] = t.slip;
-  items.push(['Tolérance de slippage', M.slip >= s0 && M.slip <= s1 ? 10 : M.slip < s0 ? 4 : M.slip <= s1*2 ? 5 : 0, 10,
-    M.slip < s0 ? `${nf2(M.slip, 1)} % est trop serré pour un ${t.label.toLowerCase()} : risque d'échec. Vise ${s0} à ${s1} %.` : M.slip > s1 ? `${nf2(M.slip, 1)} % laisse beaucoup de marge aux bots qui passent avant toi. Vise ${s0} à ${s1} %.` : `Adapté à la volatilité du token (${s0} à ${s1} %).`]);
+  const [s0, s1] = t.slip, fails = M.fails ? ` Tu as eu ${M.fails} échec${M.fails > 1 ? 's' : ''} de slippage avant de passer (${money(M.failFees)} de frais perdus).` : '';
+  items.push(['Tolérance de slippage', pl.slip >= s0 && pl.slip <= s1 ? 10 : pl.slip < s0 ? 4 : pl.slip <= s1*2 ? 5 : 0, 10,
+    (pl.slip < s0 ? `${nf2(pl.slip, 1)} % est trop serré pour un ${t.label.toLowerCase()} : risque d'échec. Vise ${s0} à ${s1} %.` : pl.slip > s1 ? `${nf2(pl.slip, 1)} % laisse beaucoup de marge aux bots qui passent avant toi. Vise ${s0} à ${s1} %.` : `Adapté à la volatilité du token (${s0} à ${s1} %).`) + fails]);
   // 5. priority fee
-  const ratio = M.prio/M.cong.median, feeUsd = (M.prio + SOL_BASE_FEE)*M.sol, heavy = feeUsd > M.amount*0.01;
+  const med = median(M.fees), ratio = pl.prio/med, feeUsd = (pl.prio + SOL_BASE_FEE)*M.sol, heavy = feeUsd > pl.A*0.01;
+  const exp = M.expired ? ` ${M.expired} transaction${M.expired > 1 ? 's' : ''} expirée${M.expired > 1 ? 's' : ''} avant.` : '';
   items.push(['Priority fee', ratio >= 1 && ratio <= 5 && !heavy ? 10 : ratio < 1 ? 3 : 5, 10,
-    ratio < 1 ? `Sous la médiane du réseau (${solTxt(M.cong.median)} SOL) : confirmation lente ou expirée.` : heavy ? `${money(feeUsd)} par transaction, plus de 1 % de ta mise : trop cher pour ce montant.` : ratio > 5 ? `Plus de 5 fois la médiane : tu paies pour rien.` : `Bien placée face à un réseau ${M.cong.name}.`]);
+    (ratio < 1 ? `Sous la médiane du réseau (${fp(med)} SOL) : confirmation lente ou expirée.` : heavy ? `${money(feeUsd)} par transaction, plus de 1 % de ton achat : trop cher pour ce montant.` : ratio > 5 ? `Plus de 5 fois la médiane (${fp(med)} SOL) : tu paies pour rien.` : `Bien placée face à un réseau ${M.cong.name}.`) + exp]);
   // 6. ratio
   const rr = p.rr;
-  items.push(['Ratio risque / gain', !rr ? 0 : rr >= 2 ? 10 : rr >= 1.5 ? 7 : rr >= 1 ? 4 : 0, 10, !rr ? 'Il faut un stop et un objectif pour avoir un plan.' : `1 : ${nf2(rr, 1)}. ${rr >= 2 ? 'Solide.' : 'Vise au moins 1 : 2.'}`]);
+  items.push(['Ratio risque / gain', !rr ? 0 : rr >= 2 ? 10 : rr >= 1.5 ? 7 : rr >= 1 ? 4 : 0, 10, !rr ? 'Il faut un stop loss et un take profit pour avoir un plan.' : `1 : ${nf2(rr, 1)}. ${rr >= 2 ? 'Solide.' : 'Vise au moins 1 : 2.'}`]);
   // 7. stop face à la volatilité
   const noise = t.vol*Math.sqrt(10)*100;
-  items.push(['Stop face à la volatilité', !(M.sl > 0) ? 0 : M.sl < noise ? 3 : M.sl > noise*6 ? 6 : 10, 10,
-    !(M.sl > 0) ? 'Pas de stop.' : M.sl < noise ? `Le prix bouge d'environ ${pct1(noise)} en 10 minutes : un stop à ${pct1(M.sl)} saute sur du simple bruit.` : M.sl > noise*6 ? `Stop très large pour ce token (bruit ~${pct1(noise)} en 10 min).` : `Au-delà du bruit habituel (~${pct1(noise)} en 10 min), sans être trop loin.`]);
+  items.push(['Stop face à la volatilité', !(pl.slPct > 0) ? 0 : pl.slPct < noise ? 3 : pl.slPct > noise*6 ? 6 : 10, 10,
+    !(pl.slPct > 0) ? 'Pas de stop loss.' : pl.slPct < noise ? `Le prix bouge d'environ ${pct1(noise)} en 10 minutes : un stop à ${pct1(pl.slPct)} saute sur du simple bruit.` : pl.slPct > noise*6 ? `Stop très large pour ce token (bruit ~${pct1(noise)} en 10 min).` : `Stop à ${pct1(pl.slPct)}, au-delà du bruit habituel (~${pct1(noise)} en 10 min), sans être trop loin.`]);
   const score = items.reduce((a, x) => a + x[1], 0);
-  // la mise idéale
-  const slI = Math.max(1, Math.round(noise*2)), A_I = Math.max(1, Math.min(CAPITAL, Math.floor(P.maxLoss/(slI/100 + 0.03))));
-  const ideal = `${bestTok.name}, mise d'environ ${money(A_I)}, slippage ${Math.round((s0 + s1)/2*10)/10} % (${bestTok.label.toLowerCase()} : ${TTYPES[bestTok.type].slip[0]} à ${TTYPES[bestTok.type].slip[1]} %), priority fee autour de ${solTxt(+(M.cong.median*2).toPrecision(2))} SOL, stop vers -${slI} %, objectif vers +${slI*2} %.`;
+  // le plan idéal, calculé sur le meilleur token
+  const bS = TTYPES[bestTok.type].slip, bNoise = bestTok.vol*Math.sqrt(10)*100;
+  const slI = Math.max(1, Math.round(bNoise*2)), A_I = Math.max(1, Math.min(CAPITAL, Math.floor(P.maxLoss/(slI/100 + 0.03))));
+  const ideal = `${bestTok.name}, achat d'environ ${money(A_I)}, slippage ${Math.round((bS[0] + bS[1])/2)} % (${bestTok.label.toLowerCase()} : ${bS[0]} à ${bS[1]} %), priority fee autour de ${fp(+(med*2).toPrecision(2))} SOL, stop loss environ ${slI} % sous le prix d'achat, take profit environ ${slI*2} % au-dessus.`;
   return { items, score, ideal };
 }
-function finishMission(r){
-  M.running = false; M.result = r; M.live = null;
-  const g = gradeMission(); r.grade = g;
-  S.cases = S.cases || { best: 0, played: 0 };
-  S.cases.played++; S.cases.best = Math.max(S.cases.best, g.score); save();
-  renderTicket(); renderResult();
-}
-function renderResult(again){
-  const r = M.result, g = r.grade, el = $('#cpres'); if (!el) return;
-  const P = M.profile, letter = g.score >= 85 ? 'A' : g.score >= 70 ? 'B' : g.score >= 55 ? 'C' : 'D';
+function mResult(v){
+  const g = M.grade, P = M.profile, pnl = M.cash - CAPITAL, t = M.tokens[M.plan.sel];
+  const letter = g.score >= 85 ? 'A' : g.score >= 70 ? 'B' : g.score >= 55 ? 'C' : 'D';
   const C = 2*Math.PI*44, off = C*(1 - g.score/100);
   const outcome = {
-    expired: 'Ta transaction a expiré : la priority fee était trop basse pour ce réseau. Aucun frais payé, mais tu as raté le trade.',
-    slip: r.status === 'slip' ? `Le prix a bougé de ${pct1(r.move)} pendant ${nf2(r.confirmSec, 1)} s de confirmation : au-delà de ta tolérance. Transaction échouée, frais réseau perdus.` : '',
-    tp: 'Objectif atteint, vendu au take profit.', stop: 'Le stop loss a coupé la perte.',
-    end: 'Ni stop ni objectif touchés : vendu au prix de fin de mission.',
-    lp: 'Le créateur a retiré la liquidité. Plus rien à vendre, ton stop n\'a servi à rien.',
+    tp: 'Take profit atteint : vendu automatiquement.', stop: 'Le stop loss a coupé la perte.',
+    manual: 'Tu as vendu toi-même avant la fin.',
+    end: 'Ni stop loss ni take profit touchés : position vendue à la fin des 60 minutes.',
+    lp: 'Le créateur a retiré la liquidité. Plus rien à vendre, le stop loss n\'a rien pu sauver.',
     freeze: 'Le créateur a gelé les portefeuilles. Impossible de vendre, la position est perdue.'
-  }[r.status];
-  const goal = r.pnl >= P.goal, kept = -r.pnl <= P.maxLoss;
-  el.innerHTML = `<div class="result">
+  }[M.why] || '';
+  const goal = pnl >= P.goal, kept = -pnl <= P.maxLoss;
+  v.innerHTML = `<div class="result">
     <div class="rescore">
       <svg viewBox="0 0 110 110" class="ring"><circle cx="55" cy="55" r="44" style="fill:none;stroke:var(--surface2);stroke-width:10"/>
         <circle cx="55" cy="55" r="44" style="fill:none;stroke:${g.score >= 70 ? 'var(--up)' : g.score >= 55 ? 'var(--acc)' : 'var(--down)'};stroke-width:10;stroke-linecap:round;stroke-dasharray:${C.toFixed(1)};stroke-dashoffset:${off.toFixed(1)};transform:rotate(-90deg);transform-origin:55px 55px"/>
         <text x="55" y="58" text-anchor="middle" style="fill:var(--txt);font-size:30px;font-weight:700">${g.score}</text><text x="55" y="76" text-anchor="middle" style="fill:var(--mut);font-size:11px">/ 100</text></svg>
-      <div><div class="resgrade">Note ${letter}</div><div class="mut sm">La note juge tes décisions. Le résultat dépend aussi de la chance.</div></div>
+      <div><div class="resgrade">Note ${letter}</div><div class="mut sm">La note juge tes décisions au lancement. Le résultat dépend aussi de la chance.</div></div>
     </div>
     <div class="resout">
-      <div class="resline"><span>Résultat</span><b class="${cls(r.pnl)}">${r.pnl >= 0 ? '+' : ''}${money(r.pnl)}</b></div>
-      <div class="ressub">${outcome}</div>
+      <div class="resline"><span>Résultat de la mission</span><b class="${cls(pnl)}">${pnl >= 0 ? '+' : ''}${money(pnl)}</b></div>
+      <div class="ressub">${outcome}${M.failFees ? ` Les tentatives ratées ont coûté ${money(M.failFees)} de frais réseau.` : ''}</div>
       <div class="respills"><span class="${goal ? 'okp' : 'kop'}">${goal ? ICON_OK : ICON_KO} objectif +${money(P.goal)}</span><span class="${kept ? 'okp' : 'kop'}">${kept ? ICON_OK : ICON_KO} perte max ${money(P.maxLoss)}</span></div>
     </div>
+    <div class="reschart"><div class="mut sm">${esc(t.name)} pendant la mission, y compris après ta sortie</div><div id="mrchart"></div></div>
     <div class="crit">${g.items.map(([n, pts, max, msg]) => `<div class="critrow"><div class="crithead"><span class="ci ${pts >= max ? 'ok' : pts > 0 ? 'mid' : 'ko'}">${pts >= max ? ICON_OK : pts > 0 ? ICON_MID : ICON_KO}</span><b>${n}</b><em>${pts} / ${max}</em></div><div class="critmsg">${msg}</div></div>`).join('')}</div>
     <div class="ideal"><b>Ce qu'il fallait faire</b><span>${g.ideal}</span></div>
-    <button class="btn btn-buy" id="cpagain">Nouvelle mission</button></div>`;
-  $('#cpagain').onclick = () => { M = null; renderTrain($('#view')); window.scrollTo(0, 0); };
-  if (!again) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    <div class="briefbtns"><button class="btn btn-ghost" id="mhome">Retour</button><button class="btn btn-buy" id="magain">Nouvelle mission</button></div></div>`;
+  $('#mhome').onclick = () => closeMission(true);
+  $('#magain').onclick = () => closeMission(false);
+  $('#mhead').hidden = false; mTick();
+  mChart('#mrchart', true);
 }
 
 /* ---------- fiche token ---------- */
