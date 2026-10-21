@@ -449,7 +449,7 @@ header{position:relative}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.21-9';
+const APP_VERSION = '2026.10.21-10';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -3589,7 +3589,6 @@ function renderLiveBrief(v){
         <div class="kv"><span>Objectif de fin de session</span><span class="up">+${L.target} %</span></div>
         <div class="kv"><span>Ne jamais descendre sous</span><span class="down">-${lvP(L.maxDD)} % (${money(CAPITAL*(1 - L.maxDD/100))})</span></div>
         <div class="kv"><span>Achats maximum</span><span>${L.maxTrades}</span></div>
-        <div class="kv"><span>Pauses en accéléré</span><span>${LV.pauses} × ${LV.pauseSec} s</span></div>
       </div>
       <div class="briefnote">Pour être noté : au moins ${LV_MIN.trades} achats, et en moyenne ${nf2(LV_MIN.expo*100, 0)} % de ton capital investi sur la session (par exemple 20 $ gardés 1 h 12). Des mini-trades éclair ne suffisent pas. Le marché tourne en temps réel. Coche « Accéléré » pour qu'une minute passe en 2,5 secondes (il ralentit alors quand tu tapes un montant ou un prix). Dès que tu n'as plus de position, le bouton « Terminer » clôt la session. Tes préréglages SL / TP, ta priority fee et ton slippage sont repris. Chaque décision est notée avec ce que tu voyais à ce moment-là, pas avec la suite.</div>
       <div class="briefbtns"><button class="btn btn-ghost" id="lvnew">Autre session</button><button class="btn btn-buy" id="lvgo">Commencer</button></div>
@@ -3722,7 +3721,7 @@ function lvTick(){
   const sk = $('#lskip'); if (sk) sk.style.display = L.phase === 'run' && !Object.keys(L.pos).length && !L.busy.size ? '' : 'none';
   $('#mdot').className = 'dot' + (L.phase === 'run' && !paused ? ' on' : ' idle');
   $('#lpause').textContent = paused ? 'En pause' : `Pause (${L.pausesLeft})`;
-  $('#lpause').style.display = L.phase === 'run' && (L.fast || paused) ? '' : 'none';
+  $('#lpause').style.display = 'none';
   const prog = $('#lvprog'); if (prog) prog.style.width = (L.g/LV.len*100).toFixed(2) + '%';
   const info = $('#lvinfo'); if (info){ const floor = CAPITAL*(1 - L.maxDD/100); info.innerHTML = `Achats ${L.trades} / ${L.maxTrades} · présence ${nf2(Math.min(LV_MIN.expo, (L.expo || 0)/LV.len)*100, 1)} / ${nf2(LV_MIN.expo*100, 0)} % · plancher ${money(floor)}${eq < floor ? ' <b class="down">dépassé</b>' : ''}${lvSpike() ? ' · <b class="down">réseau saturé</b>' : ''}`; }
   if (L.view === 'list'){
