@@ -182,6 +182,30 @@ header{position:relative}
 @media (hover:hover){.fsbtn:hover{opacity:1;background:var(--surface)}}
 .fsbtn:active{opacity:1;background:var(--surface)}
 @media (min-width:1100px){.fsbtn{top:24px;right:24px}}
+.fcard{padding:0;margin-bottom:12px;overflow:hidden}
+.fhead{width:100%;display:flex;align-items:center;gap:10px;padding:14px 16px;text-align:left}
+.fhead b{font-size:15px;font-weight:600;display:flex;align-items:center;gap:6px}
+.fhead .mut{flex:1;text-align:right}
+.fbadge{font-size:11px;font-weight:700;background:var(--acc);color:var(--acc-ink);border-radius:999px;padding:1px 7px}
+.fchev{display:flex;color:var(--mut);transition:transform .15s}.fchev.open{transform:rotate(90deg)}
+.fbody{padding:0 16px 14px}
+.fbody[hidden]{display:none}
+.fgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ff{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ff>span:first-child{font-size:12px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ffi{position:relative;display:block}
+.ffi input{padding:9px 40px 9px 11px;font-weight:600;font-size:14px}
+.ffi em{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-style:normal;font-size:12px;color:var(--mut)}
+.ffi input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.fchecks{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.fchecks button{display:inline-flex;align-items:center;gap:4px;padding:7px 12px;border-radius:999px;background:var(--surface2);font-size:13px;font-weight:600;color:var(--mut);border:1px solid transparent}
+.fchecks button svg{width:14px;height:14px}
+.fchecks button.on{color:var(--txt);border-color:var(--acc);background:rgba(171,159,242,.12)}
+.ffoot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:12px}
+.fhide{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--mut);cursor:pointer}
+.fhide input{width:17px;height:17px;padding:0;accent-color:var(--acc)}
+.srchint button{color:var(--acc);font-weight:600;font-size:13px}
+@media (min-width:720px){.fgrid{grid-template-columns:repeat(4,minmax(0,1fr))} #fpanel{grid-column:1/-1}}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--surface2);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:20;display:none;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty{text-align:center;color:var(--mut);padding:40px 0}
 .hist-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
@@ -425,7 +449,7 @@ header{position:relative}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.21-6';
+const APP_VERSION = '2026.10.21-7';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -674,7 +698,7 @@ async function pollDex(){
   const set = new Set();
   for (const k in S.pos){ const {kind,id} = parse(k); if (kind === 'sol') set.add(id); }
   if (sheetKey && sheetKey.startsWith('sol:')) set.add(parse(sheetKey).id);
-  if (tab === 'meme') feed[memeTab].forEach(a => set.add(a));
+  if (tab === 'meme') memeAddrs().slice(0, 60).forEach(a => set.add(a));
   if (set.size) { try { await fetchTokens([...set]); } catch(e){} }
   polling = false;
 }
@@ -766,7 +790,7 @@ function syncCurves(){
   const add = a => { const p = DEX[a]; if (p && p.dexId === 'pumpfun' && want.size < 30) want.add(a); };
   if (sheetKey && sheetKey.startsWith('sol:')) add(parse(sheetKey).id);
   for (const k in S.pos){ const {kind,id} = parse(k); if (kind === 'sol') add(id); }
-  if (tab === 'meme') feed[memeTab].forEach(add);
+  if (tab === 'meme') memeAddrs().forEach(add);
   for (const m in PF) if (!want.has(m)) unwatchCurve(m);
   want.forEach(m => watchCurve(m));
 }
@@ -1630,6 +1654,122 @@ async function showNetInfo(){
       : `${label} : presque aucune concurrence mesurée en ce moment · confirmation ${etaText(q)}${pools.length ? '' : '<br><span class="sm">Ouvre l\'onglet Memecoins pour mesurer la concurrence sur les tokens actifs.</span>'}`;
   } catch(e){ el.innerHTML = `État du réseau injoignable pour l'instant. Nouvel essai dans quelques secondes.<br><span class="sm">${esc(rpcDiagTxt())}</span>`; setTimeout(() => { if ($('#netinfo') === el) showNetInfo(); }, 8000); }
 }
+/* ---------- filtres des memecoins ----------
+   Les filtres portent sur tous les tokens des onglets Tendances et Nouveaux réunis.
+   Market cap, liquidité, volume, âge, variation, dernier trade : DexScreener (déjà chargé).
+   Détenteurs, volume organique, mint et gel : Jupiter, par lots de 100 tokens.
+   Part du créateur et liquidité brûlée : chargées token par token (comme l'encadré Sécurité),
+   seulement pour ceux qui passent déjà les autres filtres. Une info manquante ne bloque pas un token,
+   sauf si « Masquer si l'info manque » est coché. */
+const JX = {};          // infos Jupiter par token
+let FLT = {};
+try { FLT = JSON.parse(localStorage.getItem('memefilters_v1')) || {}; } catch(e){}
+const saveFlt = () => { try { localStorage.setItem('memefilters_v1', JSON.stringify(FLT)); } catch(e){} };
+const FLT_FIELDS = [
+  ['mcMin', 'Market cap min', 'k$'], ['mcMax', 'Market cap max', 'k$'], ['liqMin', 'Liquidité min', 'k$'], ['volMin', 'Volume 24h min', 'k$'],
+  ['ageMin', 'Âge min', 'min'], ['ageMax', 'Âge max', 'h'], ['chMin', 'Variation 1h min', '%'], ['lastMax', 'Dernier trade il y a moins de', 's'],
+  ['orgMin', 'Volume organique min', '/100'], ['holdMin', 'Détenteurs min', ''], ['devMax', 'Part du créateur max', '%']
+];
+const FLT_CHECKS = [['mint', 'Mint révoqué'], ['freeze', 'Gel révoqué'], ['lp', 'LP brûlée ou bloquée']];
+function memeAddrs(){
+  if (memeTab === 'filter') return [...new Set([...feed.top, ...feed.new])];
+  return feed[memeTab] || [];
+}
+function memeLoad(refresh){
+  const kinds = memeTab === 'filter' ? ['top', 'new'] : memeTab === 'search' ? [] : [memeTab];
+  for (const k of kinds) if (refresh || !feed[k].length) loadFeed(k).then(() => { renderList(); if (memeTab === 'filter') jupBatch(memeAddrs()); }).catch(() => { if (!refresh) toast('Erreur DexScreener'); });
+  if (memeTab === 'filter') jupBatch(memeAddrs());
+}
+let jupBusy = false;
+async function jupBatch(mints){
+  const todo = mints.filter(a => !JX[a] || Date.now() - JX[a].t > 300000).slice(0, 100);
+  if (!todo.length || jupBusy) return;
+  jupBusy = true;
+  try {
+    const now = Date.now(), at = Math.max(now, jupNext); jupNext = at + 2100;
+    if (at > now) await sleep(at - now);
+    const arr = await jsonGet('https://api.jup.ag/tokens/v2/search?query=' + todo.join(','));
+    const t = Date.now();
+    for (const a of todo) JX[a] = { t };
+    for (const x of Array.isArray(arr) ? arr : []){
+      if (!JX[x.id]) continue;
+      const au = x.audit || {};
+      JX[x.id] = { t, holders: x.holderCount ?? null, organic: x.organicScore ?? null,
+        mint: typeof au.mintAuthorityDisabled === 'boolean' ? au.mintAuthorityDisabled : null, freeze: typeof au.freezeAuthorityDisabled === 'boolean' ? au.freezeAuthorityDisabled : null };
+    }
+  } catch(e){}
+  jupBusy = false;
+  if (tab === 'meme' && memeTab === 'filter') renderList();
+}
+// valeur d'un critère pour un token (null = inconnue)
+function fltVal(a, k){
+  const p = DEX[a], s = SEC[a] || {}, j = JX[a] || {}, now = Date.now(), sol = BN.SOL && BN.SOL.last;
+  switch (k){
+    case 'mc': return (pfPrice(a) ? pfPrice(a)*1e9 : (p.marketCap || p.fdv)) ?? null;
+    case 'liq': return p.dexId === 'pumpfun' ? (sol ? 2*Math.max(0, reserveUsd(p) - 30*sol) : null) : (liq(p) || null);
+    case 'vol': return p.volume && p.volume.h24 != null ? p.volume.h24 : null;
+    case 'age': return p.pairCreatedAt ? (now - p.pairCreatedAt)/60000 : null;
+    case 'ch': return p.priceChange && p.priceChange.h1 != null ? p.priceChange.h1 : null;
+    case 'last': return SEEN[a] ? (now - SEEN[a].moved)/1000 : null;
+    case 'org': return j.organic ?? s.organic ?? null;
+    case 'hold': return j.holders ?? s.holders ?? null;
+    case 'dev': return s.dev ?? null;
+    case 'mint': return s.mint ?? j.mint ?? null;
+    case 'freeze': return s.freeze ?? j.freeze ?? null;
+    case 'lp': return p.dexId === 'pumpfun' ? true : typeof s.lp === 'number' ? s.lp >= 0.95 : null;
+  }
+  return null;
+}
+function memeFiltered(){
+  const pool = memeAddrs().filter(a => DEX[a]), hide = !!FLT.hideUnknown, out = [], needSec = [];
+  const n = k => FLT[k] === '' || FLT[k] == null ? null : +FLT[k];
+  const test = (v, ok) => v == null ? !hide : ok(v);
+  for (const a of pool){
+    let pass = true;
+    const chk = (cond) => { if (!cond) pass = false; };
+    if (n('mcMin') != null) chk(test(fltVal(a, 'mc'), v => v >= n('mcMin')*1e3));
+    if (n('mcMax') != null) chk(test(fltVal(a, 'mc'), v => v <= n('mcMax')*1e3));
+    if (n('liqMin') != null) chk(test(fltVal(a, 'liq'), v => v >= n('liqMin')*1e3));
+    if (n('volMin') != null) chk(test(fltVal(a, 'vol'), v => v >= n('volMin')*1e3));
+    if (n('ageMin') != null) chk(test(fltVal(a, 'age'), v => v >= n('ageMin')));
+    if (n('ageMax') != null) chk(test(fltVal(a, 'age'), v => v <= n('ageMax')*60));
+    if (n('chMin') != null) chk(test(fltVal(a, 'ch'), v => v >= n('chMin')));
+    if (n('lastMax') != null) chk(test(fltVal(a, 'last'), v => v <= n('lastMax')));
+    if (n('orgMin') != null) chk(test(fltVal(a, 'org'), v => v >= n('orgMin')));
+    if (n('holdMin') != null) chk(test(fltVal(a, 'hold'), v => v >= n('holdMin')));
+    if (!pass) continue;
+    // critères qui demandent de charger la sécurité du token
+    const wantSec = n('devMax') != null || FLT_CHECKS.some(([k]) => FLT['c_' + k]);
+    if (wantSec && !SEC[a]) needSec.push(a);
+    if (n('devMax') != null) chk(test(fltVal(a, 'dev'), v => v <= n('devMax')));
+    for (const [k] of FLT_CHECKS) if (FLT['c_' + k]) chk(test(fltVal(a, k), v => v === true));
+    if (pass) out.push(a);
+  }
+  // chargement progressif de la sécurité : quelques tokens à la fois
+  needSec.slice(0, 4).forEach(a => { if (!secBusy.has(a)) loadSec(DEX[a]); });
+  return { list: out, pool: pool.length };
+}
+function fltBadge(){
+  const b = $('#ftoggle b'); if (!b) return;
+  const active = FLT_FIELDS.filter(([k]) => FLT[k] !== '' && FLT[k] != null).length + FLT_CHECKS.filter(([k]) => FLT['c_' + k]).length;
+  b.innerHTML = `Filtres${active ? ` <span class="fbadge">${active}</span>` : ''}`;
+}
+function renderFilters(){
+  const el = $('#fpanel'); if (!el) return;
+  const active = FLT_FIELDS.filter(([k]) => FLT[k] !== '' && FLT[k] != null).length + FLT_CHECKS.filter(([k]) => FLT['c_' + k]).length;
+  el.innerHTML = `<div class="card fcard"><button class="fhead" id="ftoggle"><b>Filtres${active ? ` <span class="fbadge">${active}</span>` : ''}</b><span class="mut sm" id="fcount"></span><span class="fchev ${FLT.open === false ? '' : 'open'}">${CHEV}</span></button>
+    <div class="fbody" ${FLT.open === false ? 'hidden' : ''}>
+      <div class="fgrid">${FLT_FIELDS.map(([k, l, u]) => `<label class="ff"><span>${l}</span><span class="ffi"><input data-f="${k}" type="number" inputmode="decimal" step="any" value="${FLT[k] ?? ''}" placeholder="—">${u ? `<em>${u}</em>` : ''}</span></label>`).join('')}</div>
+      <div class="fchecks">${FLT_CHECKS.map(([k, l]) => `<button data-c="${k}" class="${FLT['c_' + k] ? 'on' : ''}">${FLT['c_' + k] ? ICON_OK : ''}${l}</button>`).join('')}</div>
+      <div class="ffoot"><label class="fhide"><input type="checkbox" id="fhide" ${FLT.hideUnknown ? 'checked' : ''}><span>Masquer si l'info manque</span></label><button class="chip" id="freset">Réinitialiser</button></div>
+    </div></div>`;
+  $('#ftoggle').onclick = () => { FLT.open = FLT.open === false; saveFlt(); renderFilters(); renderList(); };
+  // saisie : on ne reconstruit pas le panneau (le champ garde le focus), on met juste à jour le badge et la liste
+  el.querySelectorAll('[data-f]').forEach(i => i.onchange = () => { FLT[i.dataset.f] = i.value === '' ? '' : +i.value; saveFlt(); fltBadge(); $('#list')._sig = null; renderList(); });
+  el.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { FLT['c_' + b.dataset.c] = !FLT['c_' + b.dataset.c]; saveFlt(); renderFilters(); $('#list')._sig = null; renderList(); });
+  $('#fhide').onchange = e => { FLT.hideUnknown = e.target.checked; saveFlt(); $('#list')._sig = null; renderList(); };
+  $('#freset').onclick = () => { FLT = { open: true }; saveFlt(); renderFilters(); $('#list')._sig = null; renderList(); };
+}
 /* ---------- courbe du portefeuille ----------
    La valeur totale (cash + positions au prix du marché) est enregistrée une fois par minute quand l'appli
    est ouverte, et à chaque achat ou vente. Rien n'est enregistré tant qu'un prix manque (sinon faux point). */
@@ -1727,13 +1867,15 @@ function renderView(){
       <div class="tabs">
         <button data-m="top" class="${memeTab==='top'?'on':''}">Tendances</button>
         <button data-m="new" class="${memeTab==='new'?'on':''}">Nouveaux</button>
-        <button data-m="search" class="${memeTab==='search'?'on':''}">Recherche</button>
-      </div></div><div id="list"></div>`;
+        <button data-m="filter" class="${memeTab==='filter'?'on':''}">Filtres</button>
+      </div></div>${memeTab === 'filter' ? '<div id="fpanel"></div>' : ''}${memeTab === 'search' ? `<div class="hint srchint">Résultats de recherche · <button id="srclear">effacer</button></div>` : ''}<div id="list"></div>`;
     $('#sf').onsubmit = e => { e.preventDefault(); doSearch($('#q').value); };
     v.querySelectorAll('[data-m]').forEach(b => b.onclick = () => {
       memeTab = b.dataset.m; renderView();
-      if (memeTab !== 'search' && !feed[memeTab].length) loadFeed(memeTab).then(renderList).catch(() => toast('Erreur DexScreener'));
+      memeLoad();
     });
+    if ($('#srclear')) $('#srclear').onclick = () => { memeTab = 'top'; renderView(); memeLoad(); };
+    if (memeTab === 'filter') renderFilters();
   } else if (tab === 'train'){
     renderTrain(v);
     return;
@@ -1773,14 +1915,16 @@ function renderList(){
         right: `<div>${t ? fp(t.last) : '-'}</div><div class="sm ${t ? cls(t.pct) : 'mut'}">${t ? pct(t.pct) : ''}</div>` };
     }), 'Chargement des prix…');
   } else if (tab === 'meme'){
-    const rows = feed[memeTab].filter(a => DEX[a]).map(a => {
+    const fl = memeTab === 'filter' ? memeFiltered() : null;
+    const rows = (fl ? fl.list : feed[memeTab]).filter(a => DEX[a]).map(a => {
       const p = DEX[a], ch = p.priceChange && p.priceChange.h1;
       return { k: 'sol:'+a, ic: icon(tokenImg(p), p.baseToken.symbol),
         mid: `<div class="name">${esc(p.baseToken.symbol)} <span class="mut sm">${age(p.pairCreatedAt)}</span></div>
           <div class="mut sm">Liq. ${liq(p) > 0 ? big(liq(p)) : (p.dexId === 'pumpfun' ? 'curve' : '?')} · MC ${big(p.marketCap || p.fdv)}</div>`,
         right: `<div>${fp(dexPrice(p))}</div><div class="sm ${ch != null ? cls(ch) : 'mut'}">${ch != null ? pct(ch)+' 1h' : ''}</div>` };
     });
-    patchList(l, rows, memeTab === 'search' ? 'Cherche un token par nom, ticker ou adresse.' : 'Chargement…');
+    patchList(l, rows, memeTab === 'search' ? 'Aucun résultat.' : memeTab === 'filter' ? (fl.pool ? 'Aucun token ne passe ces filtres pour l\'instant.' : 'Chargement…') : 'Chargement…');
+    if (fl){ const c = $('#fcount'); if (c) c.textContent = `${fl.list.length} token${fl.list.length > 1 ? 's' : ''} sur ${fl.pool}`; }
   } else if (tab === 'porte'){
     const sm = $('#summary');
     eqUpdate();
@@ -3850,7 +3994,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
   tab = b.dataset.t;
   document.querySelectorAll('nav button').forEach(x => x.classList.toggle('on', x === b));
   if (sheetKey) closeSheet(); else renderView();
-  if (tab === 'meme' && memeTab !== 'search' && !feed[memeTab].length) loadFeed(memeTab).then(renderList).catch(() => toast('Erreur DexScreener'));
+  if (tab === 'meme') memeLoad();
 });
 renderHeader(); renderView(); connectBN(); connectRPC(); loadLogos();
 setInterval(() => {
@@ -3863,7 +4007,7 @@ setInterval(() => {
 setInterval(pollBN, 1000);
 setInterval(pollDex, 1000);
 setInterval(syncCurves, 1000);
-setInterval(() => { if (tab === 'meme' && memeTab !== 'search') loadFeed(memeTab).catch(() => {}); }, 30000);
+setInterval(() => { if (tab === 'meme') memeLoad(true); }, 30000);
 </script>
 </body>
 </html>
