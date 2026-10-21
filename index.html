@@ -449,7 +449,7 @@ header{position:relative}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.21-11';
+const APP_VERSION = '2026.10.21-12';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -3059,8 +3059,9 @@ const LV_SYL1 = ['ZO', 'PI', 'MO', 'KA', 'BU', 'FLO', 'GRU', 'SNO', 'WI', 'PE', 
 const LV_SYL2 = ['RP', 'NK', 'MBO', 'TO', 'ZZ', 'PPY', 'RK', 'BI', 'GO', 'NUT', 'LLY', 'SH', 'MP', 'X', 'DOG', 'CAT', 'PUG', 'FROG', 'BEAR', 'BULL', 'MOON', 'PEPE'];
 const lvP = x => nf2(x, Math.round(x*100) % 100 === 0 ? 0 : Math.round(x*100) % 10 === 0 ? 1 : 2);
 const lvClamp = (x, a, b) => Math.max(a, Math.min(b, x));
-// pour être noté : quelques achats ET une vraie présence sur le marché (part moyenne du capital investie sur toute la session)
-const LV_MIN = { trades: 2, expo: 0.08 };
+// pour être noté : au moins un achat ET une vraie présence sur le marché :
+// soit une part moyenne du capital investie sur la session, soit un montant total acheté suffisant (des trades courts mais réels)
+const LV_MIN = { trades: 1, expo: 0.05, bought: 75 };
 
 /* --- le modèle commun au marché et à la notation --- */
 // tendance par minute, à partir des seuls indicateurs visibles
@@ -3433,7 +3434,7 @@ function lvHoldU(snap, paths, frac, slR, tpR){
 // qualité d'une décision : le manque à gagner rapporté à la somme en jeu (1 $ perdu sur 10 $ n'est pas 1 $ perdu sur 100 $)
 const LV_VERD = [[0.9, 'excellent', 'Excellent'], [0.75, 'bon', 'Bon'], [0.5, 'imprecis', 'Imprécis'], [0.25, 'erreur', 'Erreur'], [-1, 'grave', 'Grave erreur']];
 const lvVerdict = q => LV_VERD.find(x => q >= x[0]);
-const lvQ = (regret, stake) => Math.exp(-regret/(0.08*Math.max(10, stake || 0)));
+const lvQ = (regret, stake) => Math.exp(-regret/(0.07*Math.max(10, stake || 0)));
 const lvPlanTxt = (A, slP, tpP) => A ? `acheter ${money(A)}${slP || tpP ? ` avec ${slP ? 'stop -' + slP + ' %' : 'sans stop'} et ${tpP ? 'objectif +' + tpP + ' %' : 'sans objectif'}` : ' sans stop ni objectif'}` : 'ne pas acheter';
 // Explication chiffrée d'un instant : tendance attendue décomposée par indicateur, risque de chute, frais
 function lvExplain(snap, A){
@@ -3511,8 +3512,8 @@ function lvGrade(){
         did: `Tu as ${lvPlanTxt(d.A, sl, sp).replace(/^acheter/, 'acheté')}`, best: lvPlanTxt(best.A, best.slP, best.tpP),
         stats: `Ton plan, sur ${LV.N} suites simulées : ${lvStats(pn)}.${best.A ? ` Le meilleur : ${lvStats(best.pn)}.` : ''}` });
       const [s0, s1] = t.slip, pr = d.set.prio/d.snap.med;
-      if (d.set.slip < s0 || d.set.slip > s1*2){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, q: 0.4, w: 0.25, kind: 'slip', snap: d.snap, did: `Slippage à ${nf2(d.set.slip, 0)} %`, best: `${s0} à ${s1} % pour un ${t.label.toLowerCase()}`, ex: { txt: d.set.slip < s0 ? 'Trop serré : la transaction échoue dès que le prix bouge un peu pendant la confirmation.' : 'Trop large : les bots peuvent passer devant toi et te faire payer plus cher.' }, stats: '' }); }
-      if (pr < 1 || pr > 5){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, q: 0.4, w: 0.25, kind: 'prio', snap: d.snap, did: `Priority fee à ${fp(d.set.prio)} SOL`, best: `entre ${fp(d.snap.med)} et ${fp(d.snap.med*5)} SOL (médiane du réseau à ce moment : ${fp(d.snap.med)} SOL)`, ex: { txt: pr < 1 ? 'Sous la médiane, ta transaction attend ou expire.' : 'Au-delà de 5 fois la médiane, tu paies pour rien.' }, stats: '' }); }
+      if (d.set.slip < s0 || d.set.slip > s1*2){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, q: 0.2, w: 0.4, kind: 'slip', snap: d.snap, did: `Slippage à ${nf2(d.set.slip, 0)} %`, best: `${s0} à ${s1} % pour un ${t.label.toLowerCase()}`, ex: { txt: d.set.slip < s0 ? 'Trop serré : la transaction échoue dès que le prix bouge un peu pendant la confirmation.' : 'Trop large : les bots peuvent passer devant toi et te faire payer plus cher.' }, stats: '' }); }
+      if (pr < 1 || pr > 5){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, q: 0.2, w: 0.4, kind: 'prio', snap: d.snap, did: `Priority fee à ${fp(d.set.prio)} SOL`, best: `entre ${fp(d.snap.med)} et ${fp(d.snap.med*5)} SOL (médiane du réseau à ce moment : ${fp(d.snap.med)} SOL)`, ex: { txt: pr < 1 ? 'Sous la médiane, ta transaction attend ou expire.' : 'Au-delà de 5 fois la médiane, tu paies pour rien.' }, stats: '' }); }
     } else if (d.kind === 'sell' || d.kind === 'devsignal' || d.kind === 'trig'){
       if (!d.snap.pos) continue;
       const pA = lvSim(d.snap, 1000 + seed++), paths = lvSim(d.snap, 5000 + seed), P = d.snap.pos, curSl = P.sl ? P.sl/d.snap.price : 0, curTp = P.tp ? P.tp/d.snap.price : 0;
@@ -3531,7 +3532,7 @@ function lvGrade(){
         stats: kind === 'sell' && regret >= 0.15 ? `En gardant, tu espérais ${best.u >= 0 ? '+' : ''}${money(best.u)} de plus que la vente.` : '' });
     } else if (d.kind === 'exec'){
       cat.exec += d.what === 'expired' ? 0.4 : 0.5;
-      moments.push({ g: d.g, tok: t.name, who, regret: 0.5, q: 0.3, w: 0.25, kind: d.what === 'expired' ? 'prio' : 'slip', did: d.what === 'expired' ? 'Transaction expirée' : 'Achat échoué sur le slippage',
+      moments.push({ g: d.g, tok: t.name, who, regret: 0.5, q: 0.2, w: 0.4, kind: d.what === 'expired' ? 'prio' : 'slip', did: d.what === 'expired' ? 'Transaction expirée' : 'Achat échoué sur le slippage',
         best: d.what === 'expired' ? `une priority fee au-dessus de la médiane (${fp(d.med)} SOL)` : `un slippage de ${d.range[0]} à ${d.range[1]} %`, ex: { txt: '' }, stats: '' });
     }
   }
@@ -3551,7 +3552,8 @@ function lvGrade(){
   const isBad = m => !m.good && m.regret >= 0.15 && m.q < 0.9;
   const bad = moments.filter(isBad).sort((a, b) => (1 - a.q)*a.w - (1 - b.q)*b.w).reverse().slice(0, 6), good = moments.filter(m => m.good).sort((a, b) => b.w - a.w).slice(0, 3);
   const expoAvg = (L.expo || 0)/LV.len;
-  return { noGrade: L.trades < LV_MIN.trades || expoAvg < LV_MIN.expo, expoAvg, score, total, cat, moments: [...bad, ...good].sort((a, b) => a.g - b.g), expected, pnl, goalOk, ddBreach, lessons: lvLessons(moments.filter(isBad), ddBreach) };
+  const bought = L.decisions.reduce((a, d) => a + (d.kind === 'buy' && d.A >= 15 ? d.A : 0), 0);
+  return { noGrade: L.trades < LV_MIN.trades || (expoAvg < LV_MIN.expo && bought < LV_MIN.bought), expoAvg, bought, score, total, cat, moments: [...bad, ...good].sort((a, b) => a.g - b.g), expected, pnl, goalOk, ddBreach, lessons: lvLessons(moments.filter(isBad), ddBreach) };
 }
 // Leçons précises, tirées de TES erreurs : quels indices tu as ignorés, sur quels tokens, avec les chiffres
 function lvLessons(bad, ddBreach){
@@ -3606,7 +3608,7 @@ function renderLiveBrief(v){
         <div class="kv"><span>Ne jamais descendre sous</span><span class="down">-${lvP(L.maxDD)} % (${money(CAPITAL*(1 - L.maxDD/100))})</span></div>
         <div class="kv"><span>Achats maximum</span><span>${L.maxTrades}</span></div>
       </div>
-      <div class="briefnote">Pour être noté : au moins ${LV_MIN.trades} achats, et en moyenne ${nf2(LV_MIN.expo*100, 0)} % de ton capital investi sur la session (par exemple 20 $ gardés 1 h 12). Des mini-trades éclair ne suffisent pas. Le marché tourne en temps réel. Coche « Accéléré » pour qu'une minute passe en 2,5 secondes (il ralentit alors quand tu tapes un montant ou un prix). Dès que tu n'as plus de position, le bouton « Terminer » clôt la session. Tes préréglages SL / TP, ta priority fee et ton slippage sont repris. Chaque décision est notée avec ce que tu voyais à ce moment-là, pas avec la suite.</div>
+      <div class="briefnote">Pour être noté : au moins un achat, et soit ${money(LV_MIN.bought)} achetés au total, soit en moyenne ${nf2(LV_MIN.expo*100, 0)} % de ton capital investi sur la session (par exemple 20 $ gardés 45 min). Les achats de moins de 15 $ ne comptent pas dans ce total. Le marché tourne en temps réel. Coche « Accéléré » pour qu'une minute passe en 2,5 secondes (il ralentit alors quand tu tapes un montant ou un prix). Dès que tu n'as plus de position, le bouton « Terminer » clôt la session. Tes préréglages SL / TP, ta priority fee et ton slippage sont repris. Chaque décision est notée avec ce que tu voyais à ce moment-là, pas avec la suite.</div>
       <div class="briefbtns"><button class="btn btn-ghost" id="lvnew">Autre session</button><button class="btn btn-buy" id="lvgo">Commencer</button></div>
     </section></div>`;
   $('#lvnew').onclick = () => { lvNewSession(); renderTrain(v); };
@@ -3804,7 +3806,7 @@ function lvNoGrade(v, G){
     <div class="rescore">
       <svg viewBox="0 0 110 110" class="ring"><circle cx="55" cy="55" r="44" style="fill:none;stroke:var(--surface2);stroke-width:10"/>
         <text x="55" y="64" text-anchor="middle" style="fill:var(--mut);font-size:34px;font-weight:700">–</text></svg>
-      <div><div class="resgrade">Pas de note</div><div class="mut sm">Pour être noté, il faut au moins ${LV_MIN.trades} achats et avoir investi en moyenne ${nf2(LV_MIN.expo*100, 0)} % de ton capital sur la session. Toi : ${L.trades} achat${L.trades > 1 ? 's' : ''}, ${nf2(G.expoAvg*100, 1)} % investi en moyenne. Une session presque sans trader ne dit rien de ton niveau.</div></div>
+      <div><div class="resgrade">Pas de note</div><div class="mut sm">Pour être noté, il faut au moins un achat, et soit ${money(LV_MIN.bought)} achetés au total, soit en moyenne ${nf2(LV_MIN.expo*100, 0)} % de ton capital investi sur la session. Toi : ${L.trades} achat${L.trades > 1 ? 's' : ''} pour ${money(G.bought)}, ${nf2(G.expoAvg*100, 1)} % investi en moyenne. Une session presque sans trader ne dit rien de ton niveau.</div></div>
     </div>
     <div class="resout"><div class="resline"><span>Résultat de la session</span><b class="${cls(G.pnl)}">${G.pnl >= 0 ? '+' : ''}${money(G.pnl)}</b></div></div>
     ${G.moments.length ? `<div class="lvmoments"><b>Ce qui est passé devant toi</b>${G.moments.map(m => `<div class="lvm"><div class="lvmh"><span>${esc(m.who)}</span>${m.good ? `<span class="lvv lvv-excellent">${m.label}</span>` : ''}</div>
