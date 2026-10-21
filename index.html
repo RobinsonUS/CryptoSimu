@@ -449,7 +449,7 @@ header{position:relative}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.21-10';
+const APP_VERSION = '2026.10.21-11';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -3053,7 +3053,7 @@ function mResult(v){
    centaines de suites possibles avec le même modèle, et on compare ton choix
    aux autres choix possibles au même instant. La suite réelle n'est jamais
    utilisée pour noter : la chance est montrée à part. */
-const LV = { len: 180, secPerMin: 2.5, slowSecPerMin: 10, sub: 10, pauses: 3, pauseSec: 20, H: 60, N: 220, lambda: 4 };
+const LV = { len: 180, secPerMin: 2.5, slowSecPerMin: 10, sub: 10, pauses: 3, pauseSec: 20, H: 60, N: 220, lambda: 1 };
 let L = null, lvTimer = null, lvChart = null, lvSeries = null;
 const LV_SYL1 = ['ZO', 'PI', 'MO', 'KA', 'BU', 'FLO', 'GRU', 'SNO', 'WI', 'PE', 'DO', 'TA', 'LU', 'BRO', 'CHI', 'NE', 'FU', 'BA', 'RI', 'QUA', 'JI', 'TOO', 'MEE', 'YA'];
 const LV_SYL2 = ['RP', 'NK', 'MBO', 'TO', 'ZZ', 'PPY', 'RK', 'BI', 'GO', 'NUT', 'LLY', 'SH', 'MP', 'X', 'DOG', 'CAT', 'PUG', 'FROG', 'BEAR', 'BULL', 'MOON', 'PEPE'];
@@ -3302,7 +3302,7 @@ function lvSnap(t){
 // marge de perte restante avant le plancher, en tenant compte de ce que les AUTRES positions ouvertes peuvent encore perdre
 function lvBudget(eq, except){
   let atRisk = 0;
-  for (const k in L.pos){ if (+k === except) continue; const p = L.pos[k], tk = L.tokens[k], v = lvPosValue(p, tk); atRisk += p.sl ? Math.max(0, v - p.qty*p.sl) : v*0.5; }
+  for (const k in L.pos){ if (+k === except) continue; const p = L.pos[k], tk = L.tokens[k], v = lvPosValue(p, tk); atRisk += p.sl ? Math.max(0, v - p.qty*p.sl) : v*0.3; }
   return Math.max(0, eq - CAPITAL*(1 - L.maxDD/100) - atRisk);
 }
 function lvAmp(t){ const cs = t.candles.slice(-60); let hi = 0, lo = Infinity; for (const c of cs){ hi = Math.max(hi, c.h); lo = Math.min(lo, c.l); } return cs.length ? (hi/lo - 1)*100 : 0; }
@@ -3404,7 +3404,7 @@ function lvBuyPnls(snap, paths, A, slR, tpR){
   return paths.map(P => { const x = lvExit(P, slR, tpR), V = q*x; return (V > 0 ? Math.max(0, snap.R*V/(snap.R + V)*(1 - f.pct) - f.net) : 0) - A; });
 }
 // meilleur achat possible à cet instant (montant x sortie), et utilité d'un plan donné
-function lvBuyOptions(snap, paths){
+function lvBuyOptions(snap, paths, check){
   const opts = [{ A: 0, slP: 0, tpP: 0, u: 0, mean: 0 }];
   const pairs = [[5, 10], [10, 20], [10, 30], [20, 50], [30, 100], [0, 0], ...snap.presets.map(p => [p.sl, p.tp])];
   const sizes = [5, 10, 20, 30, 50, 75, 100].filter(a => a <= snap.cash + 1e-9);
@@ -3412,9 +3412,15 @@ function lvBuyOptions(snap, paths){
     const f = { pct: snap.pool + TTYPES[snap.type].plat, net: (snap.prio + SOL_BASE_FEE)*L.sol }, dx = A*(1 - f.pct) - f.net; if (!(dx > 0)) continue;
     const er = A/(dx*(1 - dx/(snap.R + dx))), pn = lvBuyPnls(snap, paths, A, slP ? er*(1 - slP/100) : 0, tpP ? er*(1 + tpP/100) : 0);
     if (!pn) continue;
-    const r = lvUtil(pn, snap.budget); opts.push({ A, slP, tpP, u: r.u - (slP ? 0 : 0.05), mean: r.mean, pn });   // à résultat presque égal, on préfère un plan avec stop
+    // un plan qui franchit ta marge restante dans plus d'un cas sur dix n'est pas un plan raisonnable, même s'il rapporte en moyenne
+    if (A > 10 && pn.filter(x => -x > snap.budget).length > pn.length*0.1) continue;
+    const r = lvUtil(pn, snap.budget); opts.push({ A, slP, tpP, u: r.u - (slP ? 0 : 0.05), mean: r.mean, pn, er });   // à résultat presque égal, on préfère un plan avec stop
   }
-  return opts.reduce((a, b) => b.u > a.u ? b : a);
+  const best = opts.reduce((a, b) => b.u > a.u ? b : a);
+  if (!check || !best.A) return best;
+  // le meilleur plan est choisi sur un jeu de suites et réévalué sur un autre : sinon le hasard des simulations le rend trop beau
+  const pn = lvBuyPnls(snap, check, best.A, best.slP ? best.er*(1 - best.slP/100) : 0, best.tpP ? best.er*(1 + best.tpP/100) : 0), r = lvUtil(pn, snap.budget);
+  return r.u - (best.slP ? 0 : 0.05) > 0 ? { ...best, u: r.u - (best.slP ? 0 : 0.05), mean: r.mean, pn } : opts[0];
 }
 // valeur d'une position déjà ouverte selon ce qu'on en fait (relative à « tout vendre maintenant »)
 function lvHoldU(snap, paths, frac, slR, tpR){
@@ -3424,8 +3430,10 @@ function lvHoldU(snap, paths, frac, slR, tpR){
   const pn = paths.map(P => { const x = lvExit(P, slR, tpR), V = keep*snap.price*x; return (frac > 0 ? sellNow(pos.qty*frac) : 0) + (V > 0 ? Math.max(0, snap.R*V/(snap.R + V)*(1 - f.pct) - f.net) : 0) - now; });
   return lvUtil(pn, snap.budget);
 }
-const LV_VERD = [[0.15, 'excellent', 'Excellent'], [0.5, 'bon', 'Bon'], [1.5, 'imprecis', 'Imprécis'], [4, 'erreur', 'Erreur'], [1e9, 'grave', 'Grave erreur']];
-const lvVerdict = r => LV_VERD.find(x => r <= x[0]);
+// qualité d'une décision : le manque à gagner rapporté à la somme en jeu (1 $ perdu sur 10 $ n'est pas 1 $ perdu sur 100 $)
+const LV_VERD = [[0.9, 'excellent', 'Excellent'], [0.75, 'bon', 'Bon'], [0.5, 'imprecis', 'Imprécis'], [0.25, 'erreur', 'Erreur'], [-1, 'grave', 'Grave erreur']];
+const lvVerdict = q => LV_VERD.find(x => q >= x[0]);
+const lvQ = (regret, stake) => Math.exp(-regret/(0.08*Math.max(10, stake || 0)));
 const lvPlanTxt = (A, slP, tpP) => A ? `acheter ${money(A)}${slP || tpP ? ` avec ${slP ? 'stop -' + slP + ' %' : 'sans stop'} et ${tpP ? 'objectif +' + tpP + ' %' : 'sans objectif'}` : ' sans stop ni objectif'}` : 'ne pas acheter';
 // Explication chiffrée d'un instant : tendance attendue décomposée par indicateur, risque de chute, frais
 function lvExplain(snap, A){
@@ -3465,28 +3473,28 @@ function lvGrade(){
     const t = L.tokens[d.tok], who = `Minute ${Math.floor(d.g)} · ${t.name}`;
     if (d.kind === 'check'){
       if (!evalChecks.has(d)) continue;
-      const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions({ ...d.snap, tradesLeft: 1 }, paths);
-      if (best.A && best.u >= 0.6 && best.A <= d.snap.cash + 1e-9) missed.push({ g: d.g, tok: t.name, tokId: d.tok, who, regret: best.u, kind: 'missed', snap: d.snap, ex: lvExplain(d.snap, best.A),
+      const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions({ ...d.snap, tradesLeft: 1 }, paths, lvSim(d.snap, 5000 + seed));
+      if (best.A && best.u >= 0.6 && best.A <= d.snap.cash + 1e-9) missed.push({ g: d.g, tok: t.name, tokId: d.tok, who, regret: best.u, bestA: best.A, kind: 'missed', snap: d.snap, ex: lvExplain(d.snap, best.A),
         did: L.earlyAt != null && d.g > L.earlyAt ? 'Tu avais déjà terminé la session' : 'Tu l\'as laissé passer', best: lvPlanTxt(best.A, best.slP, best.tpP), stats: `Avec ce plan, sur ${LV.N} suites simulées : ${lvStats(best.pn)}.` });
       continue;
     }
     if (d.kind === 'appear'){
       if (boughtWithin(d.tok, d.g)) continue;
       const fair = d.snap.cash >= 10 && d.snap.tradesLeft > 0 && d.snap.remaining > 15; if (!fair) continue;
-      const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions(d.snap, paths);
+      const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions(d.snap, paths, lvSim(d.snap, 5000 + seed));
       const regret = Math.max(0, best.u);
       if (regret >= 0.6 && best.A){
-        missed.push({ g: d.g, tok: t.name, tokId: d.tok, who, regret, kind: 'missed', snap: d.snap, ex: lvExplain(d.snap, best.A),
+        missed.push({ g: d.g, tok: t.name, tokId: d.tok, who, regret, bestA: best.A, kind: 'missed', snap: d.snap, ex: lvExplain(d.snap, best.A),
           did: L.earlyAt != null && d.g > L.earlyAt ? 'Tu avais déjà terminé la session' : 'Tu l\'as laissé passer', best: lvPlanTxt(best.A, best.slP, best.tpP), stats: `Avec ce plan, sur ${LV.N} suites simulées : ${lvStats(best.pn)}.` });
         continue;
       }
       if (!t.flagged) continue;     // bon choix sans histoire : rien à dire
       const good = true, ex = lvExplain(d.snap, 20);
-      moments.push({ g: d.g, tok: t.name, who, regret, kind: good ? 'trap' : 'missed', snap: d.snap, ex, good, label: good ? 'Piège évité' : null,
+      moments.push({ g: d.g, tok: t.name, who, regret, q: 1, w: 0.2, kind: good ? 'trap' : 'missed', snap: d.snap, ex, good, label: good ? 'Piège évité' : null,
         did: good ? 'Tu ne l\'as pas acheté' : L.earlyAt != null && d.g > L.earlyAt ? 'Arrivé après que tu as terminé la session' : 'Tu l\'as laissé passer', best: best.A ? lvPlanTxt(best.A, best.slP, best.tpP) : 'passer',
         stats: best.A ? `Avec ce plan, sur ${LV.N} suites simulées : ${lvStats(best.pn)}.` : '' });
     } else if (d.kind === 'buy'){
-      const paths = lvSim(d.snap, 1000 + seed++), best = lvBuyOptions(d.snap, paths), er = d.entryRel;
+      const pA = lvSim(d.snap, 1000 + seed++), paths = lvSim(d.snap, 5000 + seed), best = lvBuyOptions(d.snap, pA, paths), er = d.entryRel;
       const dsl = d.sl ?? null, dtp = d.tp ?? null, slR = dsl ? dsl/d.snap.price : 0, tpR = dtp ? dtp/d.snap.price : 0;
       const pn = lvBuyPnls(d.snap, paths, d.A, slR, tpR), mine = pn ? lvUtil(pn, d.snap.budget) : { u: -d.A, mean: -d.A };
       expected += mine.mean;
@@ -3495,31 +3503,35 @@ function lvGrade(){
       cat.tri += triPart; cat.taille += Math.max(0, regret - triPart);
       const sp = dtp ? Math.round((dtp/(d.fill*er) - 1)*100) : 0, sl = dsl ? Math.round((1 - dsl/(d.fill*er))*100) : 0;
       const ex = lvExplain(d.snap, d.A), worstLoss = pn ? Math.min(...pn) : -d.A;
-      const sizeIssue = best.A > 0 && d.A > best.A*1.5 && -worstLoss > d.snap.budget;
-      moments.push({ g: d.g, tok: t.name, who, regret, kind: best.A === 0 ? 'badbuy' : sizeIssue ? 'size' : 'plan', snap: d.snap, ex, A: d.A, sizeIssue,
+      // pas de marge : le token n'était pas forcément mauvais, c'est la mise qui mettait le plancher en danger
+      const noMargin = best.A === 0 && mine.mean > -0.03*d.A && -worstLoss > d.snap.budget;
+      const sizeIssue = noMargin || (best.A > 0 && d.A > best.A*1.5 && -worstLoss > d.snap.budget);
+      const q = lvQ(regret, Math.max(d.A, best.A)), good = q >= 0.9;
+      moments.push({ g: d.g, tok: t.name, who, regret, q, w: 1, kind: best.A === 0 && !noMargin ? 'badbuy' : sizeIssue ? 'size' : 'plan', snap: d.snap, ex, A: d.A, sizeIssue, good, label: good ? 'Bon achat' : null,
         did: `Tu as ${lvPlanTxt(d.A, sl, sp).replace(/^acheter/, 'acheté')}`, best: lvPlanTxt(best.A, best.slP, best.tpP),
         stats: `Ton plan, sur ${LV.N} suites simulées : ${lvStats(pn)}.${best.A ? ` Le meilleur : ${lvStats(best.pn)}.` : ''}` });
       const [s0, s1] = t.slip, pr = d.set.prio/d.snap.med;
-      if (d.set.slip < s0 || d.set.slip > s1*2){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, kind: 'slip', snap: d.snap, did: `Slippage à ${nf2(d.set.slip, 0)} %`, best: `${s0} à ${s1} % pour un ${t.label.toLowerCase()}`, ex: { txt: d.set.slip < s0 ? 'Trop serré : la transaction échoue dès que le prix bouge un peu pendant la confirmation.' : 'Trop large : les bots peuvent passer devant toi et te faire payer plus cher.' }, stats: '' }); }
-      if (pr < 1 || pr > 5){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, kind: 'prio', snap: d.snap, did: `Priority fee à ${fp(d.set.prio)} SOL`, best: `entre ${fp(d.snap.med)} et ${fp(d.snap.med*5)} SOL (médiane du réseau à ce moment : ${fp(d.snap.med)} SOL)`, ex: { txt: pr < 1 ? 'Sous la médiane, ta transaction attend ou expire.' : 'Au-delà de 5 fois la médiane, tu paies pour rien.' }, stats: '' }); }
+      if (d.set.slip < s0 || d.set.slip > s1*2){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, q: 0.4, w: 0.25, kind: 'slip', snap: d.snap, did: `Slippage à ${nf2(d.set.slip, 0)} %`, best: `${s0} à ${s1} % pour un ${t.label.toLowerCase()}`, ex: { txt: d.set.slip < s0 ? 'Trop serré : la transaction échoue dès que le prix bouge un peu pendant la confirmation.' : 'Trop large : les bots peuvent passer devant toi et te faire payer plus cher.' }, stats: '' }); }
+      if (pr < 1 || pr > 5){ cat.exec += 0.3; moments.push({ g: d.g, tok: t.name, who, regret: 0.3, q: 0.4, w: 0.25, kind: 'prio', snap: d.snap, did: `Priority fee à ${fp(d.set.prio)} SOL`, best: `entre ${fp(d.snap.med)} et ${fp(d.snap.med*5)} SOL (médiane du réseau à ce moment : ${fp(d.snap.med)} SOL)`, ex: { txt: pr < 1 ? 'Sous la médiane, ta transaction attend ou expire.' : 'Au-delà de 5 fois la médiane, tu paies pour rien.' }, stats: '' }); }
     } else if (d.kind === 'sell' || d.kind === 'devsignal' || d.kind === 'trig'){
       if (!d.snap.pos) continue;
-      const paths = lvSim(d.snap, 1000 + seed++), P = d.snap.pos, curSl = P.sl ? P.sl/d.snap.price : 0, curTp = P.tp ? P.tp/d.snap.price : 0;
-      const cands = [{ txt: 'tout vendre', u: 0 }, { txt: 'vendre la moitié', u: lvHoldU(d.snap, paths, 0.5, curSl, curTp).u }, { txt: 'garder avec tes niveaux', u: lvHoldU(d.snap, paths, 0, curSl, curTp).u }];
-      for (const [a, b] of [[0.95, 1.1], [0.9, 1.2], [0.8, 1.5], [0.97, 1.05]]) cands.push({ txt: `garder avec un stop à ${pct1((a - 1)*100)} et un objectif à +${nf2((b - 1)*100, 0)} % du prix actuel`, u: lvHoldU(d.snap, paths, 0, a, b).u });
-      const best = cands.reduce((a, b) => b.u > a.u ? b : a);
+      const pA = lvSim(d.snap, 1000 + seed++), paths = lvSim(d.snap, 5000 + seed), P = d.snap.pos, curSl = P.sl ? P.sl/d.snap.price : 0, curTp = P.tp ? P.tp/d.snap.price : 0;
+      const cand = (txt, f, a, b) => ({ txt, sel: lvHoldU(d.snap, pA, f, a, b).u, u: lvHoldU(d.snap, paths, f, a, b).u });
+      const cands = [{ txt: 'tout vendre', sel: 0, u: 0 }, cand('vendre la moitié', 0.5, curSl, curTp), cand('garder avec tes niveaux', 0, curSl, curTp)];
+      for (const [a, b] of [[0.95, 1.1], [0.9, 1.2], [0.8, 1.5], [0.97, 1.05]]) cands.push(cand(`garder avec un stop à ${pct1((a - 1)*100)} et un objectif à +${nf2((b - 1)*100, 0)} % du prix actuel`, 0, a, b));
+      const best = cands.reduce((a, b) => b.sel > a.sel ? b : a);
       let mineU, did, kind;
       if (d.kind === 'sell'){ mineU = d.frac >= 1 ? 0 : lvHoldU(d.snap, paths, d.frac, curSl, curTp).u; did = d.frac >= 1 ? 'Tu as tout vendu' : `Tu as vendu ${Math.round(d.frac*100)} %`; kind = 'sell'; }
       else if (d.kind === 'trig'){ mineU = lvHoldU(d.snap, paths, 0, d.sl ? d.sl/d.snap.price : 0, d.tp ? d.tp/d.snap.price : 0).u; did = `Tu as mis ton stop à ${d.sl ? pct1((d.sl/d.snap.price - 1)*100) : 'aucun'} et ton objectif à ${d.tp ? '+' + pct1((d.tp/d.snap.price - 1)*100) : 'aucun'} du prix`; kind = 'trig'; }
       else { mineU = d.chosen === 'sold' ? 0 : cands[2].u; did = d.chosen === 'sold' ? 'Tu as vendu à temps' : 'Tu as gardé la position pendant 3 minutes'; kind = d.chosen === 'sold' ? 'devok' : 'devlate'; }
-      const regret = Math.max(0, best.u - mineU);
+      const regret = Math.max(0, best.u - mineU), q = lvQ(regret, P.qty*d.snap.price);
       cat.gestion += regret;
-      const good = d.kind === 'devsignal' && regret < 0.15;
-      moments.push({ g: d.g, tok: t.name, who, regret, kind, snap: d.snap, ex: lvExplain(d.snap), did, best: best.txt, good, label: good ? 'Bonne réaction' : null,
+      const good = d.kind === 'devsignal' && q >= 0.9;
+      moments.push({ g: d.g, tok: t.name, who, regret, q, w: 0.6, kind, snap: d.snap, ex: lvExplain(d.snap), did, best: best.txt, good, label: good ? 'Bonne réaction' : null,
         stats: kind === 'sell' && regret >= 0.15 ? `En gardant, tu espérais ${best.u >= 0 ? '+' : ''}${money(best.u)} de plus que la vente.` : '' });
     } else if (d.kind === 'exec'){
       cat.exec += d.what === 'expired' ? 0.4 : 0.5;
-      moments.push({ g: d.g, tok: t.name, who, regret: 0.5, kind: d.what === 'expired' ? 'prio' : 'slip', did: d.what === 'expired' ? 'Transaction expirée' : 'Achat échoué sur le slippage',
+      moments.push({ g: d.g, tok: t.name, who, regret: 0.5, q: 0.3, w: 0.25, kind: d.what === 'expired' ? 'prio' : 'slip', did: d.what === 'expired' ? 'Transaction expirée' : 'Achat échoué sur le slippage',
         best: d.what === 'expired' ? `une priority fee au-dessus de la médiane (${fp(d.med)} SOL)` : `un slippage de ${d.range[0]} à ${d.range[1]} %`, ex: { txt: '' }, stats: '' });
     }
   }
@@ -3527,15 +3539,19 @@ function lvGrade(){
   const perTok = new Map(); for (const m of missed) if (!perTok.has(m.tokId) || perTok.get(m.tokId).regret < m.regret) perTok.set(m.tokId, m);
   const keep = [...perTok.values()].sort((a, b) => b.regret - a.regret).slice(0, Math.max(0, L.maxTrades - L.trades));
   // une occasion manquée coûte au plus 4 $ : passer son tour reste une erreur prudente, moins grave qu'un mauvais achat
-  for (const m of keep){ m.regret = Math.min(4, m.regret); cat.tri += m.regret; moments.push(m); }
+  // passer reste prudent : une occasion manquée est jugée moins sévèrement qu'un achat
+  for (const m of keep){ m.regret = Math.min(4, m.regret); m.q = lvQ(m.regret, 2*m.bestA); m.w = 0.4; cat.tri += m.regret; moments.push(m); }
   const total = cat.tri + cat.taille + cat.gestion + cat.exec;
   const ddBreach = (CAPITAL - L.minEq) > CAPITAL*L.maxDD/100;
   const pnl = L.cash - CAPITAL, goalOk = pnl >= CAPITAL*L.target/100;
   // plancher franchi : 3 points par point de pourcentage au-delà, 15 au maximum
-  const over = Math.max(0, (CAPITAL - L.minEq)/CAPITAL*100 - L.maxDD), score = lvClamp(Math.round(100*Math.exp(-total/20) - Math.min(15, 3*Math.ceil(over))), 0, 100);
-  const bad = moments.filter(m => !m.good && m.regret >= 0.15).sort((a, b) => b.regret - a.regret).slice(0, 6), good = moments.filter(m => m.good).slice(0, 2);
+  // note : moyenne de la qualité de chaque décision (pondérée), moins le dépassement du plancher
+  let sw = 0, sq = 0; for (const m of moments) if (m.w){ sw += m.w; sq += m.w*m.q; }
+  const over = Math.max(0, (CAPITAL - L.minEq)/CAPITAL*100 - L.maxDD), score = lvClamp(Math.round(100*(sw ? sq/sw : 0) - Math.min(15, 3*Math.ceil(over))), 0, 100);
+  const isBad = m => !m.good && m.regret >= 0.15 && m.q < 0.9;
+  const bad = moments.filter(isBad).sort((a, b) => (1 - a.q)*a.w - (1 - b.q)*b.w).reverse().slice(0, 6), good = moments.filter(m => m.good).sort((a, b) => b.w - a.w).slice(0, 3);
   const expoAvg = (L.expo || 0)/LV.len;
-  return { noGrade: L.trades < LV_MIN.trades || expoAvg < LV_MIN.expo, expoAvg, score, total, cat, moments: [...bad, ...good].sort((a, b) => a.g - b.g), expected, pnl, goalOk, ddBreach, lessons: lvLessons(moments.filter(m => !m.good && m.regret >= 0.15), ddBreach) };
+  return { noGrade: L.trades < LV_MIN.trades || expoAvg < LV_MIN.expo, expoAvg, score, total, cat, moments: [...bad, ...good].sort((a, b) => a.g - b.g), expected, pnl, goalOk, ddBreach, lessons: lvLessons(moments.filter(isBad), ddBreach) };
 }
 // Leçons précises, tirées de TES erreurs : quels indices tu as ignorés, sur quels tokens, avec les chiffres
 function lvLessons(bad, ddBreach){
@@ -3805,7 +3821,7 @@ function lvResult(v){
   const letter = G.score >= 85 ? 'A' : G.score >= 70 ? 'B' : G.score >= 55 ? 'C' : 'D', C = 2*Math.PI*44, off = C*(1 - G.score/100);
   const luck = G.pnl - G.expected;
   const catTxt = { tri: 'Choix des tokens', taille: 'Taille et sorties', gestion: 'Gestion des positions', exec: 'Exécution' };
-  const vb = m => { const vd = m.good ? [0, 'excellent', m.label] : lvVerdict(m.regret); return `<span class="lvv lvv-${vd[1]}">${vd[2]}</span>`; };
+  const vb = m => { const vd = m.good ? [0, 'excellent', m.label] : lvVerdict(m.q ?? 0.5); return `<span class="lvv lvv-${vd[1]}">${vd[2]}</span>`; };
   v.innerHTML = `<div class="result">
     <div class="rescore">
       <svg viewBox="0 0 110 110" class="ring"><circle cx="55" cy="55" r="44" style="fill:none;stroke:var(--surface2);stroke-width:10"/>
