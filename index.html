@@ -398,7 +398,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.20-26';
+const APP_VERSION = '2026.10.21-1';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -820,21 +820,25 @@ const pk58 = (u, o) => window.solanaWeb3 ? new window.solanaWeb3.PublicKey(u.sli
 const rdU64 = (u, o) => new DataView(u.buffer, u.byteOffset).getBigUint64(o, true);
 // Plusieurs serveurs Solana gratuits : si l'un refuse (limite atteinte, blocage), on passe au suivant.
 // Si aucun ne répond, on arrête de les solliciter pendant 2 minutes.
-const SEC_RPCS = [RPC_HTTP, 'https://solana-rpc.publicnode.com'];
+const SEC_RPCS = [RPC_HTTP, 'https://solana-rpc.publicnode.com', 'https://solana.drpc.org'];
 let secRpcI = 0, rpcDeadUntil = 0;
 async function rpcSafe(method, params){
   if (Date.now() < rpcDeadUntil) throw new Error('RPC indisponible');
+  let reached = false, why = '';
   for (let k = 0; k < SEC_RPCS.length; k++){
     const url = SEC_RPCS[(secRpcI + k) % SEC_RPCS.length], ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 6000);
     try {
       const r = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: ctl.signal, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
-      clearTimeout(tm);
+      clearTimeout(tm); reached = true;
       const jr = r.ok ? await r.json() : null;
       if (jr && !jr.error && 'result' in jr){ secRpcI = (secRpcI + k) % SEC_RPCS.length; return jr.result; }
+      why = jr && jr.error ? jr.error.message : 'HTTP ' + r.status;
     } catch(e){ clearTimeout(tm); }
   }
-  rpcDeadUntil = Date.now() + 120000;
-  throw new Error('RPC indisponible');
+  // Un serveur qui RÉPOND par un refus (méthode lourde, limite atteinte) n'est pas en panne : on ne coupe rien.
+  // On ne met Solana en pause (30 s) que si aucun serveur n'a répondu du tout.
+  if (!reached) rpcDeadUntil = Date.now() + 30000;
+  throw new Error(reached ? 'refusé : ' + why : 'RPC indisponible');
 }
 // Sources de repli, gratuites et sans clé :
 // - Jupiter (api.jup.ag/tokens/v2/search) : mint, gel, part des plus gros détenteurs. 0,5 requête/s sans clé.
@@ -1044,13 +1048,22 @@ const platFee = () => PLAT_FEE;
    d'entrer à chaque bloc. Au bout de 150 blocs sans succès, le blockhash
    expire et la transaction est abandonnée (aucun frais payé). */
 const SLOT_MS = 400, MAX_SLOTS = 150, feeCache = {};
+// Dernière mesure du réseau gardée en mémoire : si Solana ne répond pas, on s'en sert (en le disant) plutôt que de supposer un réseau vide
+let lastNet = null;
+try { lastNet = JSON.parse(localStorage.getItem('net_v1')); } catch(e){}
 async function recentFees(acct){
   const k = acct || '*', c = feeCache[k];
   if (c && Date.now() - c.t < 10000) return c.fees;
-  const r = await rpc('getRecentPrioritizationFees', acct ? [[acct]] : []);
-  const fees = (r || []).map(x => x.prioritizationFee);
-  feeCache[k] = { t: Date.now(), fees };
-  return fees;
+  try {
+    const r = await rpc('getRecentPrioritizationFees', acct ? [[acct]] : []);
+    const fees = (r || []).map(x => x.prioritizationFee);
+    feeCache[k] = { t: Date.now(), fees };
+    if (!acct && fees.length){ lastNet = { t: Date.now(), fees }; try { localStorage.setItem('net_v1', JSON.stringify(lastNet)); } catch(e){} }
+    return fees;
+  } catch(e){
+    if (lastNet && Date.now() - lastNet.t < 6*3600e3){ const f = lastNet.fees.slice(); f.stale = lastNet.t; return f; }
+    throw e;
+  }
 }
 const myMicroLamports = () => Math.max(PRIO_MIN, +S.settings.prio || 0) * 1e9 * 1e6 / CU_LIMIT;
 function landChance(fees){
@@ -1567,8 +1580,9 @@ async function showNetInfo(){
   const el = $('#netinfo'); if (!el) return;
   try {
     const fees = await recentFees(null), q = landChance(fees);
-    el.innerHTML = `Réseau en ce moment : médiane ${fp(feeToSol(median(fees)))} SOL · avec ta fee, confirmation ${etaText(q)}`;
-  } catch(e){ el.textContent = 'État du réseau indisponible'; }
+    const when = fees.stale ? `Dernière mesure du réseau (il y a ${Math.max(1, Math.round((Date.now() - fees.stale)/60000))} min, Solana injoignable)` : 'Réseau en ce moment';
+    el.innerHTML = `${when} : médiane ${fp(feeToSol(median(fees)))} SOL · avec ta fee, confirmation ${etaText(q)}`;
+  } catch(e){ el.textContent = 'État du réseau injoignable pour l\'instant (serveurs Solana gratuits). Nouvel essai dans quelques secondes.'; setTimeout(() => { if ($('#netinfo') === el) showNetInfo(); }, 8000); }
 }
 function renderView(){
   const v = $('#view');
