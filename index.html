@@ -398,7 +398,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.21-2';
+const APP_VERSION = '2026.10.21-3';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -1071,10 +1071,14 @@ async function recentFees(acct){
   }
 }
 const myMicroLamports = () => Math.max(PRIO_MIN, +S.settings.prio || 0) * 1e9 * 1e6 / CU_LIMIT;
+// Solana renvoie, pour chaque bloc récent, le plus petit frais payé par une transaction touchant ce compte.
+// Un 0 veut souvent dire « personne n'a touché ce pool dans ce bloc » : on ne garde que les blocs où il y a eu de la concurrence.
+const busyFees = fees => (fees || []).filter(f => f > 0);
 function landChance(fees){
-  if (!fees || !fees.length) return 0.9;
+  const fs = busyFees(fees);
+  if (fs.length < 10) return 0.9;          // presque aucune concurrence mesurée sur ce pool
   const mine = myMicroLamports();
-  return Math.min(0.95, Math.max(0.01, fees.filter(f => mine >= f).length / fees.length));
+  return Math.min(0.95, Math.max(0.01, fs.filter(f => mine >= f).length / fs.length));
 }
 const feeToSol = f => f * CU_LIMIT / 1e6 / 1e9;
 function median(a){ if (!a.length) return 0; const b = a.slice().sort((x,y) => x-y); return b[Math.floor(b.length/2)]; }
@@ -1584,9 +1588,19 @@ function patchList(l, rows, empty){
 async function showNetInfo(){
   const el = $('#netinfo'); if (!el) return;
   try {
-    const fees = await recentFees(null), q = landChance(fees);
-    const when = fees.stale ? `Dernière mesure du réseau (il y a ${Math.max(1, Math.round((Date.now() - fees.stale)/60000))} min, Solana injoignable)` : 'Réseau en ce moment';
-    el.innerHTML = `${when} : médiane ${fp(feeToSol(median(fees)))} SOL · avec ta fee, confirmation ${etaText(q)}`;
+    // la concurrence qui compte : celle sur les pools de memecoins actifs (tendances, nouveaux, tes positions)
+    const pools = [];
+    for (const a of [...Object.keys(S.pos).filter(k => k.startsWith('sol:')).map(k => k.slice(4)), ...feed.top, ...feed.new]){ const p = DEX[a]; if (p && !pools.includes(poolAcct(p))) pools.push(poolAcct(p)); if (pools.length >= 4) break; }
+    let fees = [], label = 'Réseau (tous comptes)';
+    if (pools.length){
+      const got = await Promise.allSettled(pools.map(acc => recentFees(acc)));
+      for (const g of got) if (g.status === 'fulfilled') fees.push(...busyFees(g.value));
+      label = `Concurrence sur ${pools.length} memecoin${pools.length > 1 ? 's' : ''} actif${pools.length > 1 ? 's' : ''}`;
+    }
+    if (busyFees(fees).length < 10){ fees = await recentFees(null); label = fees.stale ? `Dernière mesure du réseau (il y a ${Math.max(1, Math.round((Date.now() - fees.stale)/60000))} min, Solana injoignable)` : 'Réseau (tous comptes)'; }
+    const bf = busyFees(fees), q = landChance(fees);
+    el.innerHTML = bf.length >= 10 ? `${label} : médiane ${fp(feeToSol(median(bf)))} SOL · avec ta fee, confirmation ${etaText(q)}`
+      : `${label} : presque aucune concurrence mesurée en ce moment · confirmation ${etaText(q)}${pools.length ? '' : '<br><span class="sm">Ouvre l\'onglet Memecoins pour mesurer la concurrence sur les tokens actifs.</span>'}`;
   } catch(e){ el.innerHTML = `État du réseau injoignable pour l'instant. Nouvel essai dans quelques secondes.<br><span class="sm">${esc(rpcDiagTxt())}</span>`; setTimeout(() => { if ($('#netinfo') === el) showNetInfo(); }, 8000); }
 }
 function renderView(){
