@@ -156,6 +156,19 @@ nav svg{width:22px;height:22px}
 .lvv-excellent{background:rgba(46,189,133,.15);color:var(--up)}.lvv-bon{background:rgba(46,189,133,.1);color:var(--up)}
 .lvv-imprecis{background:rgba(171,159,242,.14);color:var(--acc)}.lvv-erreur{background:rgba(246,70,93,.12);color:var(--down)}.lvv-grave{background:var(--down);color:var(--bg)}
 @media (min-width:1100px){.lvbar{margin-left:0;grid-column:1/-1}}
+.eqcard{padding-bottom:10px}
+.eqhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.eqhead h3{margin:0}
+.eqtabs{display:flex;gap:2px;background:var(--surface2);border-radius:10px;padding:2px}
+.eqtabs button{padding:5px 9px;border-radius:8px;font-size:12px;font-weight:600;color:var(--mut)}
+.eqtabs button.on{background:var(--surface);color:var(--txt)}
+.eqstats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:8px}
+.eqstats div{display:flex;flex-direction:column;gap:1px;min-width:0}
+.eqstats span{font-size:11px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.eqstats b{font-size:13px;font-weight:600;white-space:nowrap}
+#eqchart{height:180px;margin:0 -6px}
+@media (max-width:420px){.eqstats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:900px){#eqchart{height:220px}}
 #toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--surface2);color:var(--txt);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:500;z-index:20;display:none;max-width:90%;text-align:center;box-shadow:0 8px 24px rgba(0,0,0,.4)}
 .empty{text-align:center;color:var(--mut);padding:40px 0}
 .hist-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px}
@@ -398,7 +411,7 @@ nav svg{width:22px;height:22px}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.21-3';
+const APP_VERSION = '2026.10.21-4';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -489,7 +502,7 @@ async function j(url){
 function parse(key){ const i = key.indexOf(':'); return { kind: key.slice(0,i), id: key.slice(i+1) }; }
 
 /* ---------- sauvegarde ---------- */
-function fresh(){ return { cash: START, pos: {}, hist: [], start: Date.now(), settings: { prio: 0.001, slip: 10 } }; }
+function fresh(){ const now = Date.now(); return { cash: START, pos: {}, hist: [], start: now, eq: [{ t: now, v: START }], settings: { prio: 0.001, slip: 10 } }; }
 function load(){
   try { const r = localStorage.getItem(KEY); if (!r) return null; const s = JSON.parse(r); for (const k in s.pos) delete s.pos[k].pending; return s; }
   catch(e){ return null; }
@@ -1157,7 +1170,7 @@ async function buy(key, amount){
     addPos(key, m, qty, amount); autoTrig(key);
     S.cash -= amount;
     log({ side:'Achat', key, sym:m.sym, qty, price:t.ask, usd:amount, fee });
-    toast('Acheté '+fp(qty)+' '+m.sym);
+    toast('Acheté '+fp(qty)+' '+m.sym); recordEq(true);
   } else {
     if (inflight.has(key)) return toast('Transaction déjà en cours sur ce token');
     const p0 = DEX[id]; if (!p0) return toast('Prix pas encore reçu');
@@ -1186,7 +1199,7 @@ async function buy(key, amount){
     addPos(key, meta(key), q.tokens, amount); autoTrig(key);
     S.cash -= amount;
     log({ side:'Achat', key, sym:m.sym, qty:q.tokens, price:q.avg, usd:amount, fee:q.fee, impact:q.impact });
-    toast('Acheté '+fp(q.tokens)+' '+m.sym);
+    toast('Acheté '+fp(q.tokens)+' '+m.sym); recordEq(true);
   }
   save(); refresh();
 }
@@ -1241,7 +1254,7 @@ function close(key, frac, usd, e){
   log(e);
   if (frac >= 0.999) delete S.pos[key];
   else { pos.qty -= e.qty; pos.cost -= costPart; }
-  toast(e.side+' : '+money(usd)+' ('+(e.pnl >= 0 ? '+' : '')+money(e.pnl)+')');
+  toast(e.side+' : '+money(usd)+' ('+(e.pnl >= 0 ? '+' : '')+money(e.pnl)+')'); recordEq(true);
 }
 function checkTriggers(key){
   const pos = S.pos[key]; if (!pos || pos.pending || Date.now() < (pos.retryAt || 0)) return;
@@ -1603,8 +1616,56 @@ async function showNetInfo(){
       : `${label} : presque aucune concurrence mesurée en ce moment · confirmation ${etaText(q)}${pools.length ? '' : '<br><span class="sm">Ouvre l\'onglet Memecoins pour mesurer la concurrence sur les tokens actifs.</span>'}`;
   } catch(e){ el.innerHTML = `État du réseau injoignable pour l'instant. Nouvel essai dans quelques secondes.<br><span class="sm">${esc(rpcDiagTxt())}</span>`; setTimeout(() => { if ($('#netinfo') === el) showNetInfo(); }, 8000); }
 }
+/* ---------- courbe du portefeuille ----------
+   La valeur totale (cash + positions au prix du marché) est enregistrée une fois par minute quand l'appli
+   est ouverte, et à chaque achat ou vente. Rien n'est enregistré tant qu'un prix manque (sinon faux point). */
+let eqChart = null, eqSeries = null, eqRange = 'all';
+if (!Array.isArray(S.eq) || !S.eq.length) S.eq = [{ t: S.start || Date.now(), v: START }];
+function recordEq(force){
+  for (const k in S.pos) if (priceOf(k) == null) return;
+  const v = totalValue(), now = Date.now(), last = S.eq[S.eq.length - 1];
+  if (!force && last && now - last.t < 60000) return;
+  if (last && now - last.t < 1000) last.v = v; else S.eq.push({ t: now, v: Math.round(v*100)/100 });
+  // au-delà de 4 000 points, on allège les plus anciens (un sur deux)
+  if (S.eq.length > 4000){ const half = S.eq.length >> 1; S.eq = S.eq.slice(0, half).filter((_, i) => i % 2 === 0).concat(S.eq.slice(half)); }
+  save();
+  if (eqSeries && tab === 'porte' && !sheetKey) eqUpdate(true);
+}
+const EQ_RANGES = [['1h', 'Heure', 3600e3], ['1d', 'Jour', 86400e3], ['1w', 'Semaine', 7*86400e3], ['all', 'Tout', Infinity]];
+function eqPoints(){
+  const from = Date.now() - EQ_RANGES.find(r => r[0] === eqRange)[2], pts = S.eq.filter(p => p.t >= from), now = Date.now();
+  const out = []; let lastS = -1;
+  for (const p of [...pts, { t: now, v: totalValue() }]){ const s = Math.floor(p.t/1000) + TZ(); if (s > lastS){ out.push({ time: s, value: p.v }); lastS = s; } else out[out.length - 1].value = p.v; }
+  return out;
+}
+function eqBuild(){
+  const el = $('#eqchart'), tb = $('#eqtabs'); if (!el || !window.LightweightCharts) return;
+  tb.innerHTML = EQ_RANGES.map(([k, l]) => `<button data-r="${k}" class="${k === eqRange ? 'on' : ''}">${l}</button>`).join('');
+  tb.querySelectorAll('[data-r]').forEach(b => b.onclick = () => { eqRange = b.dataset.r; if (eqChart){ eqChart.remove(); eqChart = null; eqSeries = null; } eqBuild(); });
+  eqChart = LightweightCharts.createChart(el, { autoSize: true,
+    layout: { background: { type: 'solid', color: '#222228' }, textColor: '#8e8e9a', fontSize: 11, fontFamily: 'Figtree, sans-serif', attributionLogo: false },
+    grid: { vertLines: { visible: false }, horzLines: { color: 'rgba(255,255,255,.04)' } },
+    timeScale: { timeVisible: true, secondsVisible: false, borderVisible: false, fixLeftEdge: true, fixRightEdge: true },
+    rightPriceScale: { borderVisible: false }, crosshair: { mode: 0 },
+    handleScroll: false, handleScale: false });
+  eqSeries = eqChart.addAreaSeries({ lineColor: '#ab9ff2', topColor: 'rgba(171,159,242,.28)', bottomColor: 'rgba(171,159,242,0)', lineWidth: 2,
+    priceFormat: { type: 'custom', formatter: x => money(x), minMove: 0.01 } });
+  eqSeries.createPriceLine({ price: START, color: 'rgba(142,142,154,.6)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: 'départ' });
+  eqSeries.setData(eqPoints());
+  eqChart.timeScale().fitContent();
+  eqUpdate();
+}
+function eqUpdate(){
+  const st = $('#eqstats'); if (!st) return;
+  const all = S.eq.map(p => p.v).concat([totalValue()]);
+  let peak = -Infinity, dd = 0; for (const v of all){ peak = Math.max(peak, v); dd = Math.max(dd, (peak - v)/peak); }
+  const hi = Math.max(...all), lo = Math.min(...all), cur = all[all.length - 1];
+  st.innerHTML = `<div><span>Plus haut</span><b>${money(hi)}</b></div><div><span>Plus bas</span><b>${money(lo)}</b></div><div><span>Plus forte baisse</span><b class="${dd > 0.001 ? 'down' : ''}">${dd > 0.001 ? '-' + nf2(dd*100, 1) + ' %' : '0 %'}</b></div><div><span>Depuis le départ</span><b class="${cls(cur - START)}">${pct((cur - START)/START*100)}</b></div>`;
+  if (eqSeries){ try { const p = eqPoints(); eqSeries.update(p[p.length - 1]); } catch(e){ try { eqSeries.setData(eqPoints()); } catch(_){} } }
+}
 function renderView(){
   const v = $('#view');
+  if (eqChart){ eqChart.remove(); eqChart = null; eqSeries = null; }
   if (tab === 'marche'){
     v.innerHTML = `<div class="hint">Prix Binance en direct · frais 0,1 % · ordre min. 5 $</div><div id="list"></div>`;
   } else if (tab === 'meme'){
@@ -1624,7 +1685,8 @@ function renderView(){
     renderTrain(v);
     return;
   } else if (tab === 'porte'){
-    v.innerHTML = `<div class="porte"><div class="pcol"><div class="card" id="summary"></div><div id="list"></div></div>
+    v.innerHTML = `<div class="porte"><div class="pcol"><div class="card" id="summary"></div>
+      <div class="card eqcard"><div class="eqhead"><h3>Évolution</h3><div class="eqtabs" id="eqtabs"></div></div><div id="eqstats" class="eqstats"></div><div id="eqchart"></div></div><div id="list"></div></div>
       <div class="pcol"><div class="card"><h3>Réglages Solana</h3>
         <div class="field" style="margin-top:0">Priority fee par transaction (SOL)</div>
         <input id="prio" type="number" step="0.0001" min="0.0001" inputmode="decimal" value="${S.settings.prio}">
@@ -1640,7 +1702,8 @@ function renderView(){
     showNetInfo();
     $('#slip').onchange = e => { S.settings.slip = Math.min(100, Math.max(1, +e.target.value || 10)); save(); };
     bindPresetEditor($('#presetedit'), S.settings, save);
-    $('#reset').onclick = () => { if (confirm('Tout effacer et repartir de 100 $ ?')){ const st = S.settings; S = fresh(); S.settings = st; save(); refresh(); } };
+    eqBuild();
+    $('#reset').onclick = () => { if (confirm('Tout effacer et repartir de 100 $ ?')){ const st = S.settings; S = fresh(); S.settings = st; save(); refresh(); renderView(); } };
   } else {
     v.innerHTML = `<div id="list"></div>`;
   }
@@ -1667,6 +1730,7 @@ function renderList(){
     patchList(l, rows, memeTab === 'search' ? 'Cherche un token par nom, ticker ou adresse.' : 'Chargement…');
   } else if (tab === 'porte'){
     const sm = $('#summary');
+    eqUpdate();
     if (sm) sm.innerHTML = `<div class="kv"><span>Cash</span><span>${money(S.cash)}</span></div>
       <div class="kv"><span>En positions</span><span>${money(totalValue()-S.cash)}</span></div>
       <div class="kv"><span>Partie lancée le</span><span>${new Date(S.start).toLocaleDateString('fr-FR')}</span></div>`;
@@ -3724,7 +3788,7 @@ document.querySelectorAll('nav button').forEach(b => b.onclick = () => {
 });
 renderHeader(); renderView(); connectBN(); connectRPC(); loadLogos();
 setInterval(() => {
-  try { renderHeader(); } catch(e){ console.error(e); }
+  try { renderHeader(); recordEq(); } catch(e){ console.error(e); }
   try {
     if (sheetKey) refreshSheet();
     else if (!(tab === 'porte' && document.activeElement && document.activeElement.tagName === 'INPUT')) renderList();
