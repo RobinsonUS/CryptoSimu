@@ -449,7 +449,7 @@ header{position:relative}
 <script src="https://unpkg.com/lightweight-charts@4.2.3/dist/lightweight-charts.standalone.production.js"></script>
 <script>
 'use strict';
-const APP_VERSION = '2026.10.21-8';
+const APP_VERSION = '2026.10.21-9';
 const START = 100;
 const BN_FEE = 0.001;      // 0,1 % frais spot Binance (taux standard)
 const BN_MIN = 5;          // ordre minimum 5 USDT sur Binance
@@ -1668,9 +1668,12 @@ async function loadAmp(a){
   const p = DEX[a]; if (!p || ampBusy.has(a) || (AMP[a] && Date.now() - AMP[a].t < 300000)) return;
   ampBusy.add(a);
   try {
-    const r = await gt(`/pools/${p.pairAddress}/ohlcv/minute?aggregate=1&limit=60&token=${a}`);
-    const l = (r.data && r.data.attributes && r.data.attributes.ohlcv_list) || [], from = Date.now()/1000 - 3600;
-    let hi = 0, lo = Infinity; for (const x of l){ if (x[0] < from) continue; hi = Math.max(hi, +x[2]); lo = Math.min(lo, +x[3]); }
+    // même chargement que le graphique de la fiche (avec ses solutions de secours : autres pools du token, derniers trades)
+    const hist = { tf: '1h', iv: 60, bars: [], vols: [] };
+    const ok = await loadHist(hist, { src: 'ohlcv', tfr: 'minute', agg: 1, lim: 60, iv: 60 }, a, p, '1h');
+    const from = Date.now()/1000 + TZ() - 3600;
+    let hi = 0, lo = Infinity; for (const b of hist.bars){ if (b.time < from) continue; hi = Math.max(hi, b.high); lo = Math.min(lo, b.low); }
+    if (!ok) throw new Error('historique indisponible');
     AMP[a] = { t: Date.now(), v: hi > 0 && lo > 0 && lo < Infinity ? (hi/lo - 1)*100 : null };
   } catch(e){ AMP[a] = { t: Date.now() - 240000, v: null }; }      // nouvel essai dans une minute
   ampBusy.delete(a);
@@ -3913,7 +3916,9 @@ function ampReal(key){
   const {kind,id} = parse(key), c = kind === 'sol' ? CD[id] : CH[key];
   const arr = c ? (c.bars || c.pts) : null; if (!arr || arr.length < 2) return null;
   const end = arr[arr.length - 1].time, from = end - 3600;
-  if (arr[0].time > from + 600) return null;          // moins de 50 minutes de données : on ne sait pas
+  // token de moins d'une heure : l'amplitude porte sur toute sa vie. Sinon il faut au moins 50 minutes de données.
+  const p = kind === 'sol' ? DEX[id] : null, young = p && p.pairCreatedAt && Date.now() - p.pairCreatedAt < 70*60e3;
+  if (!young && arr[0].time > from + 600) return null;
   let hi = 0, lo = Infinity;
   for (const b of arr){ if (b.time < from) continue; hi = Math.max(hi, b.high ?? b.value); lo = Math.min(lo, b.low ?? b.value); }
   return lo > 0 && hi > 0 ? (hi/lo - 1)*100 : null;
